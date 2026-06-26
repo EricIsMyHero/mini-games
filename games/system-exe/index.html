@@ -367,29 +367,29 @@ html,body {
   <a class="exit-btn" href="../../">🏠 Arcade</a>
 
   <div id="icons">
-    <div class="icon" ondblclick="openApp('documents')">
+    <div class="icon" onclick="openApp('documents')">
       <div class="icon-img">📁</div><div class="icon-label" id="label-documents">Documents</div>
     </div>
-    <div class="icon" ondblclick="openApp('photos')">
+    <div class="icon" onclick="openApp('photos')">
       <div class="icon-img">📁</div><div class="icon-label">Photos</div>
     </div>
-    <div class="icon" ondblclick="openApp('downloads')">
+    <div class="icon" onclick="openApp('downloads')">
       <div class="icon-img">📁</div><div class="icon-label">Downloads</div>
     </div>
-    <div class="icon" ondblclick="openApp('system')">
+    <div class="icon" onclick="openApp('system')">
       <div class="icon-img">📁</div><div class="icon-label">System</div>
     </div>
-    <div class="icon" ondblclick="openApp('mail')">
+    <div class="icon" onclick="openApp('mail')">
       <div class="icon-img">📧</div><div class="icon-label">Mail</div>
       <span class="badge" id="mail-badge">1</span>
     </div>
-    <div class="icon" ondblclick="openApp('recycle')">
+    <div class="icon" onclick="openApp('recycle')">
       <div class="icon-img">🗑️</div><div class="icon-label">Recycle Bin</div>
     </div>
-    <div class="icon" ondblclick="openApp('terminal')">
+    <div class="icon" onclick="openApp('terminal')">
       <div class="icon-img">💻</div><div class="icon-label">Terminal</div>
     </div>
-    <div class="icon" ondblclick="openApp('danger')">
+    <div class="icon" onclick="openApp('danger')">
       <div class="icon-img danger-icon">❌</div><div class="icon-label danger-label">DANGER.TXT</div>
     </div>
   </div>
@@ -940,10 +940,10 @@ function runShowHiddenSequence() {
 }
 function revealHiddenIcons() {
   document.getElementById('hidden-icons').innerHTML = `
-    <div class="icon" ondblclick="openApp('system32')">
+    <div class="icon" onclick="openApp('system32')">
       <div class="icon-img">🔒</div><div class="icon-label">System32</div>
     </div>
-    <div class="icon" ondblclick="alert('Bu qovluq boşdur. Yoxsa boş deyil?')">
+    <div class="icon" onclick="alert('Bu qovluq boşdur. Yoxsa boş deyil?')">
       <div class="icon-img">📁</div><div class="icon-label">.cache</div>
     </div>`;
 }
