@@ -21,6 +21,13 @@
     "status": "live"
   },
   {
+    "id": "system-exe",
+    "title": "System.exe",
+    "emoji": "🖥️",
+    "path": "games/system-exe/",
+    "status": "live"
+  },
+  {
     "id": "tetris",
     "title": "Tetris",
     "emoji": "🧩",
