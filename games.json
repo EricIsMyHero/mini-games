@@ -1,0 +1,44 @@
+[
+  {
+    "id": "snake",
+    "title": "Snake",
+    "emoji": "🐍",
+    "path": "games/snake/",
+    "status": "live"
+  },
+  {
+    "id": "card-battle",
+    "title": "Card Battle",
+    "emoji": "⚔️",
+    "path": "games/card-battle/",
+    "status": "live"
+  },
+  {
+    "id": "boss-chess",
+    "title": "Boss Chess",
+    "emoji": "👑",
+    "path": "games/boss-chess/",
+    "status": "live"
+  },
+  {
+    "id": "tetris",
+    "title": "Tetris",
+    "emoji": "🧩",
+    "path": "games/tetris/",
+    "status": "soon"
+  },
+  {
+    "id": "flappy-bird",
+    "title": "Flappy Bird",
+    "emoji": "🐦",
+    "path": "games/flappy-bird/",
+    "status": "soon"
+  },
+  {
+    "id": "memory-card",
+    "title": "Memory Card",
+    "emoji": "🃏",
+    "path": "games/memory-card/",
+    "status": "soon"
+  }
+]

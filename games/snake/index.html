@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Snake — Əli's Arcade</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <a class="back" href="../../">← Arcade-a qayıt</a>
+
+  <h1>🐍 SNAKE</h1>
+  <div class="hud">
+    <span>XAL: <b id="score">0</b></span>
+    <span>REKORD: <b id="best">0</b></span>
+  </div>
+
+  <div class="stage">
+    <canvas id="board" width="400" height="400"></canvas>
+    <div class="overlay" id="overlay">
+      <h2 id="overlayTitle">OYUN BİTDİ</h2>
+      <p id="overlayMsg"></p>
+      <button id="restartBtn">YENİDƏN BAŞLA</button>
+    </div>
+  </div>
+
+  <p class="hint">Ox düymələri və ya WASD ilə idarə et. Divara və ya öz quyruğuna dəymə.</p>
+
+  <script src="game.js"></script>
+</body>
+</html>
