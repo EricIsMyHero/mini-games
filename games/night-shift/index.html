@@ -1,0 +1,1336 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Night Shift — The Grand Hollow Hotel</title>
+<style>
+/* ============================================================
+   BASE
+   ============================================================ */
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{
+  width:100%;height:100%;overflow:hidden;
+  font-family:'Courier New',Courier,monospace;
+  background:#000;color:#ccc;
+}
+a.exit-btn{
+  position:fixed;top:10px;right:12px;z-index:9999;
+  background:#1a1a1a;border:1px solid #444;color:#aaa;
+  padding:5px 12px;font-size:11px;text-decoration:none;
+  border-radius:3px;letter-spacing:1px;
+}
+a.exit-btn:hover{background:#222;color:#fff;}
+
+/* ============================================================
+   INTRO SCREEN
+   ============================================================ */
+#intro{
+  position:fixed;inset:0;background:#000;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:0;z-index:500;
+}
+#intro .hotel-name{
+  font-size:clamp(11px,2vw,15px);letter-spacing:6px;color:#555;
+  margin-bottom:8px;text-transform:uppercase;
+}
+#intro h1{
+  font-size:clamp(28px,6vw,64px);letter-spacing:3px;color:#e8d5a0;
+  margin-bottom:40px;text-transform:uppercase;
+  text-shadow:0 0 30px rgba(232,213,160,0.3);
+}
+#intro .director-msg{
+  max-width:420px;text-align:center;line-height:1.9;
+  color:#888;font-size:13px;margin-bottom:36px;
+}
+#intro .director-msg em{color:#aaa;font-style:normal;}
+#intro button{
+  background:transparent;border:1px solid #555;color:#aaa;
+  padding:10px 32px;font-size:12px;letter-spacing:3px;cursor:pointer;
+  text-transform:uppercase;font-family:inherit;
+  transition:border-color .2s,color .2s;
+}
+#intro button:hover{border-color:#e8d5a0;color:#e8d5a0;}
+
+/* ============================================================
+   GAME LAYOUT
+   ============================================================ */
+#game{
+  display:none;position:fixed;inset:0;
+  background:#0e0c0a;
+}
+
+/* -- Room canvas (left ~55%) */
+#room-wrap{
+  position:absolute;left:0;top:0;bottom:0;width:58%;
+  display:flex;align-items:center;justify-content:center;
+}
+#room-canvas{
+  width:100%;height:100%;
+  image-rendering:pixelated;
+}
+
+/* -- Right panel */
+#panel{
+  position:absolute;right:0;top:0;bottom:0;width:42%;
+  background:#080706;border-left:1px solid #1e1a14;
+  display:flex;flex-direction:column;padding:14px 14px 10px;
+  gap:10px;
+}
+
+/* HUD */
+#hud{
+  display:flex;flex-direction:column;gap:6px;
+  background:#0c0a07;border:1px solid #1e1a14;padding:10px 12px;
+  border-radius:4px;
+}
+.hud-row{
+  display:flex;align-items:center;justify-content:space-between;
+  font-size:11px;letter-spacing:1px;
+}
+.hud-label{color:#555;text-transform:uppercase;}
+.hud-val{color:#c8b87a;font-weight:bold;}
+#hud-lives{color:#c0392b;font-size:14px;letter-spacing:3px;}
+#hud-score-needed{color:#888;}
+#hud-score-val{color:#e8d5a0;}
+#hunger-bar-wrap{
+  width:100%;height:6px;background:#1a1a1a;border-radius:3px;margin-top:2px;
+}
+#hunger-bar{height:100%;width:100%;background:#5c8a3c;border-radius:3px;transition:width .5s,background .5s;}
+#oxy-bar-wrap{
+  width:100%;height:4px;background:#1a1a1a;border-radius:3px;margin-top:2px;display:none;
+}
+#oxy-bar{height:100%;width:100%;background:#3a7fb5;border-radius:3px;transition:width .5s;}
+
+/* Alert banner */
+#alert{
+  background:#1a0000;border:1px solid #550000;color:#cc3333;
+  padding:7px 10px;font-size:11px;letter-spacing:1px;
+  border-radius:3px;display:none;text-align:center;
+  animation:alertpulse 1s infinite;
+}
+@keyframes alertpulse{0%,100%{opacity:1;}50%{opacity:.6;}}
+
+/* Notification */
+#notif{
+  background:#0a1200;border:1px solid #2a4a10;color:#7fcc3f;
+  padding:7px 10px;font-size:11px;letter-spacing:1px;
+  border-radius:3px;display:none;text-align:center;
+}
+
+/* -- Tetris section */
+#tetris-section{
+  flex:1;display:flex;flex-direction:column;gap:6px;min-height:0;
+}
+#tetris-label{
+  font-size:10px;letter-spacing:2px;color:#444;text-transform:uppercase;
+}
+#tetris-wrap{
+  flex:1;display:flex;align-items:flex-start;justify-content:center;gap:10px;min-height:0;
+}
+#tetris-canvas{
+  border:1px solid #1e1a14;
+  image-rendering:pixelated;background:#05040300;
+}
+#next-wrap{
+  display:flex;flex-direction:column;align-items:center;gap:6px;
+}
+#next-label{font-size:9px;color:#333;letter-spacing:1px;}
+#next-canvas{border:1px solid #1a1814;image-rendering:pixelated;}
+
+/* Tetris controls hint */
+#tkeys{
+  font-size:9px;color:#333;text-align:center;letter-spacing:1px;
+}
+
+/* ============================================================
+   INTERACTIVE OVERLAYS
+   ============================================================ */
+.action-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,0.75);
+  display:none;flex-direction:column;align-items:center;justify-content:center;
+  gap:16px;z-index:300;backdrop-filter:blur(2px);
+}
+.action-overlay.visible{display:flex;}
+.action-title{
+  font-size:clamp(16px,3vw,24px);letter-spacing:4px;color:#e8d5a0;
+  text-transform:uppercase;text-align:center;
+}
+.action-desc{
+  font-size:12px;color:#888;letter-spacing:1px;text-align:center;max-width:320px;line-height:1.7;
+}
+.action-btn{
+  background:transparent;border:1px solid #888;color:#ccc;
+  padding:10px 28px;font-size:12px;letter-spacing:2px;cursor:pointer;
+  text-transform:uppercase;font-family:inherit;
+  transition:border-color .2s,color .2s;
+}
+.action-btn:hover,.action-btn:active{border-color:#e8d5a0;color:#e8d5a0;}
+.action-btn.danger{border-color:#553333;color:#cc4444;}
+.action-btn.danger:hover{border-color:#cc4444;color:#ff5555;}
+
+/* KNOCK TIMER */
+#knock-progress{
+  width:260px;height:6px;background:#1a1a1a;border-radius:3px;overflow:hidden;
+}
+#knock-bar{height:100%;background:#cc3333;border-radius:3px;transition:width .1s linear;}
+
+/* ============================================================
+   JUMPSCARE
+   ============================================================ */
+#jumpscare{
+  position:fixed;inset:0;background:#000;z-index:9000;
+  display:none;align-items:center;justify-content:center;
+  flex-direction:column;gap:10px;
+}
+#jumpscare-text{
+  font-size:clamp(32px,8vw,80px);text-align:center;
+  color:#cc2222;letter-spacing:2px;text-transform:uppercase;
+  animation:scarepulse .15s infinite;
+}
+@keyframes scarepulse{0%{transform:scale(1);}50%{transform:scale(1.04);}}
+#jumpscare-sub{font-size:13px;color:#555;letter-spacing:3px;}
+
+/* ============================================================
+   GAME OVER / WIN
+   ============================================================ */
+#endscreen{
+  position:fixed;inset:0;background:#000;z-index:9001;
+  display:none;flex-direction:column;align-items:center;justify-content:center;
+  gap:14px;
+}
+#end-title{font-size:clamp(22px,5vw,48px);letter-spacing:4px;text-transform:uppercase;}
+#end-sub{font-size:12px;color:#666;letter-spacing:2px;max-width:380px;text-align:center;line-height:1.8;}
+#end-note{font-size:11px;color:#3a3020;letter-spacing:1px;margin-top:10px;font-style:italic;}
+#end-btn{
+  margin-top:10px;background:transparent;border:1px solid #555;color:#aaa;
+  padding:9px 28px;font-size:11px;letter-spacing:3px;cursor:pointer;
+  text-transform:uppercase;font-family:inherit;
+}
+#end-btn:hover{border-color:#e8d5a0;color:#e8d5a0;}
+
+/* ============================================================
+   LORE NOTE OVERLAY
+   ============================================================ */
+#note-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:8000;
+  display:none;align-items:center;justify-content:center;
+}
+#note-paper{
+  background:#f0e8d0;color:#2a2010;width:min(380px,88vw);
+  padding:28px 32px;border-radius:2px;position:relative;
+  box-shadow:0 8px 32px rgba(0,0,0,0.7);
+  font-family:'Courier New',monospace;
+  font-size:13px;line-height:1.8;
+}
+#note-paper h3{
+  font-size:15px;margin-bottom:14px;letter-spacing:1px;
+  border-bottom:1px solid #c0a870;padding-bottom:8px;color:#1a1005;
+}
+#note-paper p{color:#3a2a10;}
+#note-close{
+  position:absolute;top:10px;right:14px;
+  background:transparent;border:none;font-size:18px;cursor:pointer;color:#8a7050;
+}
+#note-close:hover{color:#2a1a00;}
+
+/* ============================================================
+   DARKNESS VIGNETTE
+   ============================================================ */
+#vignette{
+  position:fixed;inset:0;pointer-events:none;z-index:200;
+  background:radial-gradient(ellipse at center,transparent 40%,rgba(0,0,0,0.7) 100%);
+  opacity:0;transition:opacity 1s;
+}
+#curtain-dark{
+  position:fixed;inset:0;pointer-events:none;z-index:199;
+  background:#000;opacity:0;transition:opacity 1.5s;
+}
+
+/* ============================================================
+   HOUR TRANSITION
+   ============================================================ */
+#hour-flash{
+  position:fixed;inset:0;background:#000;z-index:7000;
+  display:none;align-items:center;justify-content:center;
+  flex-direction:column;gap:8px;
+}
+#hour-flash-text{font-size:clamp(18px,4vw,36px);letter-spacing:4px;color:#e8d5a0;text-transform:uppercase;}
+#hour-flash-sub{font-size:12px;color:#555;letter-spacing:2px;}
+</style>
+</head>
+<body>
+
+<a class="exit-btn" href="../../">← ÇIXIŞ</a>
+
+<!-- INTRO -->
+<div id="intro">
+  <div class="hotel-name">The Grand Hollow Hotel</div>
+  <h1>Night Shift</h1>
+  <div class="director-msg">
+    <em>"Bu otelə heç kim gəlmir.<br>İşin sadədir. Səhərə qədər burada qal."</em><br><br>
+    Saat 12:00 AM — 8:00 AM.<br>
+    Tetris oyna. Xal topla. Sağ qal.
+  </div>
+  <button id="start-btn">BAŞLA</button>
+</div>
+
+<!-- GAME -->
+<div id="game">
+  <div id="room-wrap">
+    <canvas id="room-canvas"></canvas>
+  </div>
+  <div id="panel">
+    <!-- HUD -->
+    <div id="hud">
+      <div class="hud-row">
+        <span class="hud-label">SAAT</span>
+        <span class="hud-val" id="hud-time">12:00 AM</span>
+        <span class="hud-label">CAN</span>
+        <span id="hud-lives">❤️❤️❤️</span>
+      </div>
+      <div class="hud-row">
+        <span class="hud-label">XAL</span>
+        <span><span id="hud-score-val">0</span> / <span id="hud-score-needed">100</span></span>
+      </div>
+      <div class="hud-row"><span class="hud-label" style="font-size:10px">ACLIQ</span></div>
+      <div id="hunger-bar-wrap"><div id="hunger-bar"></div></div>
+      <div id="oxy-bar-wrap"><div id="oxy-bar"></div></div>
+    </div>
+
+    <div id="alert">⚠ TƏHLÜKƏ</div>
+    <div id="notif">💻 Delivery has arrived.</div>
+
+    <!-- Tetris -->
+    <div id="tetris-section">
+      <div id="tetris-label">— KOMPÜTER TERMİNALI —</div>
+      <div id="tetris-wrap">
+        <canvas id="tetris-canvas" width="180" height="360"></canvas>
+        <div id="next-wrap">
+          <div id="next-label">NEXT</div>
+          <canvas id="next-canvas" width="60" height="60"></canvas>
+          <div id="tkeys" style="margin-top:8px">← → : hərəkət<br>↑ : fırlat<br>↓ : sür</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CURTAIN / VIGNETTE -->
+<div id="vignette"></div>
+<div id="curtain-dark"></div>
+
+<!-- ACTION OVERLAYS -->
+<!-- WINDOW -->
+<div class="action-overlay" id="overlay-window">
+  <div class="action-title">Pəncərə Kölgəsi</div>
+  <div class="action-desc">Pəncərədə bir kölgə görünür.<br>Pərdəni çəkməyiniz lazımdır.</div>
+  <button class="action-btn" id="btn-curtain">PƏRDƏNİ ÇƏK</button>
+</div>
+
+<!-- DOOR KNOCK -->
+<div class="action-overlay" id="overlay-door">
+  <div class="action-title" id="door-title">Qapı döyülür...</div>
+  <div class="action-desc" id="door-desc">Tez gedin qapını kilidləyin!</div>
+  <div id="knock-progress"><div id="knock-bar" style="width:100%"></div></div>
+  <button class="action-btn danger" id="btn-lock">QAPINI KİLİDLƏ</button>
+  <button class="action-btn" id="btn-open-food" style="display:none">QAPINI AÇ — YEMƏYİ GÖT</button>
+</div>
+
+<!-- VENT -->
+<div class="action-overlay" id="overlay-vent">
+  <div class="action-title">Havalandırma Səsi</div>
+  <div class="action-desc">Sürünmə səsi eşidilir.<br>Ventilyasiyanı bağlayın!</div>
+  <button class="action-btn" id="btn-vent-close">VENTİLYASİYANI BAĞLA</button>
+  <div class="action-desc" id="vent-waiting" style="display:none">Gözləyin... Səs kəsiləcək.</div>
+  <button class="action-btn" id="btn-vent-open" style="display:none">VENTİLYASİYANI AÇ</button>
+</div>
+
+<!-- HOUR TRANSITION -->
+<div id="hour-flash">
+  <div id="hour-flash-text">SAAT 1:00 AM</div>
+  <div id="hour-flash-sub">Yeni hədəf: 200 xal</div>
+</div>
+
+<!-- JUMPSCARE -->
+<div id="jumpscare">
+  <div id="jumpscare-text">!</div>
+  <div id="jumpscare-sub">bir can itirdiniz</div>
+</div>
+
+<!-- LORE NOTE -->
+<div id="note-overlay">
+  <div id="note-paper">
+    <button id="note-close">×</button>
+    <h3 id="note-title">1923 — Qeyd</h3>
+    <p id="note-body">Bu otel heç vaxt boş olmayıb...</p>
+  </div>
+</div>
+
+<!-- END SCREEN -->
+<div id="endscreen">
+  <div id="end-title" style="color:#e8d5a0">SEHƏRƏ ÇIXDINIZ</div>
+  <div id="end-sub">Telefon zəng çalır.<br>Müdir deyir: "Təbrik edirəm. Sən də əvvəlkilər kimi sağ qaldın."</div>
+  <div id="end-note">Tomorrow. 12:00 AM.</div>
+  <button id="end-btn">YENİDƏN OYNA</button>
+</div>
+
+<script>
+/* ============================================================
+   CONSTANTS
+   ============================================================ */
+const HOURS = [
+  {label:'12:00 AM', goal:100},
+  {label:'1:00 AM',  goal:200},
+  {label:'2:00 AM',  goal:300},
+  {label:'3:00 AM',  goal:400},
+  {label:'4:00 AM',  goal:500},
+  {label:'5:00 AM',  goal:600},
+  {label:'6:00 AM',  goal:700},
+  {label:'7:00 AM',  goal:800},
+];
+const HOUR_DURATION = 90000; // 90s real time per hour
+const LORE_NOTES = [
+  {title:'1923 — Menecer Qeydi', body:'Bu otel 1923-cü ildə açıldı. İlk gecədən bir şeylər düzgün deyildi. Qapı 303 heç vaxt açılmadı.'},
+  {title:'1941 — Qonaq Dəftəri', body:'Son qonaq 1941-ci ildə qeydiyyatdan keçdi. İkinci günd otağı boş tapıldı. Əşyaları hələ də orada idi.'},
+  {title:'1958 — Mühəndis Hesabatı', body:'Havalandırma sistemi yeniləndi. Texnik işçilər "sürünmə səsləri" şikayət etdi. Bir nəfər işi tərk etdi.'},
+  {title:'1979 — Gecə Növbəsi Qeydi', body:'Əvvəlki növbəçi yazmışdı: Heç vaxt pəncərəyə baxma. Pərdəni həmişə çəkili saxla.'},
+  {title:'1995 — Sahibin Məktubu', body:'Bu oteli satmaq istəyirik. Alıcılar tapılmır. Hamı ilk gecəni görəndən sonra geri qayıdır.'},
+  {title:'2003 — Naməlum', body:'Otelin planı burada qoydum. 303 saylı otaq... planlarda yoxdur.'},
+  {title:'2018 — Sonuncu Qeyd', body:'Maaş ödənilir. Sistem avtomatikdir. Orada olmaq kifayətdir. Sual vermə.'},
+  {title:'Bu Gecə', body:'Sən bu qeydləri oxuya bilirsən. Deməli sağ qaldın. Sabah yenə gəl.'},
+];
+
+/* ============================================================
+   STATE
+   ============================================================ */
+let G = {
+  lives: 3,
+  hour: 0,
+  score: 0,
+  hunger: 100,      // 0-100
+  oxygen: 100,      // 0-100
+  curtainClosed: false,
+  ventClosed: false,
+  doorLocked: false,
+  darkLevel: 0,     // 0-1 (curtain closed = more dark)
+  oxyActive: false, // vent closed too long
+  hourTimer: 0,
+  danger: 0,        // 0-100 danger accumulator
+  running: false,
+  paused: false,
+  loreUnlocked: 0,
+  lastLoreHour: -1,
+  monsterPhase: 'idle', // idle | window | door | vent | food
+  monsterTimer: 0,
+  knockCount: 0,
+  knockTimer: 0,
+  isRealFood: false,
+  ventWaiting: false,
+  ventCrawlTimer: 0,
+  nightOver: false,
+  dead: false,
+  tetrisScore: 0,
+};
+
+/* ============================================================
+   ROOM CANVAS RENDERER
+   ============================================================ */
+const roomCanvas = document.getElementById('room-canvas');
+const rctx = roomCanvas.getContext('2d');
+
+function resizeRoom(){
+  const wrap = document.getElementById('room-wrap');
+  const w = wrap.clientWidth;
+  const h = wrap.clientHeight;
+  roomCanvas.width = w;
+  roomCanvas.height = h;
+}
+
+// Simple pixel-art style room drawn with canvas
+function drawRoom(){
+  const W = roomCanvas.width, H = roomCanvas.height;
+  const rctx2 = rctx;
+
+  // Background wall
+  rctx2.fillStyle = G.darkLevel > 0.7 ? '#050402' : '#140f0a';
+  rctx2.fillRect(0,0,W,H);
+
+  // Floor
+  const floorY = H*0.72;
+  const floorColor = lerpColor('#1a120b','#0a0806', G.darkLevel);
+  rctx2.fillStyle = floorColor;
+  rctx2.fillRect(0,floorY,W,H-floorY);
+
+  // Ceiling
+  rctx2.fillStyle = lerpColor('#110d08','#060402',G.darkLevel);
+  rctx2.fillRect(0,0,W,H*0.1);
+
+  // ----- BACK WALL: Door (center) -----
+  const doorW = W*0.18, doorH = H*0.45;
+  const doorX = W*0.5 - doorW/2, doorY = floorY - doorH;
+
+  // Door frame
+  rctx2.fillStyle = lerpColor('#2a1f14','#0d0b08',G.darkLevel);
+  rctx2.fillRect(doorX-6, doorY-6, doorW+12, doorH+6);
+
+  // Door surface
+  const doorSurface = G.doorLocked ? '#1a0f08' : lerpColor('#231809','#0d0a06',G.darkLevel);
+  rctx2.fillStyle = doorSurface;
+  rctx2.fillRect(doorX, doorY, doorW, doorH);
+
+  // Door panels
+  rctx2.strokeStyle = lerpColor('#3a2a1a','#161008',G.darkLevel);
+  rctx2.lineWidth = 1.5;
+  rctx2.strokeRect(doorX+doorW*0.12, doorY+doorH*0.06, doorW*0.76, doorH*0.4);
+  rctx2.strokeRect(doorX+doorW*0.12, doorY+doorH*0.54, doorW*0.76, doorH*0.38);
+
+  // Door knob
+  rctx2.fillStyle = G.doorLocked ? '#c0a030' : '#5a4520';
+  rctx2.beginPath();
+  rctx2.arc(doorX + doorW*0.82, doorY + doorH*0.55, doorW*0.05, 0, Math.PI*2);
+  rctx2.fill();
+
+  // Lock icon
+  if(G.doorLocked){
+    rctx2.fillStyle='#c0a030';rctx2.font=`${Math.floor(W*0.025)}px monospace`;
+    rctx2.textAlign='center';
+    rctx2.fillText('🔒', doorX+doorW*0.5, doorY+doorH*0.95);
+  }
+
+  // ----- VENT (top-right of door) -----
+  const ventX = doorX + doorW + W*0.04;
+  const ventY = doorY;
+  const ventW = W*0.09, ventH = H*0.07;
+  rctx2.fillStyle = lerpColor('#1e1510','#090704',G.darkLevel);
+  rctx2.fillRect(ventX, ventY, ventW, ventH);
+  // Vent grille
+  if(!G.ventClosed){
+    rctx2.strokeStyle = lerpColor('#2d2015','#0e0b07',G.darkLevel);
+    rctx2.lineWidth=1;
+    for(let i=1;i<4;i++){
+      rctx2.beginPath();rctx2.moveTo(ventX+ventW*i/4,ventY);
+      rctx2.lineTo(ventX+ventW*i/4,ventY+ventH);rctx2.stroke();
+    }
+  } else {
+    rctx2.fillStyle='#0a0a0a';
+    rctx2.fillRect(ventX+2,ventY+2,ventW-4,ventH-4);
+    rctx2.fillStyle='#333';rctx2.font=`${Math.floor(ventH*0.6)}px monospace`;
+    rctx2.textAlign='center';
+    rctx2.fillText('✕',ventX+ventW/2,ventY+ventH*0.8);
+  }
+  // Vent label
+  rctx2.fillStyle='#2a2018';rctx2.font=`${Math.floor(W*0.014)}px monospace`;
+  rctx2.textAlign='center';
+  rctx2.fillText('VENT',ventX+ventW/2,ventY+ventH+14);
+
+  // ----- LEFT WALL: Window -----
+  const winX = W*0.08, winY = H*0.22;
+  const winW = W*0.16, winH = H*0.28;
+
+  // Window frame
+  rctx2.fillStyle = lerpColor('#2a1f14','#0d0b08',G.darkLevel);
+  rctx2.fillRect(winX-5,winY-5,winW+10,winH+10);
+
+  if(G.curtainClosed){
+    // Curtain
+    rctx2.fillStyle = lerpColor('#3a1a0a','#1a0a04',G.darkLevel);
+    rctx2.fillRect(winX,winY,winW,winH);
+    rctx2.fillStyle='#2a1206';
+    rctx2.fillRect(winX,winY,winW*0.1,winH);
+    rctx2.fillRect(winX+winW*0.9,winY,winW*0.1,winH);
+  } else {
+    // Night outside
+    rctx2.fillStyle='#030508';
+    rctx2.fillRect(winX,winY,winW,winH);
+    // Stars
+    rctx2.fillStyle='rgba(255,255,240,0.6)';
+    [[0.2,0.15],[0.7,0.1],[0.5,0.3],[0.85,0.2],[0.4,0.6],[0.1,0.7],[0.9,0.8]].forEach(([sx,sy])=>{
+      rctx2.fillRect(winX+sx*winW,winY+sy*winH,1,1);
+    });
+    // Shadow monster at window
+    if(G.monsterPhase==='window'){
+      const alpha = Math.min(1,(1-G.monsterTimer/8000)*2);
+      rctx2.fillStyle=`rgba(5,5,15,${alpha*0.95})`;
+      rctx2.fillRect(winX,winY,winW,winH);
+      rctx2.fillStyle=`rgba(180,0,0,${alpha*0.4})`;
+      // Eyes
+      rctx2.beginPath();rctx2.arc(winX+winW*0.35,winY+winH*0.4,winW*0.07,0,Math.PI*2);rctx2.fill();
+      rctx2.beginPath();rctx2.arc(winX+winW*0.65,winY+winH*0.4,winW*0.07,0,Math.PI*2);rctx2.fill();
+    }
+  }
+  // Window cross bar
+  rctx2.strokeStyle = lerpColor('#3a2a1a','#161008',G.darkLevel);
+  rctx2.lineWidth=2;
+  rctx2.beginPath();rctx2.moveTo(winX+winW/2,winY);rctx2.lineTo(winX+winW/2,winY+winH);rctx2.stroke();
+  rctx2.beginPath();rctx2.moveTo(winX,winY+winH/2);rctx2.lineTo(winX+winW,winY+winH/2);rctx2.stroke();
+
+  // ----- DESK -----
+  const deskY = floorY - H*0.18;
+  const deskX = W*0.06, deskW = W*0.38, deskH = H*0.06;
+  rctx2.fillStyle = lerpColor('#2c1e10','#130d06',G.darkLevel);
+  rctx2.fillRect(deskX, deskY, deskW, deskH);
+  // Legs
+  rctx2.fillRect(deskX+4,deskY+deskH,6,H*0.12);
+  rctx2.fillRect(deskX+deskW-10,deskY+deskH,6,H*0.12);
+
+  // CRT Monitor on desk
+  const monX = deskX+deskW*0.04, monY = deskY - H*0.21;
+  const monW = deskW*0.35, monH = H*0.2;
+  rctx2.fillStyle = lerpColor('#1e1a14','#0a0908',G.darkLevel);
+  rctx2.fillRect(monX, monY, monW, monH);
+  // Screen glow
+  const screenGlow = '#0d2010';
+  rctx2.fillStyle = screenGlow;
+  rctx2.fillRect(monX+monW*0.06, monY+monH*0.08, monW*0.88, monH*0.76);
+  // Green text lines on monitor
+  rctx2.fillStyle = 'rgba(50,200,80,0.7)';
+  rctx2.font=`${Math.floor(monW*0.08)}px monospace`;
+  rctx2.textAlign='left';
+  ['TETRIS v2.1','SCORE:'+G.tetrisScore,'','> PLAYING_'].forEach((l,i)=>{
+    rctx2.fillText(l, monX+monW*0.09, monY+monH*0.22+i*monH*0.18);
+  });
+  // Monitor base
+  rctx2.fillStyle=lerpColor('#1a1510','#080706',G.darkLevel);
+  rctx2.fillRect(monX+monW*0.3,monY+monH,monW*0.4,H*0.03);
+
+  // Desk items: coffee, papers
+  const lampX = deskX+deskW*0.65;
+  const lampY = deskY - H*0.18;
+  // Lamp base
+  rctx2.fillStyle=lerpColor('#2a2010','#0d0a06',G.darkLevel);
+  rctx2.fillRect(lampX,deskY,8,4);
+  rctx2.fillRect(lampX+1,lampY,6,deskY-lampY);
+  // Lamp shade
+  rctx2.fillStyle=lerpColor('#c8a040','#4a3a10',G.darkLevel);
+  rctx2.beginPath();
+  rctx2.moveTo(lampX-14,lampY+20);rctx2.lineTo(lampX+22,lampY+20);
+  rctx2.lineTo(lampX+14,lampY);rctx2.lineTo(lampX-6,lampY);
+  rctx2.closePath();rctx2.fill();
+  // Lamp cone light
+  if(G.darkLevel < 0.8){
+    const lgrad = rctx2.createRadialGradient(lampX+4,deskY,5,lampX+4,deskY,H*0.25);
+    lgrad.addColorStop(0,`rgba(200,160,50,${0.08*(1-G.darkLevel)})`)
+    lgrad.addColorStop(1,'rgba(200,160,50,0)');
+    rctx2.fillStyle=lgrad;
+    rctx2.fillRect(deskX,deskY-H*0.15,deskW,H*0.22);
+  }
+
+  // Papers on desk
+  rctx2.fillStyle=lerpColor('#d0c8b0','#2a2518',G.darkLevel);
+  rctx2.fillRect(deskX+deskW*0.5,deskY-2,deskW*0.16,H*0.03);
+  rctx2.fillRect(deskX+deskW*0.66,deskY-4,deskW*0.14,H*0.025);
+
+  // Coffee cup
+  rctx2.fillStyle=lerpColor('#3a3028','#151210',G.darkLevel);
+  rctx2.fillRect(deskX+deskW*0.84,deskY-H*0.05,deskW*0.08,H*0.04);
+  rctx2.strokeStyle=lerpColor('#4a4038','#1a1812',G.darkLevel);
+  rctx2.lineWidth=1;
+  rctx2.strokeRect(deskX+deskW*0.84,deskY-H*0.05,deskW*0.08,H*0.04);
+
+  // Clock on wall
+  const clkX=W*0.82,clkY=H*0.25,clkR=W*0.04;
+  rctx2.fillStyle=lerpColor('#1e1a14','#0a0908',G.darkLevel);
+  rctx2.beginPath();rctx2.arc(clkX,clkY,clkR,0,Math.PI*2);rctx2.fill();
+  rctx2.strokeStyle=lerpColor('#3a3020','#14120c',G.darkLevel);
+  rctx2.lineWidth=2;
+  rctx2.beginPath();rctx2.arc(clkX,clkY,clkR,0,Math.PI*2);rctx2.stroke();
+  // Clock hands
+  const now = HOURS[G.hour];
+  const hAngle = -Math.PI/2 + (G.hour/8)*Math.PI*2;
+  rctx2.strokeStyle=lerpColor('#c8b870','#504830',G.darkLevel);
+  rctx2.lineWidth=2;
+  rctx2.beginPath();rctx2.moveTo(clkX,clkY);
+  rctx2.lineTo(clkX+Math.cos(hAngle)*clkR*0.55,clkY+Math.sin(hAngle)*clkR*0.55);
+  rctx2.stroke();
+
+  // Atmospheric scan line
+  rctx2.fillStyle=`rgba(0,0,0,${G.darkLevel*0.4})`;
+  rctx2.fillRect(0,0,W,H);
+
+  // Vent clickable hint
+  if(G.monsterPhase==='vent'){
+    rctx2.strokeStyle='rgba(200,50,50,0.5)';
+    rctx2.lineWidth=2;
+    rctx2.strokeRect(ventX-2,ventY-2,ventW+4,ventH+4);
+  }
+  if(G.monsterPhase==='window' && !G.curtainClosed){
+    rctx2.strokeStyle='rgba(200,50,50,0.5)';
+    rctx2.lineWidth=2;
+    rctx2.strokeRect(winX-2,winY-2,winW+4,winH+4);
+  }
+}
+
+function lerpColor(hex1,hex2,t){
+  const p1=parseInt(hex1.replace('#',''),16);
+  const p2=parseInt(hex2.replace('#',''),16);
+  const r=Math.round(((p1>>16)&0xff)*(1-t)+((p2>>16)&0xff)*t);
+  const g=Math.round(((p1>>8)&0xff)*(1-t)+((p2>>8)&0xff)*t);
+  const b=Math.round((p1&0xff)*(1-t)+(p2&0xff)*t);
+  return `rgb(${r},${g},${b})`;
+}
+
+/* ============================================================
+   TETRIS
+   ============================================================ */
+const tc = document.getElementById('tetris-canvas');
+const tctx = tc.getContext('2d');
+const nc = document.getElementById('next-canvas');
+const nctx = nc.getContext('2d');
+const COLS=9,ROWS=18,CS=tc.width/COLS;
+
+const PIECES=[
+  [[1,1,1,1]],
+  [[1,1],[1,1]],
+  [[0,1,0],[1,1,1]],
+  [[1,0,0],[1,1,1]],
+  [[0,0,1],[1,1,1]],
+  [[0,1,1],[1,1,0]],
+  [[1,1,0],[0,1,1]],
+];
+const COLORS=['#00c8c8','#c8c800','#c850c8','#c87800','#1e6ec8','#00c850','#c83200'];
+
+let tetState={
+  board:null,
+  piece:null,
+  next:null,
+  x:0,y:0,
+  drop:0,
+  dropInterval:800,
+  score:0,
+  active:false,
+};
+
+function newBoard(){return Array.from({length:ROWS},()=>Array(COLS).fill(0));}
+function randPiece(){
+  const i=Math.floor(Math.random()*PIECES.length);
+  return {shape:PIECES[i],color:COLORS[i]};
+}
+function initTetris(){
+  tetState.board=newBoard();
+  tetState.next=randPiece();
+  spawnPiece();
+  tetState.score=0;
+  tetState.active=true;
+  tetState.dropInterval=800;
+  tetState.drop=0;
+}
+function spawnPiece(){
+  tetState.piece=tetState.next;
+  tetState.next=randPiece();
+  tetState.x=Math.floor((COLS-tetState.piece.shape[0].length)/2);
+  tetState.y=0;
+  if(collide(tetState.board,tetState.piece.shape,tetState.x,tetState.y)){
+    // board full — reset
+    tetState.board=newBoard();
+  }
+}
+function collide(board,shape,ox,oy){
+  for(let r=0;r<shape.length;r++){
+    for(let c=0;c<shape[r].length;c++){
+      if(!shape[r][c]) continue;
+      const nr=oy+r,nc2=ox+c;
+      if(nr>=ROWS||nc2<0||nc2>=COLS||board[nr]?.[nc2]) return true;
+    }
+  }
+  return false;
+}
+function rotate(shape){
+  return shape[0].map((_,i)=>shape.map(row=>row[i]).reverse());
+}
+function lock(){
+  const {board,piece,x,y}=tetState;
+  piece.shape.forEach((row,r)=>{
+    row.forEach((v,c)=>{
+      if(v) board[y+r][x+c]=piece.color;
+    });
+  });
+  clearLines();
+  spawnPiece();
+}
+function clearLines(){
+  let cleared=0;
+  for(let r=ROWS-1;r>=0;r--){
+    if(tetState.board[r].every(c=>c)){
+      tetState.board.splice(r,1);
+      tetState.board.unshift(Array(COLS).fill(0));
+      cleared++;r++;
+    }
+  }
+  if(cleared){
+    const pts=[0,100,300,500,800][cleared]||800;
+    tetState.score+=pts;
+    G.score+=pts;
+    G.tetrisScore=G.score;
+    updateHUD();
+  }
+}
+function tetDrop(dt){
+  if(!tetState.active||G.paused) return;
+  tetState.drop+=dt;
+  if(tetState.drop>tetState.dropInterval){
+    tetState.drop=0;
+    if(!collide(tetState.board,tetState.piece.shape,tetState.x,tetState.y+1)){
+      tetState.y++;
+    } else {
+      lock();
+    }
+    // speed up as night progresses
+    tetState.dropInterval=Math.max(200,800-(G.hour*60));
+  }
+}
+function drawTetris(){
+  tctx.fillStyle='#05040300';
+  tctx.clearRect(0,0,tc.width,tc.height);
+  tctx.fillStyle='#060503';
+  tctx.fillRect(0,0,tc.width,tc.height);
+
+  // Grid lines
+  tctx.strokeStyle='rgba(255,255,255,0.03)';
+  tctx.lineWidth=0.5;
+  for(let r=0;r<ROWS;r++){tctx.beginPath();tctx.moveTo(0,r*CS);tctx.lineTo(tc.width,r*CS);tctx.stroke();}
+  for(let c=0;c<COLS;c++){tctx.beginPath();tctx.moveTo(c*CS,0);tctx.lineTo(c*CS,tc.height);tctx.stroke();}
+
+  // Board
+  tetState.board.forEach((row,r)=>{
+    row.forEach((col,c)=>{
+      if(col){
+        tctx.fillStyle=col;
+        tctx.fillRect(c*CS+1,r*CS+1,CS-2,CS-2);
+      }
+    });
+  });
+
+  // Active piece
+  if(tetState.piece){
+    tctx.fillStyle=tetState.piece.color;
+    tetState.piece.shape.forEach((row,r)=>{
+      row.forEach((v,c)=>{
+        if(v) tctx.fillRect((tetState.x+c)*CS+1,(tetState.y+r)*CS+1,CS-2,CS-2);
+      });
+    });
+    // Ghost
+    let ghostY=tetState.y;
+    while(!collide(tetState.board,tetState.piece.shape,tetState.x,ghostY+1)) ghostY++;
+    if(ghostY!==tetState.y){
+      tctx.fillStyle=tetState.piece.color.replace(')',',0.18)').replace('rgb','rgba');
+      tetState.piece.shape.forEach((row,r)=>{
+        row.forEach((v,c)=>{
+          if(v) tctx.fillRect((tetState.x+c)*CS+1,(ghostY+r)*CS+1,CS-2,CS-2);
+        });
+      });
+    }
+  }
+  // Next piece
+  nctx.clearRect(0,0,nc.width,nc.height);
+  nctx.fillStyle='#060503';
+  nctx.fillRect(0,0,nc.width,nc.height);
+  if(tetState.next){
+    const ns=tetState.next.shape;
+    const ncs=nc.width/5;
+    const offX=Math.floor((5-ns[0].length)/2);
+    const offY=Math.floor((5-ns.length)/2);
+    nctx.fillStyle=tetState.next.color;
+    ns.forEach((row,r)=>{
+      row.forEach((v,c)=>{
+        if(v) nctx.fillRect((offX+c)*ncs+1,(offY+r)*ncs+1,ncs-2,ncs-2);
+      });
+    });
+  }
+}
+
+/* key input */
+document.addEventListener('keydown',e=>{
+  if(!G.running||G.paused) return;
+  const p=tetState.piece;
+  if(!p) return;
+  if(e.key==='ArrowLeft'){
+    if(!collide(tetState.board,p.shape,tetState.x-1,tetState.y)) tetState.x--;
+  } else if(e.key==='ArrowRight'){
+    if(!collide(tetState.board,p.shape,tetState.x+1,tetState.y)) tetState.x++;
+  } else if(e.key==='ArrowDown'){
+    if(!collide(tetState.board,p.shape,tetState.x,tetState.y+1)) tetState.y++;
+    else lock();
+  } else if(e.key==='ArrowUp'){
+    const rot=rotate(p.shape);
+    if(!collide(tetState.board,rot,tetState.x,tetState.y)) p.shape=rot;
+  } else if(e.key===' '){
+    // hard drop
+    while(!collide(tetState.board,p.shape,tetState.x,tetState.y+1)) tetState.y++;
+    lock();
+    e.preventDefault();
+  }
+  e.preventDefault();
+});
+
+/* ============================================================
+   HUD UPDATE
+   ============================================================ */
+function updateHUD(){
+  const h=HOURS[G.hour];
+  document.getElementById('hud-time').textContent=h.label;
+  document.getElementById('hud-lives').textContent='❤️'.repeat(G.lives)+'🖤'.repeat(3-G.lives);
+  document.getElementById('hud-score-val').textContent=G.score;
+  document.getElementById('hud-score-needed').textContent=h.goal;
+
+  const hungerBar=document.getElementById('hunger-bar');
+  hungerBar.style.width=G.hunger+'%';
+  hungerBar.style.background=G.hunger>60?'#5c8a3c':G.hunger>30?'#c88020':'#c83030';
+
+  const oxyWrap=document.getElementById('oxy-bar-wrap');
+  if(G.oxyActive){
+    oxyWrap.style.display='block';
+    document.getElementById('oxy-bar').style.width=G.oxygen+'%';
+  } else {
+    oxyWrap.style.display='none';
+  }
+}
+
+/* ============================================================
+   MONSTER SYSTEM
+   ============================================================ */
+function maybeSpawnMonster(){
+  if(G.monsterPhase!=='idle') return;
+  // Danger builds from: low score pace, hunger, darkness
+  const hourProgress = (HOUR_DURATION - G.hourTimer) / HOUR_DURATION;
+  const scorePace = G.score / (HOURS[G.hour].goal||1);
+  G.danger += (0.004 + (1-scorePace)*0.008 + (G.hunger<40?0.005:0) + (G.hour>4?0.004:0));
+  G.danger = Math.min(G.danger,100);
+
+  if(G.danger > 25 + Math.random()*30){
+    G.danger = 0;
+    pickMonsterEvent();
+  }
+}
+
+function pickMonsterEvent(){
+  const roll = Math.random();
+  if(roll < 0.35) startWindowEvent();
+  else if(roll < 0.65) startDoorEvent();
+  else startVentEvent();
+}
+
+/* --- Window event --- */
+function startWindowEvent(){
+  if(G.curtainClosed){
+    // curtain is closed — monster just walks by, sound
+    showAlert('Kənar səs...');
+    setTimeout(clearAlert,3000);
+    return;
+  }
+  G.monsterPhase='window';
+  G.monsterTimer=8000; // 8 seconds
+  showOverlay('overlay-window');
+  showAlert('PƏNCƏRƏDƏ KÖLGƏ!');
+}
+
+function resolveWindow(survived){
+  hideOverlay('overlay-window');
+  clearAlert();
+  if(survived){
+    G.monsterPhase='idle';
+    // darkness effect
+    G.darkLevel=Math.min(1,G.darkLevel+0.2);
+    updateDarkness();
+    setTimeout(()=>{
+      G.darkLevel=Math.max(0,G.darkLevel-0.2);
+      updateDarkness();
+    },5000);
+  } else {
+    triggerJumpscare('Pəncərəni gördü!');
+  }
+}
+
+/* --- Door event --- */
+let knockInterval=null;
+function startDoorEvent(){
+  G.monsterPhase='door';
+  G.knockCount=0;
+  G.knockTimer=8000; // 8s to lock
+  const isFood = G.hunger < 50 && Math.random()<0.4;
+  G.isRealFood = isFood;
+
+  const lockBtn=document.getElementById('btn-lock');
+  const foodBtn=document.getElementById('btn-open-food');
+  const title=document.getElementById('door-title');
+  const desc=document.getElementById('door-desc');
+
+  if(isFood){
+    // Might be food — player must judge
+    // Real food: notification sent before knock
+    if(Math.random()<0.65){
+      // Real food
+      G.isRealFood=true;
+      document.getElementById('notif').style.display='block';
+      setTimeout(()=>document.getElementById('notif').style.display='none',3000);
+      title.textContent='Qapı döyülür...';
+      desc.textContent='Bildiriş gəldi — yemək ola bilər. Qərar ver!';
+      lockBtn.style.display='block';
+      foodBtn.style.display='block';
+    } else {
+      // Fake food (monster)
+      G.isRealFood=false;
+      title.textContent='Qapı döyülür...';
+      desc.textContent='Bildiriş yoxdur — ehtiyatlı ol!';
+      lockBtn.style.display='block';
+      foodBtn.style.display='block';
+    }
+  } else {
+    lockBtn.style.display='block';
+    foodBtn.style.display='none';
+    title.textContent='Qapı döyülür!';
+    desc.textContent='Tez gedin qapını kilidləyin!';
+  }
+
+  showOverlay('overlay-door');
+  showAlert('QAPINI KİLİDLƏ!');
+  startKnockBar();
+}
+
+function startKnockBar(){
+  const bar=document.getElementById('knock-bar');
+  G.knockTimer=8000;
+  clearInterval(knockInterval);
+  knockInterval=setInterval(()=>{
+    if(G.knockTimer<=0){
+      clearInterval(knockInterval);
+      resolveDoor(false);
+      return;
+    }
+    G.knockTimer-=100;
+    bar.style.width=(G.knockTimer/8000*100)+'%';
+  },100);
+}
+
+function resolveDoor(survived, ateFood){
+  clearInterval(knockInterval);
+  hideOverlay('overlay-door');
+  clearAlert();
+  if(survived){
+    G.monsterPhase='idle';
+    if(ateFood){
+      G.hunger=Math.min(100,G.hunger+40);
+      updateHUD();
+    }
+  } else {
+    triggerJumpscare('Qapını açdı!');
+  }
+}
+
+/* --- Vent event --- */
+let ventTimeout=null;
+function startVentEvent(){
+  G.monsterPhase='vent';
+  G.ventCrawlTimer=6000;
+  const closeBtn=document.getElementById('btn-vent-close');
+  const waitDiv=document.getElementById('vent-waiting');
+  const openBtn=document.getElementById('btn-vent-open');
+  closeBtn.style.display='block';
+  waitDiv.style.display='none';
+  openBtn.style.display='none';
+  showOverlay('overlay-vent');
+  showAlert('HAVALANDIRMADAN SƏS!');
+}
+
+/* ============================================================
+   JUMPSCARE / LIFE LOSS
+   ============================================================ */
+function triggerJumpscare(msg){
+  G.paused=true;
+  G.monsterPhase='idle';
+  hideAllOverlays();
+  clearAlert();
+  G.lives--;
+  updateHUD();
+  const js=document.getElementById('jumpscare');
+  document.getElementById('jumpscare-text').textContent='!';
+  document.getElementById('jumpscare-sub').textContent='bir can itirdiniz — '+msg;
+  js.style.display='flex';
+  // Flash
+  let flashes=0;
+  const fi=setInterval(()=>{
+    js.style.background=flashes%2===0?'#200000':'#000';
+    flashes++;
+    if(flashes>6){clearInterval(fi);}
+  },80);
+  setTimeout(()=>{
+    js.style.display='none';
+    js.style.background='#000';
+    if(G.lives<=0){
+      gameOver();
+    } else {
+      G.paused=false;
+    }
+  },1500);
+}
+
+/* ============================================================
+   HOUR SYSTEM
+   ============================================================ */
+function checkHourEnd(){
+  if(G.hourTimer>0) return;
+  // Time's up for this hour
+  if(G.score < HOURS[G.hour].goal){
+    // Missed quota
+    triggerJumpscare(`${HOURS[G.hour].label} xalı tamamlanmadı!`);
+    G.hour = Math.min(G.hour+1, HOURS.length-1);
+    setTimeout(()=>showHourTransition(),2000);
+    return;
+  }
+  G.hour++;
+  if(G.hour>=HOURS.length){
+    winGame();
+    return;
+  }
+  showHourTransition();
+  maybeShowLore();
+}
+
+function showHourTransition(){
+  if(G.nightOver) return;
+  G.paused=true;
+  const fl=document.getElementById('hour-flash');
+  const h=HOURS[G.hour];
+  document.getElementById('hour-flash-text').textContent=h.label;
+  document.getElementById('hour-flash-sub').textContent=`Yeni hədəf: ${h.goal} xal`;
+  fl.style.display='flex';
+  // Hunger decreases each hour
+  G.hunger=Math.max(0,G.hunger-15);
+  updateHUD();
+  setTimeout(()=>{
+    fl.style.display='none';
+    G.hourTimer=HOUR_DURATION;
+    G.paused=false;
+  },2200);
+}
+
+function maybeShowLore(){
+  if(G.loreUnlocked<LORE_NOTES.length && G.hour>G.lastLoreHour){
+    G.lastLoreHour=G.hour;
+    const note=LORE_NOTES[G.loreUnlocked];
+    G.loreUnlocked++;
+    setTimeout(()=>showNote(note),3000);
+  }
+}
+
+function showNote(note){
+  G.paused=true;
+  document.getElementById('note-title').textContent=note.title;
+  document.getElementById('note-body').textContent=note.body;
+  document.getElementById('note-overlay').style.display='flex';
+}
+document.getElementById('note-close').onclick=()=>{
+  document.getElementById('note-overlay').style.display='none';
+  G.paused=false;
+};
+
+/* ============================================================
+   GAME OVER / WIN
+   ============================================================ */
+function gameOver(){
+  G.running=false;
+  G.nightOver=true;
+  document.getElementById('endscreen').style.display='flex';
+  document.getElementById('end-title').textContent='ÖLDÜNÜZ';
+  document.getElementById('end-title').style.color='#c03030';
+  document.getElementById('end-sub').textContent='Canavar qalib gəldi. The Grand Hollow Hotel özünün yeni sirrini qoruyur.';
+  document.getElementById('end-note').textContent='— '+HOURS[G.hour].label+' —';
+}
+
+function winGame(){
+  G.running=false;
+  G.nightOver=true;
+  document.getElementById('endscreen').style.display='flex';
+  document.getElementById('end-title').textContent='SƏHƏRƏ ÇIXDINIZ';
+  document.getElementById('end-title').style.color='#e8d5a0';
+  document.getElementById('end-sub').textContent='Telefon zəng çalır. Müdir deyir: "Təbrik edirəm. Sən də əvvəlkilər kimi sağ qaldın."';
+  document.getElementById('end-note').textContent='Tomorrow. 12:00 AM.';
+}
+
+document.getElementById('end-btn').onclick=()=>{
+  document.getElementById('endscreen').style.display='none';
+  resetGame();
+};
+
+/* ============================================================
+   DARKNESS
+   ============================================================ */
+function updateDarkness(){
+  document.getElementById('vignette').style.opacity=G.darkLevel*0.7;
+  document.getElementById('curtain-dark').style.opacity=G.darkLevel*0.5;
+}
+
+/* ============================================================
+   ALERT / NOTIF
+   ============================================================ */
+function showAlert(msg){
+  const el=document.getElementById('alert');
+  el.textContent='⚠ '+msg;
+  el.style.display='block';
+}
+function clearAlert(){
+  document.getElementById('alert').style.display='none';
+}
+
+/* ============================================================
+   OVERLAYS
+   ============================================================ */
+function showOverlay(id){
+  G.paused=true;
+  document.getElementById(id).classList.add('visible');
+}
+function hideOverlay(id){
+  document.getElementById(id).classList.remove('visible');
+  // unpause only if no other overlay visible
+  if(!document.querySelector('.action-overlay.visible')) G.paused=false;
+}
+function hideAllOverlays(){
+  document.querySelectorAll('.action-overlay').forEach(o=>o.classList.remove('visible'));
+  G.paused=false;
+}
+
+/* Overlay buttons */
+document.getElementById('btn-curtain').onclick=()=>{
+  if(G.monsterPhase==='window'){
+    resolveWindow(true);
+  }
+};
+document.getElementById('btn-lock').onclick=()=>{
+  clearInterval(knockInterval);
+  resolveDoor(true,false);
+};
+document.getElementById('btn-open-food').onclick=()=>{
+  clearInterval(knockInterval);
+  if(G.isRealFood){
+    resolveDoor(true,true);
+  } else {
+    resolveDoor(false);
+  }
+};
+document.getElementById('btn-vent-close').onclick=()=>{
+  G.ventClosed=true;
+  G.oxyActive=true;
+  document.getElementById('btn-vent-close').style.display='none';
+  document.getElementById('vent-waiting').style.display='block';
+  // Wait for crawl to stop (random 3-7s)
+  const waitTime=3000+Math.random()*4000;
+  ventTimeout=setTimeout(()=>{
+    document.getElementById('btn-vent-open').style.display='block';
+  },waitTime);
+};
+document.getElementById('btn-vent-open').onclick=()=>{
+  clearTimeout(ventTimeout);
+  G.ventClosed=false;
+  G.oxyActive=false;
+  G.oxygen=100;
+  hideOverlay('overlay-vent');
+  clearAlert();
+  G.monsterPhase='idle';
+  document.getElementById('btn-vent-close').style.display='block';
+  document.getElementById('vent-waiting').style.display='none';
+  document.getElementById('btn-vent-open').style.display='none';
+};
+
+/* ============================================================
+   OXYGEN DRAIN
+   ============================================================ */
+let oxyInterval=null;
+function startOxyDrain(){
+  clearInterval(oxyInterval);
+  oxyInterval=setInterval(()=>{
+    if(!G.oxyActive) return;
+    G.oxygen=Math.max(0,G.oxygen-2);
+    updateHUD();
+    if(G.oxygen<=0){
+      G.oxyActive=false;
+      G.ventClosed=false;
+      triggerJumpscare('Nəfəssiz qaldınız!');
+    }
+  },500);
+}
+
+/* ============================================================
+   GAME LOOP
+   ============================================================ */
+let lastTime=0;
+function gameLoop(ts){
+  if(!G.running) return;
+  const dt=ts-lastTime;
+  lastTime=ts;
+
+  if(!G.paused){
+    // Hour countdown
+    G.hourTimer=Math.max(0,G.hourTimer-dt);
+    if(G.hourTimer<=0) checkHourEnd();
+
+    // Hunger drain
+    G.hunger=Math.max(0,G.hunger-(dt*0.002));
+    if(G.hunger<=0) G.hunger=0;
+
+    // Tetris
+    tetDrop(dt);
+
+    // Monster spawning
+    maybeSpawnMonster();
+
+    // Window auto-resolve if not acted
+    if(G.monsterPhase==='window'){
+      G.monsterTimer-=dt;
+      if(G.monsterTimer<=0){
+        resolveWindow(false);
+      }
+    }
+
+    updateHUD();
+  }
+
+  // Draw always
+  drawRoom();
+  drawTetris();
+
+  requestAnimationFrame(gameLoop);
+}
+
+/* ============================================================
+   INIT
+   ============================================================ */
+function resetGame(){
+  G={
+    lives:3,hour:0,score:0,hunger:100,oxygen:100,
+    curtainClosed:false,ventClosed:false,doorLocked:false,
+    darkLevel:0,oxyActive:false,hourTimer:HOUR_DURATION,
+    danger:0,running:false,paused:false,
+    loreUnlocked:0,lastLoreHour:-1,
+    monsterPhase:'idle',monsterTimer:0,
+    knockCount:0,knockTimer:0,isRealFood:false,
+    ventWaiting:false,ventCrawlTimer:0,
+    nightOver:false,dead:false,tetrisScore:0,
+  };
+  hideAllOverlays();
+  clearAlert();
+  document.getElementById('notif').style.display='none';
+  updateDarkness();
+  updateHUD();
+  initTetris();
+  resizeRoom();
+  G.running=true;
+  lastTime=performance.now();
+  requestAnimationFrame(gameLoop);
+  startOxyDrain();
+}
+
+document.getElementById('start-btn').onclick=()=>{
+  document.getElementById('intro').style.display='none';
+  document.getElementById('game').style.display='block';
+  resetGame();
+};
+
+window.addEventListener('resize',()=>{
+  resizeRoom();
+});
+
+// Initial resize
+resizeRoom();
+</script>
+</body>
+</html>
