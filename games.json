@@ -28,11 +28,11 @@
     "status": "live"
   },
   {
-    "id": "tetris",
-    "title": "Tetris",
-    "emoji": "🧩",
-    "path": "games/tetris/",
-    "status": "soon"
+    "id": "night-shift",
+    "title": "Night Shift",
+    "emoji": "🏨",
+    "path": "games/night-shift/",
+    "status": "live"
   },
   {
     "id": "flappy-bird",
