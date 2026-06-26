@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>System.exe</title>
+<style>
+/* ============================================================
+   CONFIG / RESET
+   ============================================================ */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html,body {
+  width:100%; height:100%; overflow:hidden;
+  font-family: Tahoma, Verdana, Geneva, sans-serif;
+  background:#000;
+}
+
+/* ============================================================
+   BOOT SCREEN
+   ============================================================ */
+#boot-screen {
+  position:fixed; inset:0; background:#000; color:#7dff7d;
+  font-family:'Courier New',monospace; font-size:14px;
+  display:flex; align-items:center; justify-content:center; z-index:9999;
+}
+.blink { animation: blink 1s steps(1) infinite; }
+@keyframes blink { 50% { opacity:0; } }
+
+/* ============================================================
+   DESKTOP
+   ============================================================ */
+#desktop {
+  position:fixed; inset:0; display:none;
+  background: linear-gradient(180deg,#5b8fd6 0%,#5b8fd6 55%,#3a6e3a 56%,#2e5c2e 100%);
+  transition: filter 1s, background 1.5s;
+}
+#desktop.decayed {
+  background: linear-gradient(180deg,#1a1a22 0%,#1a1a22 55%,#0c1410 56%,#070b08 100%);
+  filter: contrast(1.1) saturate(0.6);
+}
+
+.exit-btn {
+  position:absolute; top:10px; right:10px; z-index:500;
+  background:#ece9d8; border:2px outset #fff; border-radius:4px;
+  padding:5px 10px; font-size:11px; text-decoration:none; color:#222;
+  font-family: Tahoma, sans-serif;
+}
+.exit-btn:hover { background:#fff3cf; }
+
+#icons, #hidden-icons {
+  position:absolute; top:16px; left:14px; width:110px;
+  display:flex; flex-direction:column; gap:18px;
+}
+#hidden-icons { top:16px; left:130px; }
+.icon {
+  width:96px; display:flex; flex-direction:column; align-items:center;
+  gap:3px; cursor:pointer; user-select:none; padding:4px; border-radius:3px;
+  position:relative;
+}
+.icon:hover, .icon:active { background:rgba(255,255,255,0.12); }
+.icon-img { font-size:30px; filter: drop-shadow(1px 1px 1px rgba(0,0,0,0.6)); }
+.icon-label {
+  font-size:11px; color:#fff; text-align:center; text-shadow:1px 1px 2px #000;
+  line-height:1.2;
+}
+.icon-label.glitching { color:#ff5555; text-shadow:0 0 6px #ff0000; }
+.icon.fading { opacity:0.15; transition: opacity 2s; }
+.badge {
+  position:absolute; top:-2px; right:14px; background:#cc2222; color:#fff;
+  font-size:9px; border-radius:9px; padding:1px 5px; display:none;
+  box-shadow:0 0 6px #ff0000;
+}
+.badge.show { display:block; }
+
+/* ============================================================
+   WINDOWS
+   ============================================================ */
+#windows-layer { position:absolute; inset:0; }
+.window {
+  position:absolute; min-width:300px; min-height:200px;
+  background:#ece9d8; border:2px solid #0a3a8c; border-radius:5px;
+  box-shadow:4px 6px 18px rgba(0,0,0,0.55); display:flex; flex-direction:column;
+  overflow:hidden;
+}
+.title-bar {
+  background:linear-gradient(180deg,#3a7cdd,#1953b8 50%,#123f8c);
+  color:#fff; font-size:12px; font-weight:bold; padding:5px 6px;
+  display:flex; align-items:center; gap:6px; cursor:move;
+}
+.title-bar .t-icon { font-size:13px; }
+.title-bar .t-text { flex:1; }
+.title-bar button {
+  width:19px; height:18px; border:1px solid #fff; background:#3a7cdd;
+  color:#fff; font-size:10px; line-height:1; cursor:pointer; border-radius:2px;
+}
+.title-bar button:hover { background:#5a9cff; }
+.title-bar .close-btn { background:#cc3333; }
+.title-bar .close-btn:hover { background:#ff5555; }
+.window-body { flex:1; overflow:auto; padding:10px; font-size:12px; color:#222; background:#fff; }
+
+/* file list */
+.file-row {
+  display:flex; align-items:center; gap:8px; padding:5px 6px; cursor:pointer;
+  border-radius:3px;
+}
+.file-row:hover { background:#dbe8ff; }
+.file-row .f-icon { font-size:16px; }
+
+/* terminal */
+.term-body {
+  background:#000; color:#7dff7d; font-family:'Courier New',monospace;
+  font-size:13px; padding:8px; height:100%; overflow-y:auto;
+}
+.term-line { white-space:pre-wrap; word-break:break-word; }
+.term-input-row { display:flex; gap:4px; }
+.term-input-row span { color:#7dff7d; }
+.term-input-row input {
+  flex:1; background:transparent; border:none; outline:none;
+  color:#7dff7d; font-family:'Courier New',monospace; font-size:13px;
+}
+.term-red { color:#ff5555; }
+
+/* notepad */
+.notepad-body {
+  font-family:'Courier New',monospace; font-size:13px; line-height:1.7;
+  white-space:pre-wrap; color:#222;
+}
+.np-red { color:#cc0000; font-weight:bold; }
+
+/* photos */
+.photo-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; }
+.photo-thumb {
+  height:80px; border-radius:4px; display:flex; align-items:center; justify-content:center;
+  font-size:26px; cursor:pointer; border:1px solid #aaa;
+}
+.photo-view { position:relative; width:100%; height:240px; border-radius:4px; overflow:hidden; }
+.photo-shadow {
+  position:absolute; width:46px; height:80px; border-radius:50% 50% 10% 10%;
+  background:radial-gradient(ellipse at center, rgba(0,0,0,0.85), rgba(0,0,0,0));
+  filter:blur(2px);
+}
+
+/* mail */
+.mail-row { display:flex; flex-direction:column; padding:8px; border-bottom:1px solid #ddd; cursor:pointer; }
+.mail-row:hover { background:#f3f3ff; }
+.mail-row .m-from { font-weight:bold; font-size:12px; }
+.mail-row .m-sub { font-size:11px; color:#555; }
+.mail-unread .m-from { color:#a00; }
+.mail-reader { font-size:13px; line-height:1.6; }
+
+/* ============================================================
+   TASKBAR
+   ============================================================ */
+#taskbar {
+  position:absolute; left:0; right:0; bottom:0; height:34px;
+  background:linear-gradient(180deg,#2a6fd6,#1747a0); display:flex; align-items:center;
+  padding:0 6px; gap:8px; z-index:400;
+}
+#start-btn {
+  background:linear-gradient(180deg,#4caf50,#2e7d32); color:#fff; border:none;
+  border-radius:4px; padding:5px 14px; font-weight:bold; font-size:12px; cursor:default;
+}
+#taskbar-apps { flex:1; display:flex; gap:6px; overflow:hidden; }
+.tb-app {
+  background:#3a7cdd; color:#fff; border:1px solid #1747a0; border-radius:3px;
+  padding:4px 10px; font-size:11px; cursor:pointer; max-width:140px;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+#tray { display:flex; align-items:center; gap:10px; color:#fff; font-size:11px; }
+#sound-btn { background:none; border:none; color:#fff; font-size:15px; cursor:pointer; }
+#clock { font-family:'Courier New',monospace; }
+
+/* ============================================================
+   EVENTS / GLITCH / SHAKE
+   ============================================================ */
+.shake { animation: shakeAnim 0.35s linear; }
+@keyframes shakeAnim {
+  0%,100% { transform:translate(0,0); }
+  20% { transform:translate(-6px,3px); }
+  40% { transform:translate(5px,-4px); }
+  60% { transform:translate(-4px,-3px); }
+  80% { transform:translate(6px,2px); }
+}
+
+#ghost-cursor {
+  position:fixed; width:14px; height:20px; pointer-events:none; z-index:9000;
+  background:radial-gradient(circle,rgba(255,255,255,0.55),transparent 70%);
+  border-radius:50%; transition: left 0.6s ease, top 0.6s ease; display:none;
+}
+
+.toast {
+  position:fixed; bottom:44px; right:14px; background:#222; color:#eee;
+  padding:8px 14px; font-size:11px; border-radius:4px; border:1px solid #555;
+  z-index:600; opacity:0; transition:opacity 0.4s;
+}
+.toast.show { opacity:1; }
+
+.fake-cmd {
+  position:fixed; width:220px; height:120px; background:#000; color:#7dff7d;
+  font-family:'Courier New',monospace; font-size:10px; padding:5px; z-index:7000;
+  border:1px solid #444; overflow:hidden; opacity:0; transition:opacity 0.3s;
+}
+.fake-cmd.show { opacity:1; }
+
+/* ============================================================
+   FULL-SCREEN OVERLAYS
+   ============================================================ */
+.overlay {
+  position:fixed; inset:0; z-index:8000; display:flex; align-items:center;
+  justify-content:center; flex-direction:column; text-align:center;
+}
+.hidden { display:none !important; }
+
+#bsod {
+  background:#0000aa; color:#fff; font-family:'Courier New',monospace;
+  font-size:14px; padding:40px; line-height:1.8; text-align:left;
+  align-items:flex-start; justify-content:flex-start;
+}
+#bsod .bsod-inner { max-width:640px; margin:0 auto; }
+
+#reboot { background:#000; color:#ccc; font-family:'Courier New',monospace; }
+#reboot .bar-bg { width:260px; height:10px; background:#222; border:1px solid #555; margin-top:14px; }
+#reboot .bar-fill { height:100%; width:0%; background:#7dff7d; transition:width linear; }
+
+#deleting { background:rgba(0,0,0,0.92); color:#ff6666; font-family:'Courier New',monospace; }
+#deleting .bar-bg { width:280px; height:10px; background:#220000; border:1px solid #660000; margin-top:14px; }
+#deleting .bar-fill { height:100%; width:0%; background:#ff3333; transition:width linear; }
+
+#ending { background:#000; color:#fff; }
+#ending-text {
+  font-family:'Courier New',monospace; font-size:20px; opacity:0;
+  transition:opacity 2.5s; letter-spacing:1px;
+}
+#ending-text.show { opacity:1; }
+#restart-btn {
+  margin-top:30px; background:#cc2222; color:#fff; border:none; padding:10px 22px;
+  border-radius:4px; font-size:13px; cursor:pointer;
+}
+#jump-flash {
+  position:fixed; inset:0; background:#fff; z-index:9500; display:none;
+  mix-blend-mode:difference;
+}
+#jump-flash.on { display:block; animation: jflash 0.25s steps(2) 3; }
+@keyframes jflash { 0%,100% { background:#fff; } 50% { background:#a00000; } }
+</style>
+</head>
+<body>
+
+<div id="boot-screen">
+  <div>SYSTEM BOOT...<span class="blink">_</span></div>
+</div>
+
+<div id="desktop">
+  <a class="exit-btn" href="../../">🏠 Arcade</a>
+
+  <div id="icons">
+    <div class="icon" ondblclick="openApp('documents')">
+      <div class="icon-img">📁</div><div class="icon-label" id="label-documents">Documents</div>
+    </div>
+    <div class="icon" ondblclick="openApp('photos')">
+      <div class="icon-img">📁</div><div class="icon-label">Photos</div>
+    </div>
+    <div class="icon" ondblclick="openApp('downloads')">
+      <div class="icon-img">📁</div><div class="icon-label">Downloads</div>
+    </div>
+    <div class="icon" ondblclick="openApp('system')">
+      <div class="icon-img">📁</div><div class="icon-label">System</div>
+    </div>
+    <div class="icon" ondblclick="openApp('mail')">
+      <div class="icon-img">📧</div><div class="icon-label">Mail</div>
+      <span class="badge" id="mail-badge">1</span>
+    </div>
+    <div class="icon" ondblclick="openApp('recycle')">
+      <div class="icon-img">🗑️</div><div class="icon-label">Recycle Bin</div>
+    </div>
+    <div class="icon" ondblclick="openApp('terminal')">
+      <div class="icon-img">💻</div><div class="icon-label">Terminal</div>
+    </div>
+  </div>
+
+  <div id="hidden-icons"></div>
+
+  <div id="ghost-cursor"></div>
+  <div id="windows-layer"></div>
+
+  <div id="taskbar">
+    <button id="start-btn">⊞ Başlat</button>
+    <div id="taskbar-apps"></div>
+    <div id="tray">
+      <button id="sound-btn" onclick="toggleSound()">🔈</button>
+      <span id="clock">00:00:00</span>
+    </div>
+  </div>
+</div>
+
+<div id="bsod" class="overlay hidden">
+  <div class="bsod-inner">
+    A fatal exception 0E has occurred at 0028:C00057AF.<br>
+    The current process will be terminated.<br><br>
+    *** SYSTEM_PROCESS_ATTENTION_REQUIRED ***<br><br>
+    Press any key to continue...
+  </div>
+</div>
+
+<div id="reboot" class="overlay hidden">
+  <div>Restarting system, please wait...</div>
+  <div class="bar-bg"><div class="bar-fill" id="reboot-fill"></div></div>
+</div>
+
+<div id="deleting" class="overlay hidden">
+  <div>Deleting files...</div>
+  <div class="bar-bg"><div class="bar-fill" id="deleting-fill"></div></div>
+</div>
+
+<div id="ending" class="overlay hidden">
+  <div id="ending-text"></div>
+  <button id="restart-btn" class="hidden" onclick="location.reload()">🔄 Yenidən başlat</button>
+</div>
+
+<div id="jump-flash"></div>
+
+<script>
+/* ============================================================
+   CONFIG — tune pacing here
+   ============================================================ */
+const CFG = {
+  MAIL1_DELAY_MS: 20000,
+  TOAST_MIN_GAP: 14000,
+  TOAST_MAX_GAP: 28000,
+  FAKE_CMD_MIN_GAP: 16000,
+  FAKE_CMD_MAX_GAP: 30000,
+  PUZZLE_CODE: '0451',
+};
+
+let STAGE = 0;
+let zCounter = 10;
+let openWindows = {};
+let currentPath = 'C:\\Users\\Guest';
+let soundOn = false;
+let ambientHum = null;
+let renameInterval = null;
+let toastTimer = null, fakeCmdTimer = null;
+let cursorJitterTimer = null;
+
+/* ============================================================
+   BOOT
+   ============================================================ */
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    document.getElementById('boot-screen').style.display = 'none';
+    document.getElementById('desktop').style.display = 'block';
+    startClock();
+    scheduleMail1();
+    scheduleToasts();
+  }, 1800);
+});
+
+/* ============================================================
+   CLOCK
+   ============================================================ */
+let fakeTime = new Date();
+function startClock() {
+  setInterval(() => {
+    fakeTime = new Date(fakeTime.getTime() + (STAGE >= 6 ? -1000 : 1000));
+    const h = String(fakeTime.getHours()).padStart(2,'0');
+    const m = String(fakeTime.getMinutes()).padStart(2,'0');
+    const s = String(fakeTime.getSeconds()).padStart(2,'0');
+    document.getElementById('clock').textContent = `${h}:${m}:${s}`;
+  }, 1000);
+}
+
+/* ============================================================
+   WINDOW MANAGEMENT
+   ============================================================ */
+function createWindow(id, title, icon, bodyHTML, opts={}) {
+  if (openWindows[id]) { focusWindow(id); return; }
+  const win = document.createElement('div');
+  win.className = 'window';
+  win.style.width = (opts.w||340)+'px';
+  win.style.height = (opts.h||280)+'px';
+  win.style.left = (opts.x!=null?opts.x:60+Object.keys(openWindows).length*24)+'px';
+  win.style.top = (opts.y!=null?opts.y:60+Object.keys(openWindows).length*20)+'px';
+  win.style.zIndex = ++zCounter;
+  win.innerHTML = `
+    <div class="title-bar" data-id="${id}">
+      <span class="t-icon">${icon}</span><span class="t-text">${title}</span>
+      <button onclick="minimizeWindow('${id}')">_</button>
+      <button class="close-btn" onclick="closeWindow('${id}')">×</button>
+    </div>
+    <div class="window-body" id="body-${id}">${bodyHTML}</div>
+  `;
+  document.getElementById('windows-layer').appendChild(win);
+  openWindows[id] = win;
+  makeDraggable(win);
+  win.addEventListener('mousedown', () => focusWindow(id));
+  addTaskbarEntry(id, title, icon);
+  return win;
+}
+function focusWindow(id) {
+  const w = openWindows[id]; if (!w) return;
+  w.style.display = 'flex'; w.style.zIndex = ++zCounter;
+}
+function minimizeWindow(id) { const w = openWindows[id]; if (w) w.style.display = 'none'; }
+function closeWindow(id) {
+  const w = openWindows[id]; if (!w) return;
+  w.remove(); delete openWindows[id];
+  const tb = document.getElementById('tb-'+id); if (tb) tb.remove();
+}
+function addTaskbarEntry(id, title, icon) {
+  if (document.getElementById('tb-'+id)) return;
+  const btn = document.createElement('div');
+  btn.className = 'tb-app'; btn.id = 'tb-'+id;
+  btn.textContent = icon+' '+title;
+  btn.onclick = () => focusWindow(id);
+  document.getElementById('taskbar-apps').appendChild(btn);
+}
+function makeDraggable(win) {
+  const bar = win.querySelector('.title-bar');
+  let dx=0, dy=0, dragging=false;
+  bar.addEventListener('mousedown', (e) => {
+    dragging = true;
+    dx = e.clientX - win.offsetLeft; dy = e.clientY - win.offsetTop;
+  });
+  document.addEventListener('mousemove', (e) => {
+    if (!dragging) return;
+    win.style.left = Math.max(0, e.clientX - dx) + 'px';
+    win.style.top = Math.max(0, e.clientY - dy) + 'px';
+  });
+  document.addEventListener('mouseup', () => dragging = false);
+}
+
+/* ============================================================
+   FILE SYSTEM (flavor VFS for terminal dir/cd/open/read)
+   ============================================================ */
+function vfs() {
+  return {
+    'C:\\Users\\Guest': ['Documents','Photos','Downloads','System','Mail.exe','readme.txt'],
+    'C:\\Users\\Guest\\Documents': ['notes.txt','photo_log.txt'].concat(STAGE>=3?['archive01.txt']:[]),
+    'C:\\Users\\Guest\\Photos': ['img001.jpg','img002.jpg','img003.jpg','img004.jpg'],
+    'C:\\Users\\Guest\\Downloads': ['setup.exe','readme.pdf'],
+    'C:\\Users\\Guest\\System': ['log.sys','config.ini'],
+  };
+}
+const FILE_TEXT = {
+  'readme.txt': 'Bu kompüter köhnə istifadəçidən qalıb. Heç nəyi silmə.',
+  'notes.txt': 'Alış-veriş siyahısı:\n- çörək\n- süt\n- ... (qalanı oxunmur)',
+  'photo_log.txt': 'img001-004 — son tətil şəkilləri. Niyə hamısında kölgə var?',
+  'log.sys': '[12:01] boot ok\n[12:02] unknown process attached to explorer.exe\n[12:03] ???',
+  'config.ini': '[user]\nname=GUEST\nactive=true\nwatching=true',
+};
+
+/* ============================================================
+   APP CONTENT BUILDERS
+   ============================================================ */
+function openApp(id) {
+  switch(id) {
+    case 'documents': return openDocuments();
+    case 'photos': return openPhotos();
+    case 'downloads': return openDownloads();
+    case 'system': return openSystem();
+    case 'mail': return openMail();
+    case 'recycle': return openRecycle();
+    case 'terminal': return openTerminal();
+    case 'system32': return openSystem32();
+  }
+}
+
+function fileRow(icon, name, onclick) {
+  return `<div class="file-row" onclick="${onclick}"><span class="f-icon">${icon}</span><span>${name}</span></div>`;
+}
+
+function openDocuments() {
+  let rows = fileRow('📄','notes.txt', "readFileWindow('notes.txt')")
+    + fileRow('📄','photo_log.txt', "readFileWindow('photo_log.txt')")
+    + fileRow('📝','puzzle.txt', "openNotepad()");
+  if (STAGE >= 3) rows += fileRow('🔒','archive01.txt', "readFileWindow('archive01.txt')");
+  createWindow('documents','Documents','📁', `<div>${rows}</div>`);
+}
+function openDownloads() {
+  const rows = fileRow('⚙️','setup.exe', "alert('Bu fayl zədələnib və açılmır.')")
+    + fileRow('📄','readme.pdf', "readFileWindow('readme.txt')");
+  createWindow('downloads','Downloads','📁', `<div>${rows}</div>`);
+}
+function openSystem() {
+  const rows = fileRow('📄','log.sys', "readFileWindow('log.sys')")
+    + fileRow('📄','config.ini', "readFileWindow('config.ini')");
+  createWindow('system','System','📁', `<div>${rows}</div>`);
+}
+function openRecycle() {
+  createWindow('recycle','Recycle Bin','🗑️',
+    `<div>${fileRow('📄','deleted_user.txt','restoreDeletedFile()')}</div>`);
+}
+function restoreDeletedFile() {
+  alert('Bərpa edildi:\n\n"Mən də sənin kimi idim. Sonra bu kompüteri açdım."');
+}
+function readFileWindow(name) {
+  if (name === 'archive01.txt') {
+    createWindow('archive01','archive01.txt','📄',
+      `<div style="font-family:'Courier New',monospace;font-size:12px;line-height:1.7;">
+        Bu fayl 6 il əvvəl yaradılıb.<br><br>
+        "Mən bu sistemə həbs olunmuşam. Hər dəfə kimsə daxil olanda bir az daha azad oluram.<br>
+        Sənin oxuduğun hər sətir mənə kömək edir.<br>
+        Davam et."
+      </div>`, {w:360,h:220});
+    return;
+  }
+  createWindow('view-'+name, name, '📄',
+    `<div style="font-family:'Courier New',monospace;font-size:12px;white-space:pre-wrap;">${FILE_TEXT[name]||'(boş fayl)'}</div>`,
+    {w:340,h:220});
+}
+
+/* ---- PHOTOS ---- */
+const PHOTOS = [
+  {id:'img001.jpg', bg:'#7fae5f', emoji:'🏞️'},
+  {id:'img002.jpg', bg:'#9aa6b5', emoji:'🏠'},
+  {id:'img003.jpg', bg:'#5b8fd6', emoji:'🌳'},
+  {id:'img004.jpg', bg:'#c9b27c', emoji:'🚗'},
+];
+function openPhotos() {
+  const grid = PHOTOS.map(p =>
+    `<div class="photo-thumb" style="background:${p.bg}" onclick="openPhoto('${p.id}')">${p.emoji}</div>`
+  ).join('');
+  createWindow('photos','Photos','📁', `<div class="photo-grid">${grid}</div>`, {w:300,h:260});
+}
+function openPhoto(id) {
+  const p = PHOTOS.find(x=>x.id===id);
+  let shadowHTML = '';
+  if (STAGE >= 2) {
+    const top = 10 + Math.random()*60;
+    const left = 10 + Math.random()*70;
+    shadowHTML = `<div class="photo-shadow" style="top:${top}%;left:${left}%;"></div>`;
+  }
+  createWindow('photo-'+id, id, '🖼️',
+    `<div class="photo-view" style="background:${p.bg}">
+       <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:48px;">${p.emoji}</div>
+       ${shadowHTML}
+     </div>`, {w:320,h:300});
+}
+
+/* ---- NOTEPAD / PUZZLE ---- */
+function openNotepad() {
+  let body;
+  if (STAGE >= 4) {
+    body = `<div class="notepad-body">Sən elə bilirsən tək yaşayırsan bu evdə.<br>
+    Amma divarların arasında <span class="np-red">0</span> şey yoxdur.<br>
+    Saat <span class="np-red">4</span>-də hər şey başlayır.<br>
+    Otaqda <span class="np-red">5</span>-ci kölgə görünəndə gec olar.<br>
+    Mən artıq <span class="np-red">1</span> dəfə bunu yazmışam.<br><br>
+    <i>(qırmızı rəqəmləri birləşdir — terminalda "login" əmri ilə sına)</i></div>`;
+  } else {
+    body = `<div class="notepad-body">...mətn aydın oxunmur, sanki başqa bir şeylə üst-üstə düşüb...</div>`;
+  }
+  createWindow('notepad','puzzle.txt','📝', body, {w:340,h:240});
+}
+
+/* ---- MAIL ---- */
+let MAILBOX = [];
+function pushMail(from, subject, body) {
+  MAILBOX.push({from, subject, body, read:false});
+  document.getElementById('mail-badge').classList.add('show');
+  document.getElementById('mail-badge').textContent = MAILBOX.filter(m=>!m.read).length;
+  if (soundOn) playDing();
+}
+function scheduleMail1() {
+  setTimeout(() => {
+    pushMail('UNKNOWN', '(no subject)', "I know you're reading this.");
+    notifyToast('📧 1 yeni e-poçt');
+  }, CFG.MAIL1_DELAY_MS);
+}
+function openMail() {
+  renderMailList();
+}
+function renderMailList() {
+  const rows = MAILBOX.map((m,i) =>
+    `<div class="mail-row ${m.read?'':'mail-unread'}" onclick="readMail(${i})">
+       <span class="m-from">${m.from}</span><span class="m-sub">${m.subject}</span>
+     </div>`
+  ).join('') || '<div style="padding:10px;color:#888;">Boş qutu.</div>';
+  createWindow('mail','Mail','📧', `<div>${rows}</div>`, {w:340,h:260});
+}
+function readMail(i) {
+  const m = MAILBOX[i]; m.read = true;
+  document.getElementById('mail-badge').textContent = MAILBOX.filter(x=>!x.read).length;
+  if (!MAILBOX.some(x=>!x.read)) document.getElementById('mail-badge').classList.remove('show');
+  document.getElementById('body-mail').innerHTML =
+    `<div class="mail-reader"><b>${m.from}</b><br><i>${m.subject}</i><hr style="margin:6px 0;">${m.body}
+     <br><br><button onclick="renderMailList()" style="font-size:11px;">← Geri</button></div>`;
+  if (i === 0 && STAGE < 2) { STAGE = 2; termPrint('[SYSTEM] decrypt əmri aktivləşdi.'); }
+  if (m.subject === 'STAGE2' && STAGE < 4) { STAGE = 4; }
+}
+
+/* ============================================================
+   TERMINAL ENGINE
+   ============================================================ */
+function openTerminal() {
+  createWindow('terminal','Terminal','💻',
+    `<div class="term-body" id="term-output">
+       <div class="term-line">Mini-OS Terminal v0.1</div>
+       <div class="term-line">"help" yazaraq əmrləri gör.</div>
+       <div class="term-input-row"><span id="term-prompt">${currentPath}&gt;</span>
+         <input id="term-input" autocomplete="off" onkeydown="if(event.key==='Enter')runTermCommand()"></div>
+     </div>`, {w:420,h:300});
+  setTimeout(()=>{ const i=document.getElementById('term-input'); if(i) i.focus(); }, 50);
+}
+function termPrint(text, cls) {
+  const out = document.getElementById('term-output');
+  if (!out) return;
+  const row = document.createElement('div');
+  row.className = 'term-line' + (cls?(' '+cls):'');
+  row.textContent = text;
+  const inputRow = out.querySelector('.term-input-row');
+  out.insertBefore(row, inputRow);
+  out.scrollTop = out.scrollHeight;
+}
+function runTermCommand() {
+  const input = document.getElementById('term-input');
+  const raw = input.value; input.value = '';
+  termPrint(currentPath + '> ' + raw);
+  const parts = raw.trim().split(/\s+/);
+  const cmd = (parts[0]||'').toLowerCase();
+  const arg = parts.slice(1).join(' ');
+
+  switch(cmd) {
+    case '': break;
+    case 'help':
+      termPrint('Mövcud əmrlər: help, dir, cd <qovluq>, open <ad>, read <fayl>, login <kod>, decrypt <ad>, whoami, show hidden, clear');
+      break;
+    case 'dir': {
+      const list = vfs()[currentPath] || [];
+      list.forEach(f => termPrint('  '+f));
+      break;
+    }
+    case 'cd': {
+      const target = currentPath + '\\' + arg;
+      if (vfs()[target]) { currentPath = target; }
+      else if (arg === '..') { currentPath = currentPath.split('\\').slice(0,-1).join('\\') || 'C:'; }
+      else { termPrint('Sistem göstərilən yolu tapa bilmir.', 'term-red'); break; }
+      document.getElementById('term-prompt').textContent = currentPath+'>';
+      break;
+    }
+    case 'open': {
+      const target = currentPath + '\\' + arg;
+      if (vfs()[target]) { currentPath = target; document.getElementById('term-prompt').textContent = currentPath+'>'; }
+      else if (FILE_TEXT[arg]) { termPrint(FILE_TEXT[arg]); }
+      else termPrint('"'+arg+'" tapılmadı.', 'term-red');
+      break;
+    }
+    case 'read':
+      if (FILE_TEXT[arg]) termPrint(FILE_TEXT[arg]);
+      else if (arg === 'archive01.txt' && STAGE >= 3) termPrint('Mən bu sistemə həbs olunmuşam. Davam et.');
+      else termPrint('Fayl oxuna bilmədi.', 'term-red');
+      break;
+    case 'whoami':
+      if (STAGE < 4) termPrint('GUEST\\\\admin');
+      else if (STAGE < 7) termPrint('Bilmirəm. Sən kimsən?', 'term-red');
+      else termPrint('MƏN.', 'term-red');
+      break;
+    case 'decrypt':
+      if (arg !== 'archive01') { termPrint('Naməlum arxiv.', 'term-red'); break; }
+      if (STAGE < 2) { termPrint('Access denied. (kilidli)', 'term-red'); break; }
+      termPrint('Şifrə açılır...');
+      setTimeout(()=>{ termPrint('Tamamlandı. Documents/archive01.txt yaradıldı.'); }, 700);
+      if (STAGE < 3) startStage3();
+      break;
+    case 'login':
+      if (STAGE < 4) { termPrint('Access denied.', 'term-red'); break; }
+      if (arg === CFG.PUZZLE_CODE) {
+        termPrint('Giriş təsdiqləndi.');
+        if (STAGE < 5) startStage5();
+      } else termPrint('Yanlış kod.', 'term-red');
+      break;
+    case 'show':
+      if (arg === 'hidden') {
+        if (STAGE < 5) { termPrint('Access denied. (Sistem kilidli)', 'term-red'); break; }
+        if (STAGE < 6) startStage6();
+        else termPrint('Gizli fayllar artıq görünür.');
+      } else termPrint('Naməlum əmr.', 'term-red');
+      break;
+    case 'clear':
+      document.querySelectorAll('#term-output .term-line').forEach(l=>l.remove());
+      break;
+    default:
+      termPrint(`'${cmd}' tanınmayan əmrdir.`, 'term-red');
+  }
+}
+
+/* ---- SYSTEM32 (final) ---- */
+function openSystem32() {
+  createWindow('system32','System32','🔒',
+    `<div>${fileRow('💀','core.dat', 'triggerEnding()')}</div>`, {w:300,h:200});
+}
+
+/* ============================================================
+   STORY / EVENT ENGINE — stage transitions
+   ============================================================ */
+function startStage3() {
+  STAGE = 3;
+  shakeScreen();
+  startRenameChaos();
+  setTimeout(()=> pushMail('UNKNOWN','STAGE2',"Əgər bunu oxuyursansa artıq gecdir."), 4000);
+  notifyToast('⚠ Naməlum proses aşkarlandı');
+}
+function startRenameChaos() {
+  const labels = ['Documents',"DON'T OPEN",'RUN','HELP'];
+  let i = 0;
+  const el = document.getElementById('label-documents');
+  renameInterval = setInterval(() => {
+    i = (i+1) % labels.length;
+    el.textContent = labels[i];
+    el.classList.add('glitching');
+    setTimeout(()=>el.classList.remove('glitching'), 300);
+  }, 1300);
+}
+function stopRenameChaos() {
+  clearInterval(renameInterval);
+  const el = document.getElementById('label-documents');
+  if (el) el.textContent = 'Documents';
+}
+function startStage5() {
+  STAGE = 5;
+  if (soundOn) startWhisperLoop();
+  startCursorJitter();
+  scheduleFakeCmd();
+  notifyToast('🔊 Naməlum səs aktivləşdi');
+}
+function startStage6() {
+  STAGE = 6;
+  stopRenameChaos();
+  runShowHiddenSequence();
+}
+function runShowHiddenSequence() {
+  showOverlay('deleting');
+  animateBar('deleting-fill', 1500);
+  setTimeout(() => {
+    hideOverlay('deleting');
+    revealHiddenIcons();
+    setTimeout(() => {
+      shakeScreen();
+      showOverlay('bsod');
+      if (soundOn) playStatic();
+      setTimeout(() => {
+        hideOverlay('bsod');
+        showOverlay('reboot');
+        animateBar('reboot-fill', 1800);
+        setTimeout(() => {
+          hideOverlay('reboot');
+          document.getElementById('desktop').classList.add('decayed');
+          fadeRandomIcons();
+          STAGE = 7;
+          notifyToast('Saat tərsinə işləyir...');
+        }, 1900);
+      }, 2500);
+    }, 900);
+  }, 1600);
+}
+function revealHiddenIcons() {
+  document.getElementById('hidden-icons').innerHTML = `
+    <div class="icon" ondblclick="openApp('system32')">
+      <div class="icon-img">🔒</div><div class="icon-label">System32</div>
+    </div>
+    <div class="icon" ondblclick="alert('Bu qovluq boşdur. Yoxsa boş deyil?')">
+      <div class="icon-img">📁</div><div class="icon-label">.cache</div>
+    </div>`;
+}
+function fadeRandomIcons() {
+  document.querySelectorAll('#icons .icon').forEach((el,idx) => {
+    setTimeout(()=>el.classList.add('fading'), idx*600);
+  });
+}
+function triggerEnding() {
+  if (STAGE >= 8) return;
+  STAGE = 8;
+  document.querySelectorAll('.window').forEach(w=>w.remove());
+  openWindows = {};
+  showOverlay('ending');
+  const txt = document.getElementById('ending-text');
+  setTimeout(() => {
+    txt.textContent = 'Thank you for letting me out.';
+    txt.classList.add('show');
+  }, 1200);
+  setTimeout(() => {
+    document.getElementById('jump-flash').classList.add('on');
+    if (soundOn) playJumpscare();
+    setTimeout(()=>document.getElementById('jump-flash').classList.remove('on'), 900);
+  }, 4200);
+  setTimeout(() => {
+    document.getElementById('restart-btn').classList.remove('hidden');
+  }, 5400);
+}
+
+/* ============================================================
+   AMBIENT EVENTS — toasts, fake cmd, cursor jitter, shake
+   ============================================================ */
+function notifyToast(text) {
+  const t = document.createElement('div');
+  t.className = 'toast'; t.textContent = text;
+  document.body.appendChild(t);
+  requestAnimationFrame(()=>t.classList.add('show'));
+  setTimeout(()=>{ t.classList.remove('show'); setTimeout(()=>t.remove(),400); }, 3500);
+}
+function scheduleToasts() {
+  const gap = CFG.TOAST_MIN_GAP + Math.random()*(CFG.TOAST_MAX_GAP-CFG.TOAST_MIN_GAP);
+  toastTimer = setTimeout(() => {
+    if (STAGE >= 3) {
+      const msgs = ['CPU istifadəsi: 97%','Naməlum cihaz aşkarlandı','İnternet bağlantısı kəsildi','Disk oxuma xətası'];
+      notifyToast(msgs[Math.floor(Math.random()*msgs.length)]);
+    }
+    scheduleToasts();
+  }, gap);
+}
+function scheduleFakeCmd() {
+  const gap = CFG.FAKE_CMD_MIN_GAP + Math.random()*(CFG.FAKE_CMD_MAX_GAP-CFG.FAKE_CMD_MIN_GAP);
+  fakeCmdTimer = setTimeout(() => {
+    if (STAGE >= 5 && STAGE < 8) spawnFakeCmd();
+    scheduleFakeCmd();
+  }, gap);
+}
+function spawnFakeCmd() {
+  const el = document.createElement('div');
+  el.className = 'fake-cmd';
+  el.style.left = (30+Math.random()*60)+'%';
+  el.style.top = (20+Math.random()*40)+'%';
+  el.innerHTML = 'C:\\&gt; scanning...<br>C:\\&gt; found: 1 process<br>C:\\&gt; name: ???<br>C:\\&gt; terminate? n';
+  document.body.appendChild(el);
+  requestAnimationFrame(()=>el.classList.add('show'));
+  setTimeout(()=>{ el.classList.remove('show'); setTimeout(()=>el.remove(),300); }, 2200);
+}
+function shakeScreen() {
+  const d = document.getElementById('desktop');
+  d.classList.add('shake');
+  setTimeout(()=>d.classList.remove('shake'), 400);
+}
+function startCursorJitter() {
+  const ghost = document.getElementById('ghost-cursor');
+  ghost.style.display = 'block';
+  document.addEventListener('mousemove', (e) => {
+    if (STAGE >= 7 && Math.random() < 0.02) return; // skip — about to jitter
+    ghost.style.left = e.clientX+'px'; ghost.style.top = e.clientY+'px';
+  });
+  cursorJitterTimer = setInterval(() => {
+    if (STAGE < 7) return;
+    ghost.style.left = (Math.random()*window.innerWidth)+'px';
+    ghost.style.top = (Math.random()*window.innerHeight)+'px';
+  }, 3000);
+}
+
+/* ============================================================
+   OVERLAY HELPERS
+   ============================================================ */
+function showOverlay(id){ document.getElementById(id).classList.remove('hidden'); }
+function hideOverlay(id){ document.getElementById(id).classList.add('hidden'); }
+function animateBar(id, ms) {
+  const el = document.getElementById(id);
+  el.style.transition = `width ${ms}ms linear`;
+  requestAnimationFrame(()=>{ el.style.width='100%'; });
+  setTimeout(()=>{ el.style.width='0%'; el.style.transition='none'; }, ms+50);
+}
+
+/* ============================================================
+   AUDIO ENGINE (Web Audio API — no external files)
+   ============================================================ */
+let actx = null;
+function ensureCtx() {
+  if (!actx) actx = new (window.AudioContext||window.webkitAudioContext)();
+  return actx;
+}
+function toggleSound() {
+  const c = ensureCtx();
+  if (c.state === 'suspended') c.resume();
+  soundOn = !soundOn;
+  document.getElementById('sound-btn').textContent = soundOn ? '🔊' : '🔈';
+  if (soundOn) { startHum(); if (STAGE>=5) startWhisperLoop(); }
+  else stopHum();
+}
+function startHum() {
+  if (ambientHum) return;
+  const c = ensureCtx();
+  const osc = c.createOscillator(); osc.type='sine'; osc.frequency.value=50;
+  const gain = c.createGain(); gain.gain.value=0.03;
+  const lfo = c.createOscillator(); lfo.frequency.value=0.15;
+  const lfoGain = c.createGain(); lfoGain.gain.value=0.015;
+  lfo.connect(lfoGain); lfoGain.connect(gain.gain);
+  osc.connect(gain).connect(c.destination);
+  osc.start(); lfo.start();
+  ambientHum = {osc,lfo,gain};
+}
+function stopHum() {
+  if (!ambientHum) return;
+  ambientHum.osc.stop(); ambientHum.lfo.stop(); ambientHum = null;
+}
+function playDing() {
+  const c = ensureCtx();
+  const osc = c.createOscillator(); osc.type='sine'; osc.frequency.value=880;
+  const gain = c.createGain(); gain.gain.setValueAtTime(0.12,c.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, c.currentTime+0.6);
+  osc.connect(gain).connect(c.destination);
+  osc.start(); osc.stop(c.currentTime+0.6);
+}
+function noiseBuffer(c, secs) {
+  const buf = c.createBuffer(1, c.sampleRate*secs, c.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i=0;i<d.length;i++) d[i] = Math.random()*2-1;
+  return buf;
+}
+function playStatic() {
+  const c = ensureCtx();
+  const src = c.createBufferSource(); src.buffer = noiseBuffer(c, 0.5);
+  const gain = c.createGain(); gain.gain.setValueAtTime(0.18,c.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, c.currentTime+0.5);
+  src.connect(gain).connect(c.destination); src.start();
+}
+function startWhisperLoop() {
+  const fire = () => {
+    if (!soundOn || STAGE < 5 || STAGE >= 8) return;
+    const c = ensureCtx();
+    const src = c.createBufferSource(); src.buffer = noiseBuffer(c, 0.4);
+    const filter = c.createBiquadFilter(); filter.type='bandpass'; filter.frequency.value=900+Math.random()*400;
+    const gain = c.createGain(); gain.gain.setValueAtTime(0.05,c.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, c.currentTime+0.4);
+    src.connect(filter).connect(gain).connect(c.destination); src.start();
+    setTimeout(fire, 6000+Math.random()*9000);
+  };
+  fire();
+}
+function playJumpscare() {
+  const c = ensureCtx();
+  const src = c.createBufferSource(); src.buffer = noiseBuffer(c, 0.6);
+  const gain = c.createGain(); gain.gain.setValueAtTime(0.5,c.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, c.currentTime+0.6);
+  src.connect(gain).connect(c.destination); src.start();
+  const osc = c.createOscillator(); osc.type='sawtooth'; osc.frequency.value=90;
+  const g2 = c.createGain(); g2.gain.setValueAtTime(0.3,c.currentTime);
+  g2.gain.exponentialRampToValueAtTime(0.001, c.currentTime+0.6);
+  osc.connect(g2).connect(c.destination); osc.start(); osc.stop(c.currentTime+0.6);
+}
+</script>
+</body>
+</html>
