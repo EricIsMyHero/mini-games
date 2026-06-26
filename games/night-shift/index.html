@@ -4,1727 +4,1335 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Night Shift — The Grand Hollow Hotel</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=VT323&family=Share+Tech+Mono&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=VT323&display=swap">
 <style>
-/* ============================================================
-   RESET & BASE
-   ============================================================ */
 *{box-sizing:border-box;margin:0;padding:0;}
-html,body{
-  width:100%;height:100%;overflow:hidden;
-  font-family:'Share Tech Mono',monospace;
-  background:#000;color:#aaa;
-}
+html,body{width:100%;height:100%;overflow:hidden;background:#0a0608;image-rendering:pixelated;}
 
-/* ============================================================
-   EXIT BUTTON
-   ============================================================ */
 a.exit-btn{
-  position:fixed;top:10px;right:12px;z-index:9999;
-  background:#0a0a0a;border:1px solid #2a2a2a;color:#555;
-  padding:5px 12px;font-size:11px;text-decoration:none;
-  letter-spacing:2px;transition:color .2s,border-color .2s;
+  position:fixed;top:8px;right:10px;z-index:9999;
+  background:#111;border:1px solid #333;color:#666;
+  padding:4px 10px;font-size:10px;text-decoration:none;
+  font-family:'VT323',monospace;letter-spacing:2px;
 }
-a.exit-btn:hover{color:#aaa;border-color:#555;}
+a.exit-btn:hover{color:#ccc;border-color:#666;}
 
-/* ============================================================
-   INTRO
-   ============================================================ */
+/* INTRO */
 #intro{
-  position:fixed;inset:0;
-  background:radial-gradient(ellipse at center,#0d0a06 0%,#000 100%);
+  position:fixed;inset:0;background:#000;
   display:flex;flex-direction:column;align-items:center;justify-content:center;
   gap:0;z-index:500;
 }
-.intro-eyebrow{
-  font-family:'Share Tech Mono',monospace;
-  font-size:clamp(9px,1.5vw,12px);letter-spacing:8px;
-  color:#3a3020;text-transform:uppercase;margin-bottom:14px;
-}
-#intro h1{
-  font-family:'VT323',monospace;
-  font-size:clamp(42px,9vw,100px);letter-spacing:6px;
-  color:#c8a84a;text-transform:uppercase;margin-bottom:0;
-  text-shadow:0 0 40px rgba(200,168,74,0.25),0 0 80px rgba(200,168,74,0.08);
-  line-height:1;
-  animation:titleflicker 6s infinite;
-}
-@keyframes titleflicker{
-  0%,94%,96%,100%{opacity:1;}
-  95%{opacity:0.7;}
-}
-.intro-divider{
-  width:120px;height:1px;background:linear-gradient(90deg,transparent,#3a3020,transparent);
-  margin:20px 0;
-}
-.intro-quote{
-  font-size:clamp(11px,1.8vw,14px);line-height:2;text-align:center;
-  color:#4a4030;max-width:400px;margin-bottom:6px;
-}
-.intro-quote em{color:#7a6a4a;font-style:normal;}
-.intro-rules{
-  font-size:clamp(10px,1.4vw,12px);color:#2a2820;
-  text-align:center;letter-spacing:1px;margin-bottom:36px;line-height:1.8;
+#intro-canvas{image-rendering:pixelated;max-width:100%;max-height:70vh;}
+.intro-sub{
+  font-family:'VT323',monospace;font-size:clamp(14px,2.5vw,22px);
+  color:#6a5a30;letter-spacing:3px;margin-top:16px;text-align:center;
 }
 #start-btn{
-  background:transparent;border:1px solid #3a3020;color:#6a5a30;
-  padding:12px 40px;font-size:13px;letter-spacing:5px;cursor:pointer;
-  text-transform:uppercase;font-family:'Share Tech Mono',monospace;
-  transition:all .3s;
+  margin-top:20px;
+  background:#0a0800;border:2px solid #4a3810;color:#c8a84a;
+  padding:10px 36px;font-size:clamp(14px,2vw,20px);letter-spacing:4px;
+  cursor:pointer;font-family:'VT323',monospace;text-transform:uppercase;
+  transition:all .2s;
 }
-#start-btn:hover{
-  border-color:#c8a84a;color:#c8a84a;
-  box-shadow:0 0 20px rgba(200,168,74,0.15);
-}
+#start-btn:hover{background:#1a1200;border-color:#c8a84a;box-shadow:0 0 12px rgba(200,168,74,0.3);}
 
-/* ============================================================
-   GAME LAYOUT  —  CSS Grid
-   ============================================================ */
+/* GAME */
 #game{
   display:none;position:fixed;inset:0;
-  grid-template-columns:1fr 380px;
-  grid-template-rows:1fr;
-  background:#080604;
-}
-#game.active{display:grid;}
-
-/* ============================================================
-   LEFT: ROOM
-   ============================================================ */
-#room{
-  position:relative;overflow:hidden;
-  background:
-    linear-gradient(180deg,
-      #0a0806 0%,
-      #0d0a07 60%,
-      #100c08 100%);
-}
-
-/* Scanline overlay on room */
-#room::after{
-  content:'';position:absolute;inset:0;pointer-events:none;z-index:50;
-  background:repeating-linear-gradient(
-    0deg,
-    transparent,
-    transparent 2px,
-    rgba(0,0,0,0.08) 2px,
-    rgba(0,0,0,0.08) 4px
-  );
-}
-
-/* -- Wall perspective lines (CSS pseudo on inner el) */
-#room-walls{
-  position:absolute;inset:0;
-}
-
-/* BACK WALL */
-#back-wall{
-  position:absolute;
-  left:20%;right:20%;top:8%;bottom:28%;
-  background:#0c0907;
-  border:1px solid #1a1510;
-}
-
-/* FLOOR */
-#floor{
-  position:absolute;left:0;right:0;bottom:0;height:28%;
-  background:linear-gradient(180deg,#100c08,#080604);
-  border-top:1px solid #1e1810;
-}
-/* Floor boards */
-#floor::before{
-  content:'';position:absolute;inset:0;
-  background:repeating-linear-gradient(
-    90deg,
-    transparent 0px,
-    transparent 80px,
-    rgba(255,255,255,0.015) 80px,
-    rgba(255,255,255,0.015) 81px
-  );
-}
-
-/* CEILING */
-#ceiling{
-  position:absolute;left:0;right:0;top:0;height:8%;
-  background:#090704;border-bottom:1px solid #1a1510;
-}
-
-/* LEFT WALL */
-#left-wall{
-  position:absolute;left:0;top:0;bottom:28%;width:20%;
-  background:linear-gradient(90deg,#0a0806,#0d0a07);
-  border-right:1px solid #1a1510;
-}
-
-/* RIGHT WALL */
-#right-wall{
-  position:absolute;right:0;top:0;bottom:28%;width:20%;
-  background:linear-gradient(270deg,#0a0806,#0d0a07);
-  border-left:1px solid #1a1510;
-}
-
-/* ---- DOOR ---- */
-#room-door{
-  position:absolute;
-  left:50%;transform:translateX(-50%);
-  bottom:28%;width:14%;
-  padding-bottom:22%; /* height via ratio */
-  background:#140e08;
-  border:2px solid #2a1e10;
-  border-bottom:none;
-  box-shadow:inset 0 0 30px rgba(0,0,0,0.8);
-  transition:background .4s,box-shadow .4s;
-}
-#room-door.locked{
-  box-shadow:inset 0 0 30px rgba(0,0,0,0.8),0 0 12px rgba(180,140,20,0.2);
-  border-color:#6a5020;
-}
-/* Door panels */
-#room-door::before,#room-door::after{
-  content:'';position:absolute;
-  left:10%;right:10%;
-  border:1px solid #2a1e10;
-}
-#room-door::before{top:8%;height:38%;}
-#room-door::after{top:52%;height:36%;}
-/* Door knob */
-.door-knob{
-  position:absolute;right:14%;top:54%;
-  width:10%;padding-bottom:10%;
-  background:#4a3a18;border-radius:50%;
-  box-shadow:0 0 4px rgba(0,0,0,0.8);
-  transition:background .3s,box-shadow .3s;
-}
-#room-door.locked .door-knob{
-  background:#c0a030;
-  box-shadow:0 0 8px rgba(192,160,48,0.4);
-}
-.door-lock-icon{
-  position:absolute;bottom:6%;left:50%;transform:translateX(-50%);
-  font-size:clamp(10px,2vw,16px);display:none;
-}
-#room-door.locked .door-lock-icon{display:block;}
-
-/* ---- VENT ---- */
-#room-vent{
-  position:absolute;
-  bottom:calc(28% + 22% + 2px); /* just above door top */
-  left:calc(50% + 7% + 4px);   /* right of door */
-  width:7%;padding-bottom:5%;
-  background:#0d0a06;
-  border:1px solid #1e1810;
-  overflow:hidden;cursor:pointer;
-  transition:border-color .3s,box-shadow .3s;
-}
-#room-vent:hover{border-color:#444;}
-#room-vent.active-threat{
-  border-color:rgba(200,50,50,0.7);
-  box-shadow:0 0 10px rgba(200,50,50,0.3);
-  animation:ventpulse .8s infinite;
-}
-@keyframes ventpulse{0%,100%{box-shadow:0 0 10px rgba(200,50,50,0.3);}50%{box-shadow:0 0 20px rgba(200,50,50,0.6);}}
-.vent-grille{
-  position:absolute;inset:0;
-  display:flex;
-  background:repeating-linear-gradient(
-    90deg,
-    transparent 0%,transparent 22%,
-    #1a1410 22%,#1a1410 26%,
-    transparent 26%
-  );
-}
-#room-vent.closed .vent-grille{background:#050402;}
-.vent-closed-x{
-  position:absolute;inset:0;display:none;
-  align-items:center;justify-content:center;
-  font-size:clamp(8px,1.5vw,14px);color:#333;
-}
-#room-vent.closed .vent-closed-x{display:flex;}
-.vent-label{
-  position:absolute;bottom:-16px;left:50%;transform:translateX(-50%);
-  font-size:clamp(6px,0.9vw,9px);color:#2a2018;letter-spacing:2px;
-  white-space:nowrap;
-}
-
-/* ---- WINDOW ---- */
-#room-window{
-  position:absolute;
-  left:5%;top:20%;
-  width:13%;padding-bottom:20%;
-  border:3px solid #2a1e10;
-  background:#020408;
-  overflow:hidden;cursor:pointer;
-  transition:border-color .3s;
-}
-#room-window.active-threat{
-  border-color:rgba(200,50,50,0.6);
-  box-shadow:0 0 15px rgba(200,50,50,0.2);
-}
-/* Night sky */
-.win-sky{
-  position:absolute;inset:0;
-  background:radial-gradient(ellipse at 50% 0%,#050a14,#000 70%);
-}
-/* Stars */
-.win-stars{
-  position:absolute;inset:0;
-  background-image:
-    radial-gradient(1px 1px at 20% 15%,rgba(255,255,240,0.6),transparent),
-    radial-gradient(1px 1px at 70% 10%,rgba(255,255,240,0.5),transparent),
-    radial-gradient(1px 1px at 50% 30%,rgba(255,255,240,0.4),transparent),
-    radial-gradient(1px 1px at 85% 20%,rgba(255,255,240,0.6),transparent),
-    radial-gradient(1px 1px at 40% 60%,rgba(255,255,240,0.3),transparent),
-    radial-gradient(1px 1px at 10% 70%,rgba(255,255,240,0.5),transparent),
-    radial-gradient(1px 1px at 90% 80%,rgba(255,255,240,0.4),transparent);
-}
-/* Monster shadow */
-.win-monster{
-  position:absolute;inset:0;
-  background:rgba(5,5,15,0);
-  transition:background .3s;
-  display:flex;align-items:center;justify-content:center;
-  gap:20%;
-}
-.win-monster.visible{background:rgba(5,5,15,0.92);}
-.monster-eye{
-  width:12%;padding-bottom:12%;
-  background:radial-gradient(circle,#cc0000,#600000);
-  border-radius:50%;
-  opacity:0;transition:opacity .5s;
-  box-shadow:0 0 10px #cc0000;
-}
-.win-monster.visible .monster-eye{opacity:1;}
-/* Cross bars */
-.win-cross-h,.win-cross-v{
-  position:absolute;background:#2a1e10;pointer-events:none;
-}
-.win-cross-h{left:0;right:0;top:50%;height:3px;transform:translateY(-50%);}
-.win-cross-v{top:0;bottom:0;left:50%;width:3px;transform:translateX(-50%);}
-/* Curtain */
-.win-curtain{
-  position:absolute;inset:0;
-  background:linear-gradient(180deg,#2a0e05,#1a0803);
-  transform:scaleX(0);transform-origin:left;
-  transition:transform .4s ease;
-}
-.win-curtain.closed{transform:scaleX(1);}
-
-/* ---- DESK ---- */
-#room-desk{
-  position:absolute;
-  left:2%;bottom:28%;
-  width:44%;height:5%;
-  background:linear-gradient(180deg,#2a1e0f,#1a1208);
-  border-top:2px solid #3a2810;
-  border-radius:1px;
-}
-/* Desk legs */
-#room-desk::before,#room-desk::after{
-  content:'';position:absolute;
-  bottom:-100%;width:6px;
-  background:#1a1208;
-  height:100%;
-}
-#room-desk::before{left:8px;}
-#room-desk::after{right:8px;}
-
-/* ---- MONITOR ---- */
-#room-monitor{
-  position:absolute;
-  left:4%;
-  bottom:calc(28% + 5% + 2px);
-  width:16%;padding-bottom:14%;
-  background:#181410;
-  border:2px solid #2a2018;
-  border-radius:2px;
-  box-shadow:0 0 20px rgba(0,200,80,0.06),inset 0 0 10px rgba(0,0,0,0.8);
-}
-/* Screen */
-.mon-screen{
-  position:absolute;
-  inset:8%;
-  background:#030d06;
-  overflow:hidden;
-  border-radius:1px;
-}
-.mon-screen::before{
-  content:'';position:absolute;inset:0;
-  background:repeating-linear-gradient(
-    0deg,
-    transparent,transparent 2px,
-    rgba(0,200,80,0.03) 2px,rgba(0,200,80,0.03) 4px
-  );
-  pointer-events:none;z-index:2;
-}
-.mon-text{
-  position:absolute;inset:0;padding:8% 6%;
-  font-family:'VT323',monospace;
-  font-size:clamp(8px,1.2vw,14px);
-  color:rgba(50,200,80,0.8);
-  line-height:1.5;
-  text-shadow:0 0 6px rgba(50,200,80,0.5);
-  z-index:1;
-}
-/* Monitor glow */
-#room-monitor::after{
-  content:'';position:absolute;inset:-8px;
-  background:radial-gradient(ellipse at center,rgba(0,200,80,0.06),transparent 70%);
-  pointer-events:none;z-index:-1;
-}
-/* Monitor base */
-.mon-base{
-  position:absolute;
-  bottom:-12%;left:25%;right:25%;height:12%;
-  background:#141008;
-  border-radius:0 0 2px 2px;
-}
-
-/* ---- LAMP ---- */
-#room-lamp{
-  position:absolute;
-  left:26%;
-  bottom:calc(28% + 5% + 2px);
-  width:3%;
-}
-.lamp-shade{
-  width:0;height:0;
-  border-left:clamp(8px,1.5vw,14px) solid transparent;
-  border-right:clamp(8px,1.5vw,14px) solid transparent;
-  border-top:clamp(10px,1.8vw,18px) solid #b09030;
-  filter:drop-shadow(0 -2px 6px rgba(200,160,50,0.3));
-  margin:0 auto;
-}
-.lamp-pole{
-  width:2px;height:clamp(20px,4vw,40px);
-  background:#2a2010;margin:0 auto;
-}
-.lamp-base{width:clamp(10px,2vw,18px);height:4px;background:#2a2010;margin:0 auto;}
-/* Lamp light cone */
-#room-lamp::after{
-  content:'';
-  position:absolute;top:clamp(10px,1.8vw,18px);left:50%;transform:translateX(-50%);
-  width:0;height:0;
-  border-left:clamp(30px,5vw,60px) solid transparent;
-  border-right:clamp(30px,5vw,60px) solid transparent;
-  border-top:clamp(60px,10vw,120px) solid rgba(200,160,50,0.04);
-  pointer-events:none;
-}
-
-/* ---- PAPERS on desk ---- */
-.desk-paper{
-  position:absolute;
-  bottom:calc(28% + 5%);
-  height:3%;
-  background:#d0c8a8;
-  border:1px solid #a09070;
-  border-radius:1px;
-}
-#paper1{left:30%;width:6%;}
-#paper2{left:36.5%;width:5%;bottom:calc(28% + 5% + 1%);}
-
-/* ---- COFFEE CUP ---- */
-#room-coffee{
-  position:absolute;
-  left:40%;
-  bottom:calc(28% + 5%);
-  width:3%;padding-bottom:4%;
-  background:#2a2020;
-  border:1px solid #3a3030;
-  border-radius:0 0 3px 3px;
-}
-#room-coffee::after{
-  content:'';
-  position:absolute;
-  top:-30%;right:-30%;
-  width:30%;height:60%;
-  border:1px solid #3a3030;
-  border-left:none;
-  border-radius:0 3px 3px 0;
-}
-
-/* ---- CLOCK ---- */
-#room-clock{
-  position:absolute;
-  right:10%;top:22%;
-  width:7%;padding-bottom:7%;
-  border-radius:50%;
-  background:#121008;
-  border:2px solid #2a2416;
-}
-.clock-face{
-  position:absolute;inset:0;border-radius:50%;
-}
-.clock-hand{
-  position:absolute;
-  bottom:50%;left:50%;
-  width:2px;
-  transform-origin:bottom center;
-  background:#c8b870;
-  border-radius:2px 2px 0 0;
-  box-shadow:0 0 4px rgba(200,184,112,0.4);
-}
-
-/* ---- DARKNESS OVERLAYS ---- */
-#room-darkness{
-  position:absolute;inset:0;pointer-events:none;z-index:10;
-  background:rgba(0,0,0,0);
-  transition:background 1.5s;
-}
-#room-vignette{
-  position:absolute;inset:0;pointer-events:none;z-index:11;
-  background:radial-gradient(ellipse at center,transparent 30%,rgba(0,0,0,0.8) 100%);
-  opacity:0.6;
-}
-
-/* ============================================================
-   RIGHT: TERMINAL PANEL
-   ============================================================ */
-#panel{
-  background:#050403;
-  border-left:1px solid #1a1410;
-  display:flex;flex-direction:column;
-  padding:16px 14px 12px;gap:10px;
-  position:relative;
-  overflow:hidden;
-}
-/* Terminal scanlines */
-#panel::before{
-  content:'';position:absolute;inset:0;pointer-events:none;
-  background:repeating-linear-gradient(
-    0deg,transparent,transparent 3px,
-    rgba(0,0,0,0.12) 3px,rgba(0,0,0,0.12) 6px
-  );z-index:0;
-}
-/* Neon border glow on panel */
-#panel::after{
-  content:'';position:absolute;
-  top:0;left:0;bottom:0;width:1px;
-  background:linear-gradient(180deg,transparent,rgba(0,200,80,0.15),transparent);
-}
-#panel > *{position:relative;z-index:1;}
-
-/* ---- Panel Header ---- */
-.panel-header{
-  font-family:'VT323',monospace;
-  font-size:clamp(13px,1.6vw,18px);
-  color:#2a5a30;letter-spacing:3px;
-  border-bottom:1px solid #0d1a0d;
-  padding-bottom:8px;
-  text-shadow:0 0 8px rgba(0,200,80,0.2);
-}
-.panel-header span{color:#3a8040;}
-
-/* ---- HUD ---- */
-#hud{
-  background:#060806;
-  border:1px solid #0d1a0d;
-  border-radius:2px;
-  padding:10px 12px;
-  box-shadow:inset 0 0 20px rgba(0,0,0,0.5),0 0 8px rgba(0,200,80,0.03);
-}
-.hud-row{
-  display:flex;align-items:center;justify-content:space-between;
-  font-size:clamp(9px,1.1vw,12px);letter-spacing:1px;margin-bottom:6px;
-}
-.hud-row:last-of-type{margin-bottom:0;}
-.hud-label{color:#1e3a20;text-transform:uppercase;}
-.hud-val{color:#4a9050;font-family:'VT323',monospace;font-size:clamp(13px,1.6vw,18px);}
-#hud-lives{
-  font-size:clamp(12px,1.4vw,16px);letter-spacing:2px;
-  color:#883020;
-  text-shadow:0 0 6px rgba(136,48,32,0.4);
-}
-#hud-score-val{
-  color:#c8a84a;
-  font-family:'VT323',monospace;font-size:clamp(14px,1.7vw,20px);
-  text-shadow:0 0 8px rgba(200,168,74,0.3);
-}
-#hud-score-needed{color:#2a3a20;font-size:clamp(9px,1vw,12px);}
-
-/* Progress bar base */
-.bar-wrap{
-  width:100%;height:5px;
-  background:#080a06;
-  border:1px solid #0d1a0d;
-  border-radius:1px;margin-top:3px;
-  overflow:hidden;
-}
-.bar-fill{height:100%;border-radius:1px;transition:width .5s,background .5s;}
-#hunger-bar{background:#3a7020;}
-#oxy-bar{background:#1e5a8a;}
-#oxy-row{display:none;}
-
-/* Hour progress bar */
-#hour-bar-wrap{
-  width:100%;height:3px;
-  background:#080a06;border:1px solid #0a1208;margin-top:4px;
-  overflow:hidden;
-}
-#hour-bar{
-  height:100%;width:100%;
-  background:linear-gradient(90deg,#1e6a30,#c8a84a);
-  transition:width .5s;
-}
-
-/* ---- Alert / Notif ---- */
-#alert{
-  background:#120000;
-  border:1px solid #4a0000;
-  border-left:3px solid #cc2020;
-  color:#cc3030;
-  padding:8px 12px;font-size:clamp(10px,1.2vw,12px);letter-spacing:2px;
-  display:none;text-align:left;
-  text-shadow:0 0 8px rgba(200,48,48,0.5);
-  animation:alertpulse 1s infinite;
-}
-@keyframes alertpulse{0%,100%{opacity:1;border-left-color:#cc2020;}50%{opacity:.7;border-left-color:#660000;}}
-
-#notif{
-  background:#000a00;
-  border:1px solid #0d3010;
-  border-left:3px solid #2a8030;
-  color:#3a9040;
-  padding:8px 12px;font-size:clamp(10px,1.2vw,12px);letter-spacing:1px;
-  display:none;text-align:left;
-  text-shadow:0 0 6px rgba(50,144,64,0.4);
-}
-
-/* ---- Tetris Section ---- */
-#tetris-section{
-  flex:1;display:flex;flex-direction:column;gap:8px;min-height:0;
-}
-.tetris-header{
-  display:flex;align-items:center;justify-content:space-between;
-}
-.tetris-label{
-  font-family:'VT323',monospace;
-  font-size:clamp(11px,1.3vw,14px);
-  letter-spacing:3px;color:#1e3a20;
-}
-.tetris-label.on{color:#2a8040;text-shadow:0 0 6px rgba(42,128,64,0.4);}
-
-#tetris-wrap{
-  flex:1;display:flex;align-items:flex-start;justify-content:center;gap:10px;min-height:0;
-}
-#tetris-canvas{
-  border:1px solid #0d1a0d;
+  flex-direction:column;align-items:center;justify-content:center;
+  background:#080406;
+}
+#game.active{display:flex;}
+#main-canvas{
   image-rendering:pixelated;
-  box-shadow:0 0 15px rgba(0,200,80,0.05),inset 0 0 20px rgba(0,0,0,0.5);
-  flex-shrink:0;
-}
-#next-wrap{
-  display:flex;flex-direction:column;align-items:center;gap:6px;flex-shrink:0;
-}
-#next-label{
-  font-family:'VT323',monospace;
-  font-size:clamp(10px,1.2vw,13px);color:#1e3a20;letter-spacing:2px;
-}
-#next-canvas{
-  border:1px solid #0a1408;
-  image-rendering:pixelated;
-  box-shadow:0 0 6px rgba(0,200,80,0.04);
-}
-#tkeys{
-  font-size:clamp(8px,0.9vw,10px);color:#162010;
-  text-align:center;letter-spacing:1px;line-height:1.8;margin-top:6px;
+  image-rendering:crisp-edges;
+  cursor:default;
+  max-width:100vw;max-height:100vh;
 }
 
-/* ============================================================
-   ACTION OVERLAYS
-   ============================================================ */
-.action-overlay{
-  position:fixed;inset:0;
-  background:rgba(0,0,0,0.88);
+/* OVERLAYS */
+.overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,0.85);
   display:none;flex-direction:column;align-items:center;justify-content:center;
-  gap:20px;z-index:300;backdrop-filter:blur(3px);
+  gap:18px;z-index:300;
 }
-.action-overlay.visible{display:flex;}
+.overlay.show{display:flex;}
+.ov-title{
+  font-family:'VT323',monospace;font-size:clamp(24px,4vw,44px);
+  letter-spacing:5px;text-transform:uppercase;text-align:center;
+}
+.ov-desc{
+  font-family:'VT323',monospace;font-size:clamp(14px,2vw,20px);
+  color:#5a4a2a;letter-spacing:2px;text-align:center;max-width:340px;line-height:1.5;
+}
+.ov-btn{
+  background:#080500;border:2px solid #4a3010;
+  color:#c8a84a;padding:10px 32px;
+  font-size:clamp(14px,2vw,20px);letter-spacing:3px;cursor:pointer;
+  font-family:'VT323',monospace;text-transform:uppercase;
+  transition:all .15s;min-width:200px;text-align:center;
+}
+.ov-btn:hover{border-color:#c8a84a;box-shadow:0 0 12px rgba(200,168,74,0.3);}
+.ov-btn.red{border-color:#4a0808;color:#cc2020;}
+.ov-btn.red:hover{border-color:#cc2020;box-shadow:0 0 12px rgba(200,32,32,0.3);}
+.ov-btn.grn{border-color:#0a3010;color:#30a040;}
+.ov-btn.grn:hover{border-color:#30a040;box-shadow:0 0 12px rgba(48,160,64,0.3);}
 
-.action-icon{
-  font-size:clamp(32px,5vw,56px);
-  filter:grayscale(1) brightness(0.6);
-  animation:iconpulse 1.5s infinite;
-}
-@keyframes iconpulse{0%,100%{transform:scale(1);}50%{transform:scale(1.05);}}
+#knock-wrap{width:240px;height:6px;background:#1a0808;border:1px solid #3a0808;}
+#knock-fill{height:100%;background:#cc2020;transition:width .1s linear;}
 
-.action-title{
-  font-family:'VT323',monospace;
-  font-size:clamp(22px,4vw,42px);
-  letter-spacing:5px;color:#c8a84a;
-  text-transform:uppercase;text-align:center;
-  text-shadow:0 0 20px rgba(200,168,74,0.3);
-}
-.action-title.danger-title{
-  color:#cc3030;
-  text-shadow:0 0 20px rgba(200,48,48,0.4);
-  animation:scaretitle .5s infinite;
-}
-@keyframes scaretitle{0%,100%{opacity:1;}50%{opacity:0.7;}}
-
-.action-desc{
-  font-size:clamp(10px,1.3vw,13px);color:#3a3020;
-  letter-spacing:1px;text-align:center;max-width:340px;line-height:1.9;
-}
-
-.action-btn{
-  background:#0a0500;
-  border:1px solid #4a3010;
-  border-left:3px solid #c8a84a;
-  color:#c8a84a;
-  padding:12px 36px;
-  font-size:clamp(11px,1.4vw,14px);letter-spacing:4px;cursor:pointer;
-  text-transform:uppercase;font-family:'Share Tech Mono',monospace;
-  text-shadow:0 0 8px rgba(200,168,74,0.3);
-  box-shadow:0 0 15px rgba(200,168,74,0.08);
-  transition:all .2s;
-  min-width:220px;text-align:center;
-}
-.action-btn:hover{
-  background:#140a00;
-  border-left-color:#ffcc44;
-  color:#ffcc44;
-  box-shadow:0 0 25px rgba(200,168,74,0.2);
-}
-.action-btn.red-btn{
-  border-color:#4a0808;border-left:3px solid #cc2020;
-  color:#cc2020;
-  text-shadow:0 0 8px rgba(200,32,32,0.3);
-  box-shadow:0 0 15px rgba(200,32,32,0.08);
-}
-.action-btn.red-btn:hover{
-  background:#120000;
-  border-left-color:#ff3030;color:#ff3030;
-  box-shadow:0 0 25px rgba(200,32,32,0.25);
-}
-.action-btn.green-btn{
-  border-color:#0a3010;border-left:3px solid #2a8030;
-  color:#2a8030;
-  text-shadow:0 0 8px rgba(42,128,48,0.3);
-  box-shadow:0 0 15px rgba(42,128,48,0.08);
-}
-.action-btn.green-btn:hover{
-  background:#001200;
-  border-left-color:#40cc50;color:#40cc50;
-  box-shadow:0 0 25px rgba(42,128,48,0.25);
+/* NOTIF */
+#notif{
+  position:fixed;bottom:0;left:50%;transform:translateX(-50%);
+  background:#000a00;border:2px solid #1a5020;border-bottom:none;
+  color:#40a050;font-family:'VT323',monospace;font-size:clamp(14px,2vw,20px);
+  letter-spacing:2px;padding:8px 24px;display:none;z-index:200;
 }
 
-/* Knock progress */
-#knock-progress{
-  width:min(280px,70vw);height:4px;
-  background:#0a0805;border:1px solid #2a1a08;overflow:hidden;
-}
-#knock-bar{height:100%;background:#cc2020;transition:width .1s linear;}
-
-/* ============================================================
-   JUMPSCARE
-   ============================================================ */
-#jumpscare{
-  position:fixed;inset:0;background:#000;z-index:9000;
-  display:none;align-items:center;justify-content:center;
-  flex-direction:column;gap:12px;
-}
-#jumpscare-text{
-  font-family:'VT323',monospace;
-  font-size:clamp(48px,12vw,120px);text-align:center;
-  color:#cc1010;letter-spacing:4px;text-transform:uppercase;
-  text-shadow:0 0 40px #cc1010,0 0 80px rgba(200,16,16,0.4);
-  animation:scarepulse .12s infinite;
-}
-@keyframes scarepulse{0%{transform:scale(1) rotate(-1deg);}50%{transform:scale(1.06) rotate(1deg);}}
-#jumpscare-sub{font-size:clamp(10px,1.3vw,13px);color:#3a1010;letter-spacing:4px;}
-
-/* ============================================================
-   HOUR FLASH
-   ============================================================ */
+/* HOUR FLASH */
 #hour-flash{
   position:fixed;inset:0;background:#000;z-index:7000;
-  display:none;align-items:center;justify-content:center;
-  flex-direction:column;gap:10px;
+  display:none;flex-direction:column;align-items:center;justify-content:center;gap:8px;
 }
-#hour-flash-text{
-  font-family:'VT323',monospace;
-  font-size:clamp(28px,6vw,64px);
-  letter-spacing:6px;color:#c8a84a;text-transform:uppercase;
-  text-shadow:0 0 30px rgba(200,168,74,0.3);
-}
-#hour-flash-sub{font-size:clamp(10px,1.3vw,13px);color:#3a3020;letter-spacing:3px;}
+#hf-text{font-family:'VT323',monospace;font-size:clamp(28px,6vw,60px);letter-spacing:6px;color:#c8a84a;}
+#hf-sub{font-family:'VT323',monospace;font-size:clamp(14px,2vw,20px);color:#3a3020;letter-spacing:3px;}
 
-/* ============================================================
-   LORE NOTE
-   ============================================================ */
+/* JUMPSCARE */
+#jumpscare{
+  position:fixed;inset:0;background:#000;z-index:9000;
+  display:none;flex-direction:column;align-items:center;justify-content:center;gap:10px;
+}
+#js-text{font-family:'VT323',monospace;font-size:clamp(56px,14vw,130px);color:#cc1010;
+  text-shadow:0 0 40px #cc1010;animation:jspulse .12s infinite;}
+@keyframes jspulse{0%{transform:scale(1) rotate(-1deg);}50%{transform:scale(1.07) rotate(1deg);}}
+#js-sub{font-family:'VT323',monospace;font-size:clamp(12px,1.5vw,16px);color:#3a1010;letter-spacing:4px;}
+
+/* NOTE */
 #note-overlay{
-  position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:8000;
+  position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:8000;
   display:none;align-items:center;justify-content:center;
 }
 #note-paper{
-  background:#e8e0c0;color:#2a1a08;
-  width:min(380px,88vw);
-  padding:28px 32px;
-  position:relative;
-  box-shadow:0 12px 48px rgba(0,0,0,0.9),0 0 0 1px #c0a860;
-  font-family:'Share Tech Mono',monospace;
-  font-size:13px;line-height:1.9;
+  background:#e0d8b0;color:#1a1000;width:min(360px,86vw);
+  padding:28px 30px;position:relative;
+  box-shadow:0 12px 48px rgba(0,0,0,0.9);
+  font-family:'VT323',monospace;font-size:16px;line-height:1.8;
+  image-rendering:auto;
 }
-/* Paper texture */
-#note-paper::before{
-  content:'';position:absolute;inset:0;pointer-events:none;
-  background:repeating-linear-gradient(
-    0deg,transparent,transparent 28px,
-    rgba(180,140,80,0.08) 28px,rgba(180,140,80,0.08) 29px
-  );
-}
-#note-paper > *{position:relative;}
-#note-paper h3{
-  font-size:14px;margin-bottom:14px;letter-spacing:2px;
-  border-bottom:1px solid #c0a060;padding-bottom:8px;color:#1a0e04;
-}
-#note-paper p{color:#3a2808;font-size:12px;}
-#note-close{
-  position:absolute;top:10px;right:14px;
-  background:transparent;border:none;font-size:20px;cursor:pointer;
-  color:#8a7040;z-index:1;
-}
-#note-close:hover{color:#2a1000;}
-.note-stamp{
-  position:absolute;bottom:16px;right:20px;
-  font-size:10px;color:rgba(150,80,40,0.3);
-  text-transform:uppercase;letter-spacing:2px;
-  border:1px solid rgba(150,80,40,0.2);
-  padding:3px 8px;transform:rotate(-8deg);
-}
+#note-paper h3{font-size:18px;border-bottom:1px solid #b09050;padding-bottom:6px;margin-bottom:10px;letter-spacing:1px;}
+#note-paper p{font-size:15px;color:#2a1a08;}
+#note-close{position:absolute;top:8px;right:12px;background:none;border:none;font-size:22px;cursor:pointer;color:#806030;}
+.note-stamp{position:absolute;bottom:12px;right:16px;font-size:11px;color:rgba(140,70,30,0.25);
+  border:1px solid rgba(140,70,30,0.2);padding:2px 6px;transform:rotate(-7deg);letter-spacing:2px;}
 
-/* ============================================================
-   END SCREEN
-   ============================================================ */
+/* ENDSCREEN */
 #endscreen{
   position:fixed;inset:0;background:#000;z-index:9001;
-  display:none;flex-direction:column;align-items:center;justify-content:center;
-  gap:14px;
+  display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;
 }
-#end-title{
-  font-family:'VT323',monospace;
-  font-size:clamp(32px,7vw,72px);
-  letter-spacing:6px;text-transform:uppercase;
-}
-#end-sub{
-  font-size:clamp(10px,1.3vw,13px);color:#3a3020;
-  letter-spacing:1px;max-width:400px;text-align:center;line-height:2;
-}
-#end-note{
-  font-size:clamp(10px,1.2vw,12px);color:#1e1a10;
-  letter-spacing:3px;margin-top:8px;font-style:italic;
-}
+#end-title{font-family:'VT323',monospace;font-size:clamp(32px,7vw,72px);letter-spacing:5px;}
+#end-sub{font-family:'VT323',monospace;font-size:clamp(12px,1.8vw,18px);color:#3a3020;
+  letter-spacing:1px;max-width:400px;text-align:center;line-height:2;}
+#end-note{font-family:'VT323',monospace;font-size:clamp(11px,1.4vw,14px);color:#1e1a10;letter-spacing:3px;margin-top:6px;}
 #end-btn{
-  margin-top:14px;
-  background:#080500;border:1px solid #3a2808;
-  border-left:3px solid #c8a84a;
-  color:#c8a84a;
-  padding:11px 36px;font-size:12px;letter-spacing:4px;cursor:pointer;
-  text-transform:uppercase;font-family:'Share Tech Mono',monospace;
-  box-shadow:0 0 15px rgba(200,168,74,0.08);
-  transition:all .2s;
+  margin-top:12px;background:#080500;border:2px solid #4a3010;color:#c8a84a;
+  padding:10px 32px;font-size:clamp(14px,2vw,20px);letter-spacing:4px;cursor:pointer;
+  font-family:'VT323',monospace;text-transform:uppercase;
 }
-#end-btn:hover{
-  border-left-color:#ffcc44;color:#ffcc44;
-  box-shadow:0 0 25px rgba(200,168,74,0.2);
-}
-
-/* ============================================================
-   GLOBAL VIGNETTE
-   ============================================================ */
-#global-vignette{
-  position:fixed;inset:0;pointer-events:none;z-index:400;
-  background:radial-gradient(ellipse at center,transparent 50%,rgba(0,0,0,0.6) 100%);
-}
+#end-btn:hover{border-color:#c8a84a;box-shadow:0 0 12px rgba(200,168,74,0.3);}
 </style>
 </head>
 <body>
 
 <a class="exit-btn" href="../../">← ÇIXIŞ</a>
 
-<!-- ============================================================
-     INTRO
-     ============================================================ -->
+<!-- INTRO -->
 <div id="intro">
-  <div class="intro-eyebrow">The Grand Hollow Hotel</div>
-  <h1>Night Shift</h1>
-  <div class="intro-divider"></div>
-  <div class="intro-quote">
-    <em>"Bu otelə heç kim gəlmir.<br>İşin sadədir. Səhərə qədər burada qal."</em>
-  </div>
-  <div class="intro-rules">
-    12:00 AM → 8:00 AM &nbsp;·&nbsp; Tetris oyna &nbsp;·&nbsp; Xal topla &nbsp;·&nbsp; Sağ qal
-  </div>
-  <button id="start-btn">[ NÖVBƏYƏ BAŞLA ]</button>
+  <canvas id="intro-canvas" width="480" height="180"></canvas>
+  <div class="intro-sub">THE GRAND HOLLOW HOTEL &nbsp;·&nbsp; GECƏ NÖVBƏSİ</div>
+  <button id="start-btn">[ BAŞLA ]</button>
 </div>
 
-<!-- ============================================================
-     GAME
-     ============================================================ -->
+<!-- GAME -->
 <div id="game">
-
-  <!-- LEFT: ROOM -->
-  <div id="room">
-    <div id="room-walls">
-      <div id="ceiling"></div>
-      <div id="left-wall"></div>
-      <div id="right-wall"></div>
-      <div id="back-wall"></div>
-      <div id="floor"></div>
-
-      <!-- WINDOW -->
-      <div id="room-window">
-        <div class="win-sky"></div>
-        <div class="win-stars"></div>
-        <div class="win-monster" id="win-monster">
-          <div class="monster-eye"></div>
-          <div class="monster-eye"></div>
-        </div>
-        <div class="win-cross-h"></div>
-        <div class="win-cross-v"></div>
-        <div class="win-curtain" id="win-curtain"></div>
-      </div>
-
-      <!-- DOOR -->
-      <div id="room-door">
-        <div class="door-knob"></div>
-        <div class="door-lock-icon">🔒</div>
-      </div>
-
-      <!-- VENT -->
-      <div id="room-vent">
-        <div class="vent-grille"></div>
-        <div class="vent-closed-x">✕</div>
-        <div class="vent-label">VENT</div>
-      </div>
-
-      <!-- DESK -->
-      <div id="room-desk"></div>
-
-      <!-- LAMP -->
-      <div id="room-lamp">
-        <div class="lamp-shade"></div>
-        <div class="lamp-pole"></div>
-        <div class="lamp-base"></div>
-      </div>
-
-      <!-- MONITOR -->
-      <div id="room-monitor">
-        <div class="mon-screen">
-          <div class="mon-text" id="mon-text">TETRIS v2.1<br>&gt; SCORE: 0<br>&gt; PLAYING_</div>
-        </div>
-        <div class="mon-base"></div>
-      </div>
-
-      <!-- PAPERS -->
-      <div class="desk-paper" id="paper1"></div>
-      <div class="desk-paper" id="paper2"></div>
-
-      <!-- COFFEE -->
-      <div id="room-coffee"></div>
-
-      <!-- CLOCK -->
-      <div id="room-clock">
-        <div class="clock-face">
-          <div class="clock-hand" id="clock-hand" style="height:28%;margin-left:-1px;transform:rotate(0deg);"></div>
-        </div>
-      </div>
-
-      <!-- DARKNESS -->
-      <div id="room-darkness"></div>
-      <div id="room-vignette"></div>
-    </div>
-  </div>
-
-  <!-- RIGHT: TERMINAL PANEL -->
-  <div id="panel">
-    <div class="panel-header">GRAND HOLLOW HOTEL &nbsp;<span>TERMINAL v1.0</span></div>
-
-    <!-- HUD -->
-    <div id="hud">
-      <div class="hud-row">
-        <span class="hud-label">SAAT</span>
-        <span class="hud-val" id="hud-time">12:00 AM</span>
-        <span class="hud-label">CAN</span>
-        <span id="hud-lives">❤❤❤</span>
-      </div>
-      <div class="hud-row">
-        <span class="hud-label">XAL &nbsp;</span>
-        <span><span id="hud-score-val">0</span> <span id="hud-score-needed" style="color:#1e3020">/ 100</span></span>
-      </div>
-      <div id="hour-bar-wrap"><div id="hour-bar"></div></div>
-      <div class="hud-row" style="margin-top:6px">
-        <span class="hud-label" style="font-size:10px">ACLIQ</span>
-        <span class="hud-label" style="font-size:10px" id="hunger-pct">100%</span>
-      </div>
-      <div class="bar-wrap"><div class="bar-fill" id="hunger-bar"></div></div>
-      <div id="oxy-row">
-        <div class="hud-row" style="margin-top:4px">
-          <span class="hud-label" style="font-size:10px">OKSİGEN</span>
-          <span class="hud-label" style="font-size:10px;color:#1e5a8a" id="oxy-pct">100%</span>
-        </div>
-        <div class="bar-wrap"><div class="bar-fill" id="oxy-bar"></div></div>
-      </div>
-    </div>
-
-    <!-- Alerts -->
-    <div id="alert">⚠ TƏHLÜKƏ</div>
-    <div id="notif">▶ Delivery has arrived.</div>
-
-    <!-- Tetris -->
-    <div id="tetris-section">
-      <div class="tetris-header">
-        <div class="tetris-label on" id="tetris-label">TETRIS.EXE — AKTİV</div>
-      </div>
-      <div id="tetris-wrap">
-        <canvas id="tetris-canvas" width="180" height="360"></canvas>
-        <div id="next-wrap">
-          <div id="next-label">NEXT</div>
-          <canvas id="next-canvas" width="60" height="60"></canvas>
-          <div id="tkeys">← →<br>hərəkət<br><br>↑<br>fırlat<br><br>↓ / SPC<br>sürt / sal</div>
-        </div>
-      </div>
-    </div>
-  </div>
+  <canvas id="main-canvas"></canvas>
 </div>
 
-<!-- ============================================================
-     ACTION OVERLAYS
-     ============================================================ -->
-<!-- WINDOW -->
-<div class="action-overlay" id="overlay-window">
-  <div class="action-icon">🪟</div>
-  <div class="action-title danger-title">Pəncərə — Kölgə</div>
-  <div class="action-desc">Pəncərədə bir kölgə görünür.<br>Pərdəni çəkin ki, sizi görməsin.</div>
-  <button class="action-btn red-btn" id="btn-curtain">[ PƏRDƏNİ ÇƏK ]</button>
+<!-- OVERLAYS -->
+<div class="overlay" id="ov-window">
+  <div class="ov-title" style="color:#cc3030">⚠ PƏNCƏRƏ</div>
+  <div class="ov-desc">Pəncərədə kölgə görünür.<br>Pərdəni çəkin!</div>
+  <button class="ov-btn red" id="btn-curtain">[ PƏRDƏNİ ÇƏK ]</button>
 </div>
 
-<!-- DOOR KNOCK -->
-<div class="action-overlay" id="overlay-door">
-  <div class="action-icon" id="door-icon">🚪</div>
-  <div class="action-title" id="door-title">Qapı döyülür...</div>
-  <div class="action-desc" id="door-desc">Tez gedin qapını kilidləyin!</div>
-  <div id="knock-progress"><div id="knock-bar" style="width:100%"></div></div>
-  <button class="action-btn red-btn" id="btn-lock">[ QAPINI KİLİDLƏ ]</button>
-  <button class="action-btn green-btn" id="btn-open-food" style="display:none">[ QAPINI AÇ — YEMƏYİ GÖT ]</button>
+<div class="overlay" id="ov-door">
+  <div class="ov-title" id="door-title" style="color:#cc3030">QAPI DÖYÜLÜR</div>
+  <div class="ov-desc" id="door-desc">Tez gedin qapını kilidləyin!</div>
+  <div id="knock-wrap"><div id="knock-fill" style="width:100%"></div></div>
+  <button class="ov-btn red" id="btn-lock">[ QAPINI KİLİDLƏ ]</button>
+  <button class="ov-btn grn" id="btn-food" style="display:none">[ QAPINI AÇ — YEMƏYİ GÖT ]</button>
 </div>
 
-<!-- VENT -->
-<div class="action-overlay" id="overlay-vent">
-  <div class="action-icon">🌬️</div>
-  <div class="action-title danger-title">Havalandırma</div>
-  <div class="action-desc">Ventilyasiyadan sürünmə səsi gəlir.<br>Bağlayın!</div>
-  <button class="action-btn red-btn" id="btn-vent-close">[ VENTİLYASİYANI BAĞLA ]</button>
-  <div class="action-desc" id="vent-waiting" style="display:none;color:#1e3a20">Gözləyin... Səs kəsiləcək.</div>
-  <button class="action-btn green-btn" id="btn-vent-open" style="display:none">[ VENTİLYASİYANI AÇ ]</button>
+<div class="overlay" id="ov-vent">
+  <div class="ov-title" style="color:#cc3030">⚠ HAVALANDIRMA</div>
+  <div class="ov-desc">Ventilyasiyadan sürünmə səsi<br>gəlir. Bağlayın!</div>
+  <button class="ov-btn red" id="btn-vent-close">[ VENTİLYASİYANI BAĞLA ]</button>
+  <div class="ov-desc" id="vent-wait" style="display:none;color:#1e3a20">Gözləyin... Səs kəsiləcək.</div>
+  <button class="ov-btn grn" id="btn-vent-open" style="display:none">[ VENTİLYASİYANI AÇ ]</button>
 </div>
 
-<!-- HOUR TRANSITION -->
+<!-- NOTIF -->
+<div id="notif">▶ Delivery has arrived.</div>
+
+<!-- HOUR FLASH -->
 <div id="hour-flash">
-  <div id="hour-flash-text">1:00 AM</div>
-  <div id="hour-flash-sub">Yeni hədəf: 200 xal</div>
+  <div id="hf-text">1:00 AM</div>
+  <div id="hf-sub">Yeni hədəf: 200 xal</div>
 </div>
 
 <!-- JUMPSCARE -->
 <div id="jumpscare">
-  <div id="jumpscare-text">GÖRDİ</div>
-  <div id="jumpscare-sub">bir can itirdiniz</div>
+  <div id="js-text">GÖRDİ</div>
+  <div id="js-sub">bir can itirdiniz</div>
 </div>
 
-<!-- LORE NOTE -->
+<!-- NOTE -->
 <div id="note-overlay">
   <div id="note-paper">
     <button id="note-close">×</button>
     <h3 id="note-title">1923 — Qeyd</h3>
-    <p id="note-body">Bu otel heç vaxt boş olmayıb...</p>
-    <div class="note-stamp">GIZLI</div>
+    <p id="note-body">...</p>
+    <div class="note-stamp">GİZLİ</div>
   </div>
 </div>
 
-<!-- END SCREEN -->
+<!-- ENDSCREEN -->
 <div id="endscreen">
-  <div id="end-title" style="color:#c8a84a">SƏHƏRƏ ÇIXDINIZ</div>
-  <div id="end-sub">Telefon zəng çalır.<br>Müdir deyir: "Təbrik edirəm. Sən də əvvəlkilər kimi sağ qaldın."</div>
-  <div id="end-note">Tomorrow. 12:00 AM.</div>
+  <div id="end-title">ÖLDÜNÜZ</div>
+  <div id="end-sub">...</div>
+  <div id="end-note">— 12:00 AM —</div>
   <button id="end-btn">[ YENİDƏN OYNA ]</button>
 </div>
 
-<!-- GLOBAL VIGNETTE -->
-<div id="global-vignette"></div>
-
 <script>
-/* ============================================================
+/* ====================================================
+   PIXEL PALETTE
+   ==================================================== */
+const P = {
+  // walls / room
+  wallBg:     '#2a2018',
+  wallShad:   '#1e1610',
+  wallLight:  '#342a20',
+  floor:      '#1a1208',
+  floorLine:  '#201810',
+  ceiling:    '#1e1810',
+  // wood
+  woodDark:   '#3a2010',
+  woodMid:    '#4a2c14',
+  woodLight:  '#5c3820',
+  // door
+  doorBody:   '#5a3418',
+  doorDark:   '#3a2010',
+  doorLight:  '#6a4020',
+  doorKnob:   '#b08030',
+  // window
+  winFrame:   '#3a2810',
+  winNight:   '#080c18',
+  winStar:    '#d0d0e0',
+  winCurtain: '#3a1a08',
+  winCurtL:   '#4a2a10',
+  // vent
+  ventBg:     '#1a1510',
+  ventBar:    '#2a2018',
+  // desk
+  deskTop:    '#4a2c14',
+  deskSide:   '#3a2010',
+  deskLeg:    '#2a1808',
+  // monitor
+  monBody:    '#2a2820',
+  monScr:     '#061808',
+  monScrGlow: '#0a2810',
+  monBase:    '#1e1e1a',
+  // lamp
+  lampPole:   '#6a6050',
+  lampShade:  '#c8a840',
+  lampLight:  '#fff8d0',
+  // items
+  paperLight: '#d8d0a8',
+  paperDark:  '#b8b090',
+  coffeeBody: '#2a2018',
+  coffeeLiq:  '#1a0e08',
+  clockBody:  '#1a1810',
+  clockFace:  '#e8e0c0',
+  // character
+  charBody:   '#8a7060',
+  charShirt:  '#c8c8c0',
+  charHair:   '#2a1808',
+  charHead:   '#c8a880',
+  // pizza box
+  pizzaBox:   '#d4824a',
+  pizzaLid:   '#e8a060',
+  // tetris on monitor (inside drawn separately)
+  tetColors: ['#00aaaa','#aaaa00','#aa00aa','#aa5500','#0055aa','#00aa55','#aa0000'],
+  // HUD
+  hudBg:      '#0a0806',
+  hudBorder:  '#2a2010',
+  hudText:    '#c8a84a',
+  hudGreen:   '#30a040',
+  hudRed:     '#cc2020',
+  // canavar gözlər
+  eyeRed:     '#cc0000',
+  eyeGlow:    '#ff2020',
+};
+
+/* ====================================================
+   PIXEL DRAW HELPERS
+   ==================================================== */
+function px(ctx, x, y, w, h, col) {
+  ctx.fillStyle = col;
+  ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h));
+}
+function pxLine(ctx, x1, y1, x2, y2, col, lw=1) {
+  ctx.strokeStyle = col;
+  ctx.lineWidth = lw;
+  ctx.beginPath();
+  ctx.moveTo(Math.round(x1)+0.5, Math.round(y1)+0.5);
+  ctx.lineTo(Math.round(x2)+0.5, Math.round(y2)+0.5);
+  ctx.stroke();
+}
+function pxRect(ctx, x, y, w, h, col, lw=1) {
+  ctx.strokeStyle = col;
+  ctx.lineWidth = lw;
+  ctx.strokeRect(Math.round(x)+0.5, Math.round(y)+0.5, Math.round(w), Math.round(h));
+}
+function pxText(ctx, str, x, y, col, size=8, font='monospace') {
+  ctx.fillStyle = col;
+  ctx.font = `${size}px "${font}"`;
+  ctx.textAlign = 'left';
+  ctx.fillText(str, Math.round(x), Math.round(y));
+}
+function pxTextC(ctx, str, x, y, col, size=8, font='monospace') {
+  ctx.fillStyle = col;
+  ctx.font = `${size}px "${font}"`;
+  ctx.textAlign = 'center';
+  ctx.fillText(str, Math.round(x), Math.round(y));
+}
+function pxCircle(ctx, cx, cy, r, col) {
+  ctx.fillStyle = col;
+  ctx.beginPath();
+  ctx.arc(Math.round(cx), Math.round(cy), r, 0, Math.PI*2);
+  ctx.fill();
+}
+
+/* ====================================================
+   CANVAS SETUP
+   ==================================================== */
+const W = 480, H = 270; // 16:9 pixel canvas
+const canvas = document.getElementById('main-canvas');
+const ctx = canvas.getContext('2d');
+canvas.width = W; canvas.height = H;
+
+function scaleCanvas() {
+  const scaleX = window.innerWidth / W;
+  const scaleY = window.innerHeight / H;
+  const scale = Math.min(scaleX, scaleY);
+  canvas.style.width  = Math.floor(W * scale) + 'px';
+  canvas.style.height = Math.floor(H * scale) + 'px';
+}
+scaleCanvas();
+window.addEventListener('resize', scaleCanvas);
+
+/* ====================================================
+   INTRO CANVAS
+   ==================================================== */
+(function drawIntro(){
+  const ic = document.getElementById('intro-canvas');
+  const ictx = ic.getContext('2d');
+  const iW=480, iH=180;
+  // dark bg
+  ictx.fillStyle='#000'; ictx.fillRect(0,0,iW,iH);
+  // pixel text "NIGHT SHIFT"
+  ictx.imageSmoothingEnabled=false;
+  ictx.fillStyle='#c8a84a';
+  ictx.font='bold 52px "VT323"';
+  ictx.textAlign='center';
+  ictx.fillText('NIGHT SHIFT', iW/2, 80);
+  // glow lines
+  ictx.strokeStyle='#3a2a10'; ictx.lineWidth=1;
+  ictx.strokeRect(20,20,iW-40,iH-40);
+  ictx.strokeStyle='#2a1a08';
+  ictx.strokeRect(24,24,iW-48,iH-48);
+  // corner pixels
+  [[20,20],[iW-22,20],[20,iH-22],[iW-22,iH-22]].forEach(([x,y])=>{
+    ictx.fillStyle='#c8a84a'; ictx.fillRect(x,y,4,4);
+  });
+  // quote
+  ictx.fillStyle='#3a3020';
+  ictx.font='16px "VT323"';
+  ictx.fillText('"Səhərə qədər burada qal."', iW/2, 130);
+  ictx.fillStyle='#1e1a10';
+  ictx.font='14px "VT323"';
+  ictx.fillText('12:00 AM  →  8:00 AM', iW/2, 155);
+})();
+
+/* ====================================================
    CONSTANTS
-   ============================================================ */
+   ==================================================== */
 const HOURS = [
-  {label:'12:00 AM', goal:100},
-  {label:'1:00 AM',  goal:200},
-  {label:'2:00 AM',  goal:300},
-  {label:'3:00 AM',  goal:400},
-  {label:'4:00 AM',  goal:500},
-  {label:'5:00 AM',  goal:600},
-  {label:'6:00 AM',  goal:700},
-  {label:'7:00 AM',  goal:800},
+  {label:'12:00 AM',goal:100},{label:'1:00 AM',goal:200},
+  {label:'2:00 AM',goal:300},{label:'3:00 AM',goal:400},
+  {label:'4:00 AM',goal:500},{label:'5:00 AM',goal:600},
+  {label:'6:00 AM',goal:700},{label:'7:00 AM',goal:800},
 ];
-const HOUR_DURATION = 90000;
-const LORE_NOTES = [
-  {title:'1923 — Menecer Qeydi', body:'Bu otel 1923-cü ildə açıldı. İlk gecədən bir şeylər düzgün deyildi. Qapı 303 heç vaxt açılmadı.'},
-  {title:'1941 — Qonaq Dəftəri', body:'Son qonaq 1941-ci ildə qeydiyyatdan keçdi. İkinci gün otağı boş tapıldı. Əşyaları hələ də orada idi.'},
-  {title:'1958 — Mühəndis Hesabatı', body:'Havalandırma sistemi yeniləndi. Texnik işçilər "sürünmə səsləri" şikayət etdi. Bir nəfər işi tərk etdi.'},
-  {title:'1979 — Gecə Növbəsi Qeydi', body:'Əvvəlki növbəçi yazmışdı: Heç vaxt pəncərəyə baxma. Pərdəni həmişə çəkili saxla.'},
-  {title:'1995 — Sahibin Məktubu', body:'Bu oteli satmaq istəyirik. Alıcılar tapılmır. Hamı ilk gecəni görəndən sonra geri qayıdır.'},
-  {title:'2003 — Naməlum', body:'Otelin planı burada qoydum. 303 saylı otaq... planlarda yoxdur.'},
-  {title:'2018 — Sonuncu Qeyd', body:'Maaş ödənilir. Sistem avtomatikdir. Orada olmaq kifayətdir. Sual vermə.'},
-  {title:'Bu Gecə', body:'Sən bu qeydləri oxuya bilirsən. Deməli sağ qaldın. Sabah yenə gəl.'},
+const HOUR_DUR = 90000;
+const LORE = [
+  {t:'1923 — Menecer Qeydi',b:'Bu otel 1923-cü ildə açıldı. İlk gecədən bir şeylər düzgün deyildi. Qapı 303 heç vaxt açılmadı.'},
+  {t:'1941 — Qonaq Dəftəri',b:'Son qonaq 1941-ci ildə qeydiyyatdan keçdi. İkinci gün otağı boş tapıldı. Əşyaları hələ də orada idi.'},
+  {t:'1958 — Mühəndis Hesabatı',b:'Havalandırma sistemi yeniləndi. Texnik işçilər "sürünmə səsləri" şikayət etdi. Bir nəfər işi tərk etdi.'},
+  {t:'1979 — Gecə Növbəsi Qeydi',b:'Əvvəlki növbəçi yazmışdı: Heç vaxt pəncərəyə baxma. Pərdəni həmişə çəkili saxla.'},
+  {t:'1995 — Sahibin Məktubu',b:'Bu oteli satmaq istəyirik. Alıcılar tapılmır. Hamı ilk gecəni görəndən sonra geri qayıdır.'},
+  {t:'2003 — Naməlum',b:'Otelin planı burada qoydum. 303 saylı otaq... planlarda yoxdur.'},
+  {t:'2018 — Sonuncu Qeyd',b:'Maaş ödənilir. Sistem avtomatikdir. Orada olmaq kifayətdir. Sual vermə.'},
+  {t:'Bu Gecə',b:'Sən bu qeydləri oxuya bilirsən. Deməli sağ qaldın. Sabah yenə gəl.'},
 ];
 
-/* ============================================================
+/* ====================================================
    STATE
-   ============================================================ */
-let G = {
-  lives:3, hour:0, score:0, hunger:100, oxygen:100,
-  curtainClosed:false, ventClosed:false, doorLocked:false,
-  darkLevel:0, oxyActive:false, hourTimer:HOUR_DURATION,
-  danger:0, running:false, paused:false,
-  loreUnlocked:0, lastLoreHour:-1,
-  monsterPhase:'idle', monsterTimer:0,
-  knockCount:0, knockTimer:0, isRealFood:false,
-  ventWaiting:false, nightOver:false, dead:false, tetrisScore:0,
-};
-
-/* ============================================================
-   DOM REFS
-   ============================================================ */
-const $door    = document.getElementById('room-door');
-const $vent    = document.getElementById('room-vent');
-const $window  = document.getElementById('room-window');
-const $curtain = document.getElementById('win-curtain');
-const $monster = document.getElementById('win-monster');
-const $monText = document.getElementById('mon-text');
-const $clock   = document.getElementById('clock-hand');
-const $roomDark= document.getElementById('room-darkness');
-
-/* ============================================================
-   HUD UPDATE
-   ============================================================ */
-function updateHUD(){
-  const h = HOURS[G.hour];
-  document.getElementById('hud-time').textContent = h.label;
-  document.getElementById('hud-lives').textContent = '❤'.repeat(G.lives)+'♡'.repeat(3-G.lives);
-  document.getElementById('hud-score-val').textContent = G.score;
-  document.getElementById('hud-score-needed').textContent = '/ '+h.goal;
-
-  // Hour progress bar
-  const pct = Math.max(0,G.hourTimer/HOUR_DURATION*100);
-  document.getElementById('hour-bar').style.width = pct+'%';
-  const hb = document.getElementById('hour-bar');
-  hb.style.background = pct>50
-    ? 'linear-gradient(90deg,#1e6a30,#c8a84a)'
-    : pct>20
-    ? 'linear-gradient(90deg,#6a3010,#c84020)'
-    : 'linear-gradient(90deg,#3a0808,#cc1010)';
-
-  // Hunger
-  const hungerBar = document.getElementById('hunger-bar');
-  hungerBar.style.width = G.hunger+'%';
-  hungerBar.style.background = G.hunger>60?'#2a6a18':G.hunger>30?'#7a5010':'#8a1010';
-  document.getElementById('hunger-pct').textContent = Math.round(G.hunger)+'%';
-
-  // Oxygen
-  const oxyRow = document.getElementById('oxy-row');
-  oxyRow.style.display = G.oxyActive ? 'block':'none';
-  if(G.oxyActive){
-    document.getElementById('oxy-bar').style.width = G.oxygen+'%';
-    document.getElementById('oxy-pct').textContent = Math.round(G.oxygen)+'%';
-  }
-
-  // Monitor text
-  $monText.innerHTML = `TETRIS v2.1<br>&gt; SCORE: ${G.tetrisScore}<br>&gt; PLAYING_`;
-
-  // Clock hand
-  const angle = -90 + (G.hour/8)*360;
-  $clock.style.transform = `rotate(${angle}deg)`;
+   ==================================================== */
+let G = {};
+function resetState() {
+  G = {
+    lives:3, hour:0, score:0, hunger:100, oxygen:100,
+    curtain:false, ventClosed:false, doorLocked:false,
+    darkAlpha:0, oxyActive:false, hourTimer:HOUR_DUR,
+    danger:0, running:false, paused:false,
+    loreIdx:0, lastLoreHour:-1,
+    phase:'idle', winTimer:0, knockTimer:0,
+    isRealFood:false, nightOver:false, tetScore:0,
+    // animation
+    charBob:0, monsterAlpha:0, ventPulse:0,
+    flickerT:0, flickerAlpha:0,
+  };
 }
 
-/* ============================================================
-   ROOM STATE SYNC
-   ============================================================ */
-function syncRoom(){
-  // Darkness
-  const d = G.darkLevel;
-  $roomDark.style.background = `rgba(0,0,0,${d*0.7})`;
-
-  // Door
-  if(G.doorLocked) $door.classList.add('locked');
-  else $door.classList.remove('locked');
-
-  // Window / curtain
-  if(G.curtainClosed) $curtain.classList.add('closed');
-  else $curtain.classList.remove('closed');
-
-  // Vent
-  if(G.ventClosed) {
-    $vent.classList.add('closed');
-  } else {
-    $vent.classList.remove('closed');
-  }
-
-  // Monster at window
-  if(G.monsterPhase==='window' && !G.curtainClosed){
-    $window.classList.add('active-threat');
-    $monster.classList.add('visible');
-  } else {
-    $window.classList.remove('active-threat');
-    $monster.classList.remove('visible');
-  }
-
-  // Vent threat
-  if(G.monsterPhase==='vent'){
-    $vent.classList.add('active-threat');
-  } else {
-    $vent.classList.remove('active-threat');
-  }
-}
-
-/* ============================================================
+/* ====================================================
    TETRIS
-   ============================================================ */
-const tc = document.getElementById('tetris-canvas');
-const tctx = tc.getContext('2d');
-const nc = document.getElementById('next-canvas');
-const nctx = nc.getContext('2d');
-const COLS=9,ROWS=18,CS=tc.width/COLS;
-
-const PIECES=[
-  [[1,1,1,1]],
-  [[1,1],[1,1]],
-  [[0,1,0],[1,1,1]],
-  [[1,0,0],[1,1,1]],
-  [[0,0,1],[1,1,1]],
-  [[0,1,1],[1,1,0]],
-  [[1,1,0],[0,1,1]],
+   ==================================================== */
+const TC=6, TR=12; // cols, rows (small — fits in monitor)
+const TPIECES=[
+  [[1,1,1,1]],[[1,1],[1,1]],
+  [[0,1,0],[1,1,1]],[[1,0,0],[1,1,1]],
+  [[0,0,1],[1,1,1]],[[0,1,1],[1,1,0]],[[1,1,0],[0,1,1]],
 ];
-// Muted horror-palette tetris colors
-const TCOLORS=['#1a6060','#606010','#502060','#604010','#102860','#106030','#601010'];
+const TCOLORS=['#00aaaa','#aaaa00','#aa00aa','#aa5500','#0055aa','#00aa55','#aa0000'];
+let tet={board:null,piece:null,next:null,x:0,y:0,drop:0,interval:900,score:0};
 
-let tetState={
-  board:null, piece:null, next:null,
-  x:0, y:0, drop:0, dropInterval:800,
-  score:0, active:false,
-};
-
-function newBoard(){return Array.from({length:ROWS},()=>Array(COLS).fill(0));}
+function newBoard(){return Array.from({length:TR},()=>Array(TC).fill(0));}
 function randPiece(){
-  const i=Math.floor(Math.random()*PIECES.length);
-  return {shape:PIECES[i].map(r=>[...r]),color:TCOLORS[i]};
+  const i=Math.floor(Math.random()*TPIECES.length);
+  return {shape:TPIECES[i].map(r=>[...r]),col:TCOLORS[i]};
 }
-function initTetris(){
-  tetState.board=newBoard();
-  tetState.next=randPiece();
-  spawnPiece();
-  tetState.score=0;
-  tetState.active=true;
-  tetState.dropInterval=800;
-  tetState.drop=0;
+function initTet(){
+  tet.board=newBoard();tet.next=randPiece();
+  spawnTet();tet.score=0;tet.drop=0;tet.interval=900;
 }
-function spawnPiece(){
-  tetState.piece=tetState.next;
-  tetState.next=randPiece();
-  tetState.x=Math.floor((COLS-tetState.piece.shape[0].length)/2);
-  tetState.y=0;
-  if(collide(tetState.board,tetState.piece.shape,tetState.x,tetState.y)){
-    tetState.board=newBoard();
-  }
+function spawnTet(){
+  tet.piece=tet.next;tet.next=randPiece();
+  tet.x=Math.floor((TC-tet.piece.shape[0].length)/2);tet.y=0;
+  if(tCollide(tet.piece.shape,tet.x,tet.y)) tet.board=newBoard();
 }
-function collide(board,shape,ox,oy){
-  for(let r=0;r<shape.length;r++){
+function tCollide(shape,ox,oy){
+  for(let r=0;r<shape.length;r++)
     for(let c=0;c<shape[r].length;c++){
       if(!shape[r][c]) continue;
-      const nr=oy+r, nc2=ox+c;
-      if(nr>=ROWS||nc2<0||nc2>=COLS||board[nr]?.[nc2]) return true;
+      const nr=oy+r,nc=ox+c;
+      if(nr>=TR||nc<0||nc>=TC||tet.board[nr]?.[nc]) return true;
     }
-  }
   return false;
 }
-function rotate(shape){
-  return shape[0].map((_,i)=>shape.map(row=>row[i]).reverse());
-}
-function lock(){
-  const {board,piece,x,y}=tetState;
-  piece.shape.forEach((row,r)=>{
-    row.forEach((v,c)=>{
-      if(v) board[y+r][x+c]=piece.color;
-    });
-  });
-  clearLines();
-  spawnPiece();
-}
-function clearLines(){
+function tRotate(shape){return shape[0].map((_,i)=>shape.map(r=>r[i]).reverse());}
+function tLock(){
+  tet.piece.shape.forEach((row,r)=>row.forEach((v,c)=>{
+    if(v) tet.board[tet.y+r][tet.x+c]=tet.piece.col;
+  }));
   let cleared=0;
-  for(let r=ROWS-1;r>=0;r--){
-    if(tetState.board[r].every(c=>c)){
-      tetState.board.splice(r,1);
-      tetState.board.unshift(Array(COLS).fill(0));
+  for(let r=TR-1;r>=0;r--){
+    if(tet.board[r].every(c=>c)){
+      tet.board.splice(r,1);tet.board.unshift(Array(TC).fill(0));
       cleared++;r++;
     }
   }
   if(cleared){
     const pts=[0,100,300,500,800][cleared]||800;
-    tetState.score+=pts;
-    G.score+=pts;
-    G.tetrisScore=G.score;
+    tet.score+=pts;G.score+=pts;G.tetScore=G.score;
   }
+  spawnTet();
 }
-function tetDrop(dt){
-  if(!tetState.active||G.paused) return;
-  tetState.drop+=dt;
-  if(tetState.drop>tetState.dropInterval){
-    tetState.drop=0;
-    if(!collide(tetState.board,tetState.piece.shape,tetState.x,tetState.y+1)){
-      tetState.y++;
-    } else {
-      lock();
-    }
-    tetState.dropInterval=Math.max(180,800-(G.hour*70));
-  }
-}
-function drawTetris(){
-  tctx.fillStyle='#030504';
-  tctx.fillRect(0,0,tc.width,tc.height);
-
-  // Very faint grid
-  tctx.strokeStyle='rgba(0,80,20,0.08)';
-  tctx.lineWidth=0.5;
-  for(let r=0;r<ROWS;r++){tctx.beginPath();tctx.moveTo(0,r*CS);tctx.lineTo(tc.width,r*CS);tctx.stroke();}
-  for(let c=0;c<COLS;c++){tctx.beginPath();tctx.moveTo(c*CS,0);tctx.lineTo(c*CS,tc.height);tctx.stroke();}
-
-  // Board cells
-  tetState.board.forEach((row,r)=>{
-    row.forEach((col,c)=>{
-      if(col){
-        tctx.fillStyle=col;
-        tctx.fillRect(c*CS+1,r*CS+1,CS-2,CS-2);
-        // subtle inner highlight
-        tctx.fillStyle='rgba(255,255,255,0.06)';
-        tctx.fillRect(c*CS+1,r*CS+1,CS-2,3);
-      }
-    });
-  });
-
-  // Active piece
-  if(tetState.piece){
-    // Ghost
-    let gy=tetState.y;
-    while(!collide(tetState.board,tetState.piece.shape,tetState.x,gy+1)) gy++;
-    if(gy!==tetState.y){
-      tctx.fillStyle=tetState.piece.color.replace('rgb','rgba').replace(')',',0.2)');
-      tetState.piece.shape.forEach((row,r)=>{
-        row.forEach((v,c)=>{
-          if(v) tctx.fillRect((tetState.x+c)*CS+1,(gy+r)*CS+1,CS-2,CS-2);
-        });
-      });
-    }
-    tctx.fillStyle=tetState.piece.color;
-    tetState.piece.shape.forEach((row,r)=>{
-      row.forEach((v,c)=>{
-        if(v){
-          tctx.fillRect((tetState.x+c)*CS+1,(tetState.y+r)*CS+1,CS-2,CS-2);
-          tctx.fillStyle='rgba(255,255,255,0.08)';
-          tctx.fillRect((tetState.x+c)*CS+1,(tetState.y+r)*CS+1,CS-2,3);
-          tctx.fillStyle=tetState.piece.color;
-        }
-      });
-    });
-  }
-
-  // Next
-  nctx.fillStyle='#020403';
-  nctx.fillRect(0,0,nc.width,nc.height);
-  if(tetState.next){
-    const ns=tetState.next.shape;
-    const ncs=nc.width/5;
-    const ox=Math.floor((5-ns[0].length)/2);
-    const oy=Math.floor((5-ns.length)/2);
-    nctx.fillStyle=tetState.next.color;
-    ns.forEach((row,r)=>{
-      row.forEach((v,c)=>{
-        if(v) nctx.fillRect((ox+c)*ncs+1,(oy+r)*ncs+1,ncs-2,ncs-2);
-      });
-    });
+function tetStep(dt){
+  if(!tet.piece||G.paused) return;
+  tet.drop+=dt;
+  if(tet.drop>tet.interval){
+    tet.drop=0;
+    if(!tCollide(tet.piece.shape,tet.x,tet.y+1)) tet.y++;
+    else tLock();
+    tet.interval=Math.max(150,900-G.hour*80);
   }
 }
 
 document.addEventListener('keydown',e=>{
-  if(!G.running||G.paused) return;
-  const p=tetState.piece;
-  if(!p) return;
+  if(!G.running||G.paused||!tet.piece) return;
   switch(e.key){
-    case 'ArrowLeft':
-      if(!collide(tetState.board,p.shape,tetState.x-1,tetState.y)) tetState.x--;
-      break;
-    case 'ArrowRight':
-      if(!collide(tetState.board,p.shape,tetState.x+1,tetState.y)) tetState.x++;
-      break;
-    case 'ArrowDown':
-      if(!collide(tetState.board,p.shape,tetState.x,tetState.y+1)) tetState.y++;
-      else lock();
-      break;
-    case 'ArrowUp':{
-      const rot=rotate(p.shape);
-      if(!collide(tetState.board,rot,tetState.x,tetState.y)) p.shape=rot;
-      break;}
-    case ' ':
-      while(!collide(tetState.board,p.shape,tetState.x,tetState.y+1)) tetState.y++;
-      lock();
-      break;
+    case'ArrowLeft': if(!tCollide(tet.piece.shape,tet.x-1,tet.y))tet.x--;break;
+    case'ArrowRight':if(!tCollide(tet.piece.shape,tet.x+1,tet.y))tet.x++;break;
+    case'ArrowDown': if(!tCollide(tet.piece.shape,tet.x,tet.y+1))tet.y++;else tLock();break;
+    case'ArrowUp':{const r=tRotate(tet.piece.shape);if(!tCollide(r,tet.x,tet.y))tet.piece.shape=r;break;}
+    case' ':while(!tCollide(tet.piece.shape,tet.x,tet.y+1))tet.y++;tLock();break;
   }
   e.preventDefault();
 });
 
-/* ============================================================
-   MONSTER SYSTEM
-   ============================================================ */
-function maybeSpawnMonster(){
-  if(G.monsterPhase!=='idle') return;
-  const scorePace=G.score/(HOURS[G.hour].goal||1);
-  G.danger+=(0.004+(1-scorePace)*0.008+(G.hunger<40?0.005:0)+(G.hour>4?0.004:0));
-  G.danger=Math.min(G.danger,100);
-  if(G.danger>25+Math.random()*30){
-    G.danger=0;
-    const roll=Math.random();
-    if(roll<0.35) startWindowEvent();
-    else if(roll<0.65) startDoorEvent();
-    else startVentEvent();
+/* ====================================================
+   ROOM DRAW — PIXEL ART
+   Full canvas: 480×270
+   Layout:
+     Room scene:  x0→320  y0→220  (left+center)
+     HUD panel:   x320→480  (right strip)
+     Tetris on monitor inside room
+   ==================================================== */
+
+// Room geometry constants (pixel coords in 480×270)
+const R = {
+  // walls
+  wallL:  0,   wallR:  320, wallT:  0,  wallB: 220,
+  floorT: 180, ceilH:  18,
+  // perspective vanishing aids
+  vpX: 160, vpY: 60,
+  // door
+  doorX:  178, doorY:  100, doorW: 52, doorH: 80,
+  // window
+  winX:   28,  winY:   50,  winW:  58, winH:  80,
+  // vent
+  ventX:  120, ventY:  18,  ventW: 46, ventH: 20,
+  // desk
+  deskX:  10,  deskY:  155, deskW: 200,deskH: 12,
+  // monitor (on desk)
+  monX:   18,  monY:   104, monW:  68, monH:  52,
+  // tetris screen inside monitor
+  tsX:    21,  tsY:    108, tsW:   44, tsH:   38,
+  // lamp
+  lampX:  146, lampY:  130,
+  // clock (digital, on desk)
+  clkX:   118, clkY:   162,
+  // chair
+  chairX: 50,  chairY: 168,
+  // character
+  charX:  80,  charY:  145,
+  // pizza box (right of desk, near door)
+  pizzaX: 210, pizzaY: 148,
+  // hud panel
+  hudX:   322, hudY:   0, hudW: 158, hudH: 270,
+};
+
+function drawRoom(ts) {
+  const c=ctx;
+  const dark=G.darkAlpha;
+
+  /* ---- CEILING ---- */
+  px(c,0,0,R.wallR,R.ceilH,P.ceiling);
+  // ceiling trim
+  px(c,0,R.ceilH-1,R.wallR,2,P.wallShad);
+
+  /* ---- BACK WALL ---- */
+  // gradient via bands
+  for(let i=0;i<R.floorT-R.ceilH;i++){
+    const t=i/(R.floorT-R.ceilH);
+    const r=0x2a-(0x2a-0x1e)*t|0;
+    const g=0x20-(0x20-0x16)*t|0;
+    const b=0x18-(0x18-0x10)*t|0;
+    px(c,0,R.ceilH+i,R.wallR,1,`rgb(${r},${g},${b})`);
+  }
+
+  /* ---- LEFT WALL (angled) ---- */
+  // simple darker strip on left
+  px(c,0,R.ceilH,26,R.floorT-R.ceilH,'#221a12');
+  pxLine(c,26,R.ceilH,26,R.floorT,P.wallShad,1);
+
+  /* ---- RIGHT WALL ---- */
+  px(c,290,R.ceilH,30,R.floorT-R.ceilH,'#221a12');
+  pxLine(c,290,R.ceilH,290,R.floorT,P.wallShad,1);
+
+  /* ---- FLOOR ---- */
+  for(let i=0;i<H-R.floorT;i++){
+    const t=i/(H-R.floorT);
+    const rr=0x18+(0x08-0x18)*t|0;
+    const gg=0x12+(0x06-0x12)*t|0;
+    const bb=0x08+(0x04-0x08)*t|0;
+    px(c,0,R.floorT+i,R.wallR,1,`rgb(${Math.max(0,rr)},${Math.max(0,gg)},${Math.max(0,bb)})`);
+  }
+  // floor boards (vertical lines)
+  c.strokeStyle='#201810';c.lineWidth=1;
+  for(let fx=0;fx<R.wallR;fx+=22){
+    c.beginPath();c.moveTo(fx,R.floorT);c.lineTo(fx,H);c.stroke();
+  }
+  // floor highlight line
+  px(c,0,R.floorT,R.wallR,1,'#2a2018');
+
+  /* ---- WINDOW ---- */
+  drawWindow(c,dark,ts);
+
+  /* ---- VENT ---- */
+  drawVent(c,ts);
+
+  /* ---- DOOR ---- */
+  drawDoor(c,dark);
+
+  /* ---- DESK ---- */
+  drawDesk(c);
+
+  /* ---- MONITOR + TETRIS ---- */
+  drawMonitor(c,ts);
+
+  /* ---- LAMP ---- */
+  drawLamp(c,dark);
+
+  /* ---- PIZZA BOX ---- */
+  drawPizza(c);
+
+  /* ---- CLOCK (digital) ---- */
+  drawClock(c);
+
+  /* ---- CHARACTER ---- */
+  drawChar(c,ts);
+
+  /* ---- DARKNESS OVERLAY ---- */
+  if(dark>0){
+    c.fillStyle=`rgba(0,0,0,${dark*0.75})`;
+    c.fillRect(0,0,R.wallR,R.wallB);
+  }
+
+  /* ---- VIGNETTE ---- */
+  const vig=c.createRadialGradient(R.wallR/2,H/2,60,R.wallR/2,H/2,Math.max(R.wallR,H)*0.7);
+  vig.addColorStop(0,'rgba(0,0,0,0)');
+  vig.addColorStop(1,'rgba(0,0,0,0.65)');
+  c.fillStyle=vig;
+  c.fillRect(0,0,R.wallR,H);
+
+  /* ---- HUD PANEL ---- */
+  drawHUD(c,ts);
+
+  /* ---- FLICKER ---- */
+  if(G.flickerAlpha>0){
+    c.fillStyle=`rgba(0,0,0,${G.flickerAlpha})`;
+    c.fillRect(0,0,W,H);
   }
 }
 
-/* WINDOW */
-function startWindowEvent(){
-  if(G.curtainClosed){showAlert('Kənar səs...');setTimeout(clearAlert,3000);return;}
-  G.monsterPhase='window';
-  G.monsterTimer=8000;
-  syncRoom();
-  showOverlay('overlay-window');
-  showAlert('PƏNCƏRƏDƏ KÖLGƏ!');
+/* ---- WINDOW ---- */
+function drawWindow(c,dark,ts){
+  const {winX:wx,winY:wy,winW:ww,winH:wh}=R;
+  // Frame
+  px(c,wx-3,wy-3,ww+6,wh+6,P.winFrame);
+  // Night sky
+  px(c,wx,wy,ww,wh,P.winNight);
+  // Stars
+  const stars=[[0.15,0.12],[0.7,0.08],[0.45,0.25],[0.88,0.18],[0.3,0.55],[0.08,0.7],[0.92,0.78],[0.55,0.6]];
+  stars.forEach(([sx,sy])=>{
+    const blink=Math.sin(ts*0.001+sx*10)>0.5?1:0.5;
+    c.fillStyle=`rgba(210,210,230,${blink*0.7})`;
+    c.fillRect(Math.round(wx+sx*ww),Math.round(wy+sy*wh),1,1);
+  });
+  // Monster shadow at window
+  if(G.phase==='window' && !G.curtain){
+    const a=Math.min(1,G.monsterAlpha);
+    c.fillStyle=`rgba(5,4,12,${a*0.92})`;
+    c.fillRect(wx,wy,ww,wh);
+    // Claw silhouette (3 curved lines)
+    if(a>0.3){
+      c.strokeStyle=`rgba(20,10,30,${a})`;c.lineWidth=3;
+      // fingers
+      for(let i=0;i<3;i++){
+        const bx=wx+ww*0.3+i*ww*0.18;
+        c.beginPath();c.moveTo(bx,wy+wh);
+        c.quadraticCurveTo(bx-4,wy+wh*0.5,bx+i*2,wy+wh*0.15);
+        c.stroke();
+      }
+      // Eyes
+      if(a>0.6){
+        const eyeA=a-0.6;
+        [[0.3,0.35],[0.62,0.35]].forEach(([ex,ey])=>{
+          const cx2=wx+ex*ww, cy2=wy+ey*wh;
+          c.fillStyle=`rgba(180,0,0,${eyeA})`;
+          c.beginPath();c.arc(cx2,cy2,3,0,Math.PI*2);c.fill();
+          c.fillStyle=`rgba(255,80,80,${eyeA*0.5})`;
+          c.beginPath();c.arc(cx2,cy2,5,0,Math.PI*2);c.fill();
+        });
+      }
+    }
+  }
+  // Curtain
+  if(G.curtain){
+    // Left curtain panel
+    px(c,wx,wy,Math.round(ww*0.48),wh,P.winCurtain);
+    px(c,wx,wy,2,wh,'#2a1206');
+    // Right panel
+    px(c,wx+Math.round(ww*0.52),wy,Math.round(ww*0.48),wh,P.winCurtain);
+    px(c,wx+ww-2,wy,2,wh,'#2a1206');
+    // Curtain rod
+    px(c,wx-4,wy-4,ww+8,3,P.woodLight);
+    // Fold lines on curtain
+    c.strokeStyle='#2e1006';c.lineWidth=1;
+    [0.15,0.3,0.7,0.85].forEach(fx=>{
+      c.beginPath();c.moveTo(wx+fx*ww,wy);c.lineTo(wx+fx*ww+2,wy+wh);c.stroke();
+    });
+  } else {
+    // Just the rod
+    px(c,wx-4,wy-4,ww+8,3,P.woodLight);
+  }
+  // Window cross bars
+  px(c,wx,wy+Math.round(wh/2)-1,ww,2,P.winFrame);
+  px(c,wx+Math.round(ww/2)-1,wy,2,wh,P.winFrame);
+  // Frame inner highlight
+  pxRect(c,wx,wy,ww,wh,'#4a3820',1);
+}
+
+/* ---- VENT ---- */
+function drawVent(c,ts){
+  const {ventX:vx,ventY:vy,ventW:vw,ventH:vh}=R;
+  // bg
+  px(c,vx-2,vy-2,vw+4,vh+4,P.wallShad);
+  px(c,vx,vy,vw,vh,P.ventBg);
+  if(!G.ventClosed){
+    // grille bars
+    const barW=3, gap=4;
+    for(let i=0;i*( barW+gap)<vw;i++){
+      px(c,vx+i*(barW+gap),vy,barW,vh,P.ventBar);
+    }
+    // horizontal bar
+    px(c,vx,vy+Math.round(vh/2),vw,1,'#1e1810');
+  } else {
+    // closed plate
+    px(c,vx+1,vy+1,vw-2,vh-2,'#0d0b08');
+    pxTextC(c,'✕',vx+vw/2,vy+vh*0.72,'#2a2018',10,'monospace');
+  }
+  pxRect(c,vx,vy,vw,vh,P.wallShad,1);
+  // threat glow
+  if(G.phase==='vent'){
+    const pa=0.4+0.3*Math.sin(ts*0.006);
+    c.strokeStyle=`rgba(200,40,40,${pa})`;c.lineWidth=2;
+    c.strokeRect(vx-2,vy-2,vw+4,vh+4);
+  }
+  // label
+  pxTextC(c,'VENT',vx+vw/2,vy+vh+8,'#1e1810',7,'monospace');
+}
+
+/* ---- DOOR ---- */
+function drawDoor(c,dark){
+  const {doorX:dx,doorY:dy,doorW:dw,doorH:dh}=R;
+  // Frame
+  px(c,dx-5,dy-5,dw+10,dh+5,P.woodDark);
+  // Door body — wood planks
+  for(let i=0;i<dh;i++){
+    const t=i/dh;
+    const rr=(0x5a+t*0x10)|0;
+    const gg=(0x34+t*0x0a)|0;
+    const bb=(0x18+t*0x05)|0;
+    px(c,dx,dy+i,dw,1,`rgb(${rr},${gg},${bb})`);
+  }
+  // Wood grain lines
+  c.strokeStyle='#4a2c12';c.lineWidth=1;
+  [0.2,0.5,0.75].forEach(fx=>{
+    c.beginPath();c.moveTo(dx+fx*dw,dy);c.lineTo(dx+fx*dw+2,dy+dh);c.stroke();
+  });
+  // Door panels (recessed)
+  px(c,dx+6,dy+6,dw-12,dh*0.4,'#4a2810');
+  px(c,dx+6,dy+dh*0.5,dw-12,dh*0.44,'#4a2810');
+  pxRect(c,dx+6,dy+6,dw-12,dh*0.4,'#6a4020',1);
+  pxRect(c,dx+6,dy+dh*0.5,dw-12,dh*0.44,'#6a4020',1);
+  // Knob
+  const knobCol=G.doorLocked?'#d4a030':'#8a6020';
+  pxCircle(c,dx+dw*0.82,dy+dh*0.54,4,knobCol);
+  if(G.doorLocked){
+    pxCircle(c,dx+dw*0.82,dy+dh*0.54,6,'rgba(212,160,48,0.25)');
+    // keyhole
+    pxCircle(c,dx+dw*0.82,dy+dh*0.48,2,'#1a0e04');
+    px(c,dx+dw*0.82-1,dy+dh*0.5,2,4,'#1a0e04');
+  }
+  // Light switch on wall
+  px(c,dx-18,dy+dh*0.5-6,10,12,'#2a2018');
+  px(c,dx-17,dy+dh*0.5-5,8,10,'#1a1810');
+}
+
+/* ---- DESK ---- */
+function drawDesk(c){
+  const {deskX:x,deskY:y,deskW:w,deskH:h}=R;
+  // desk top surface
+  for(let i=0;i<h;i++){
+    const t=i/h;
+    const rr=(0x4a-(0x4a-0x3a)*t)|0;
+    const gg=(0x2c-(0x2c-0x20)*t)|0;
+    const bb=(0x14-(0x14-0x10)*t)|0;
+    px(c,x,y+i,w,1,`rgb(${rr},${gg},${bb})`);
+  }
+  // desk front face
+  px(c,x,y+h,w,24,P.deskSide);
+  px(c,x,y+h,w,1,'#6a4020');
+  // desk legs
+  px(c,x+6,y+h+24,6,H-y-h-24,P.deskLeg);
+  px(c,x+w-12,y+h+24,6,H-y-h-24,P.deskLeg);
+  // desk edge highlight
+  px(c,x,y,w,1,'#6a4020');
+}
+
+/* ---- MONITOR + TETRIS ---- */
+function drawMonitor(c,ts){
+  const {monX:mx,monY:my,monW:mw,monH:mh}=R;
+  // Body
+  px(c,mx,my,mw,mh,P.monBody);
+  pxRect(c,mx,my,mw,mh,'#3a3830',1);
+  // Screen bezel
+  px(c,mx+4,my+4,mw-8,mh-14,P.monScr);
+  // Screen glow
+  px(c,mx+5,my+5,mw-10,mh-16,P.monScrGlow);
+  // Draw tetris inside screen
+  drawTetOnMon(c);
+  // Monitor bottom / speaker grille
+  px(c,mx,my+mh-10,mw,10,'#222020');
+  for(let i=0;i<4;i++) px(c,mx+mw*0.3+i*4,my+mh-6,2,3,'#1a1a18');
+  // Screen glow aura
+  c.fillStyle='rgba(20,100,40,0.07)';
+  c.fillRect(mx-4,my-4,mw+8,mh+8);
+  // Monitor base
+  px(c,mx+mw*0.3,my+mh,mw*0.4,4,P.monBase);
+  px(c,mx+mw*0.2,my+mh+4,mw*0.6,3,P.monBase);
+  // keyboard
+  px(c,mx-4,R.deskY-4,mw+10,5,'#1e1c18');
+  px(c,mx-4,R.deskY-4,mw+10,1,'#2a2820');
+  // score bubble on monitor
+  const bx=mx+mw, by=my+6;
+  px(c,bx-2,by,36,14,'#0a0a08');
+  pxRect(c,bx-2,by,36,14,'#2a2820',1);
+  pxText(c,G.tetScore.toString(),bx+2,by+10,'#40cc50',8,'monospace');
+}
+
+function drawTetOnMon(c){
+  const {tsX,tsY,tsW,tsH}=R;
+  const cw=tsW/TC, ch=tsH/TR;
+  px(c,tsX,tsY,tsW,tsH,'#040c06');
+  // board
+  tet.board.forEach((row,r)=>{
+    row.forEach((col,cc)=>{
+      if(col){
+        px(c,tsX+cc*cw+0.5,tsY+r*ch+0.5,cw-1,ch-1,col);
+      }
+    });
+  });
+  // active piece
+  if(tet.piece){
+    tet.piece.shape.forEach((row,r)=>{
+      row.forEach((v,cc)=>{
+        if(v) px(c,tsX+(tet.x+cc)*cw+0.5,tsY+(tet.y+r)*ch+0.5,cw-1,ch-1,tet.piece.col);
+      });
+    });
+  }
+  // scanlines on screen
+  c.fillStyle='rgba(0,0,0,0.15)';
+  for(let r=0;r<tsH;r+=2) c.fillRect(tsX,tsY+r,tsW,1);
+  // FOOD ARRIVED notif on screen
+  if(document.getElementById('ov-door').classList.contains('show') && G.isRealFood){
+    px(c,tsX-2,tsY+tsH+2,tsW+4+36,10,'#001800');
+    pxRect(c,tsX-2,tsY+tsH+2,tsW+4+36,10,'#1a4a1a',1);
+    pxText(c,'FOOD ARRIVED!',tsX+1,tsY+tsH+9,'#40cc50',7,'monospace');
+  }
+}
+
+/* ---- LAMP ---- */
+function drawLamp(c,dark){
+  const {lampX:lx,lampY:ly}=R;
+  // pole
+  px(c,lx+3,ly+18,2,R.deskY-ly-18,P.lampPole);
+  // shade
+  c.fillStyle=P.lampShade;
+  c.beginPath();
+  c.moveTo(lx-10,ly+18);c.lineTo(lx+18,ly+18);
+  c.lineTo(lx+12,ly+2);c.lineTo(lx-4,ly+2);
+  c.closePath();c.fill();
+  // shade top rim
+  px(c,lx-4,ly+2,16,2,'#d4b040');
+  // light cone (only if not too dark)
+  if(dark<0.85){
+    const alpha=0.15*(1-dark);
+    const lg=c.createRadialGradient(lx+4,R.deskY,0,lx+4,R.deskY,70);
+    lg.addColorStop(0,`rgba(255,240,180,${alpha})`);
+    lg.addColorStop(1,'rgba(255,240,180,0)');
+    c.fillStyle=lg;
+    c.fillRect(lx-60,ly,120,R.deskY-ly+20);
+  }
+  // bulb
+  pxCircle(c,lx+4,ly+16,3,P.lampLight);
+  // base
+  px(c,lx-1,R.deskY-2,10,3,P.lampPole);
+}
+
+/* ---- PIZZA BOX ---- */
+function drawPizza(c){
+  const {pizzaX:px2,pizzaY:py}=R;
+  const bw=52,bh=12;
+  // box side
+  px(c,px2,py+4,bw,bh,P.pizzaBox);
+  // lid
+  px(c,px2,py,bw,5,P.pizzaLid);
+  px(c,px2,py,bw,1,'#f0b870');
+  // text on box
+  pxTextC(c,'PIZZA',px2+bw/2,py+11,'#c06030',7,'monospace');
+}
+
+/* ---- CLOCK (digital) ---- */
+function drawClock(c){
+  const {clkX:cx,clkY:cy}=R;
+  const hw=34,hh=14;
+  px(c,cx,cy,hw,hh,'#0a0a08');
+  pxRect(c,cx,cy,hw,hh,'#1e1e1c',1);
+  const h=HOURS[G.hour];
+  pxTextC(c,h.label,cx+hw/2,cy+10,'#cc2020',8,'monospace');
+}
+
+/* ---- CHARACTER (back view) ---- */
+function drawChar(c,ts){
+  const bob=Math.sin(ts*0.002)*1.5;
+  const cx=R.charX, cy=R.charY+bob;
+  // Chair
+  px(c,cx-14,cy+34,28,4,P.woodMid); // seat
+  px(c,cx-14,cy+38,4,20,P.woodDark); // left leg
+  px(c,cx+10,cy+38,4,20,P.woodDark); // right leg
+  px(c,cx-14,cy+20,4,18,P.woodMid); // back left
+  px(c,cx+10,cy+20,4,18,P.woodMid); // back right
+  px(c,cx-14,cy+20,28,4,P.woodMid); // top rail
+  // Body
+  px(c,cx-8,cy+14,16,20,P.charShirt);
+  // Head
+  px(c,cx-5,cy+4,10,12,P.charHead);
+  // Hair
+  px(c,cx-5,cy+4,10,5,P.charHair);
+  px(c,cx-5,cy+4,2,10,P.charHair); // side
+  px(c,cx+9,cy+4,2,10,P.charHair);
+  // Arms
+  px(c,cx-14,cy+14,6,12,P.charShirt); // left
+  px(c,cx+8,cy+14,6,12,P.charShirt);  // right
+  // Hands on keyboard
+  px(c,cx-14,cy+25,6,4,P.charHead);
+  px(c,cx+8,cy+25,6,4,P.charHead);
+}
+
+/* ---- PAPERS on desk ---- */
+function drawPapers(c){
+  // sheet 1
+  px(c,110,R.deskY-8,22,10,P.paperLight);
+  px(c,110,R.deskY-8,22,1,P.paperDark);
+  for(let i=0;i<3;i++) px(c,113,R.deskY-6+i*2,16,1,'#c8c0a0');
+  // sheet 2 (angled — just offset)
+  px(c,133,R.deskY-10,20,10,P.paperDark);
+  px(c,134,R.deskY-9,18,8,P.paperLight);
+  // coffee cup
+  px(c,R.deskX+R.deskW-30,R.deskY-10,12,10,P.coffeeBody);
+  px(c,R.deskX+R.deskW-30,R.deskY-11,12,2,'#3a3028');
+  px(c,R.deskX+R.deskW-29,R.deskY-9,10,8,P.coffeeLiq);
+  // handle
+  px(c,R.deskX+R.deskW-18,R.deskY-8,3,5,P.coffeeBody);
+}
+
+/* ---- HUD PANEL ---- */
+function drawHUD(c,ts){
+  const {hudX:hx,hudY:hy,hudW:hw,hudH:hh}=R;
+  // bg
+  px(c,hx,hy,hw,hh,'#060404');
+  pxLine(c,hx,hy,hx,hy+hh,'#1e1a10',1);
+  // scanlines
+  for(let i=0;i<hh;i+=3){
+    c.fillStyle='rgba(0,0,0,0.15)';c.fillRect(hx,hy+i,hw,1);
+  }
+
+  let y=10;
+  // Title
+  pxTextC(c,'GRAND HOLLOW',hx+hw/2,hy+y,'#2a2010',8,'VT323');
+  y+=10;
+  pxTextC(c,'HOTEL TERMINAL',hx+hw/2,hy+y,'#1e1810',7,'VT323');
+  y+=14;
+  // divider
+  px(c,hx+8,hy+y,hw-16,1,'#1e1a10');y+=6;
+
+  // Clock / hour
+  pxText(c,'SAAT',hx+10,hy+y,'#2a2818',8,'VT323');
+  pxText(c,HOURS[G.hour].label,hx+60,hy+y,'#c8a84a',8,'VT323');
+  y+=12;
+
+  // Lives
+  pxText(c,'CAN',hx+10,hy+y,'#2a2818',8,'VT323');
+  for(let i=0;i<3;i++){
+    const hcol=i<G.lives?'#cc2020':'#2a1010';
+    // pixel heart
+    const hx2=hx+60+i*14, hy2=hy+y-7;
+    px(c,hx2+1,hy2,4,2,hcol);px(c,hx2+7,hy2,4,2,hcol);
+    px(c,hx2,hy2+2,12,4,hcol);px(c,hx2+1,hy2+6,10,2,hcol);
+    px(c,hx2+3,hy2+8,6,2,hcol);px(c,hx2+5,hy2+10,2,2,hcol);
+  }
+  y+=14;
+
+  // Score
+  pxText(c,'XAL',hx+10,hy+y,'#2a2818',8,'VT323');
+  pxText(c,G.score.toString(),hx+60,hy+y,'#c8a84a',9,'VT323');
+  y+=10;
+  pxText(c,'/ '+HOURS[G.hour].goal,hx+60,hy+y,'#1e2018',7,'VT323');
+  y+=12;
+
+  // Hour progress bar
+  pxText(c,'VAXT',hx+10,hy+y,'#2a2818',8,'VT323');y+=8;
+  const barW=hw-20;
+  px(c,hx+10,hy+y,barW,6,'#0a0806');
+  pxRect(c,hx+10,hy+y,barW,6,'#1e1a10',1);
+  const pct=G.hourTimer/HOUR_DUR;
+  const barCol=pct>0.5?'#1e6a30':pct>0.2?'#7a5010':'#8a1010';
+  px(c,hx+11,hy+y+1,Math.round((barW-2)*pct),4,barCol);
+  y+=12;
+
+  // divider
+  px(c,hx+8,hy+y,hw-16,1,'#1e1a10');y+=6;
+
+  // Hunger
+  pxText(c,'ACLIQ',hx+10,hy+y,'#2a2818',8,'VT323');y+=8;
+  px(c,hx+10,hy+y,barW,6,'#0a0806');
+  pxRect(c,hx+10,hy+y,barW,6,'#1a1a10',1);
+  const hunCol=G.hunger>60?'#2a7018':G.hunger>30?'#7a5010':'#8a1010';
+  px(c,hx+11,hy+y+1,Math.round((barW-2)*G.hunger/100),4,hunCol);
+  y+=12;
+
+  // Oxygen (if active)
+  if(G.oxyActive){
+    pxText(c,'OKSİGEN',hx+10,hy+y,'#1a3a8a',8,'VT323');y+=8;
+    px(c,hx+10,hy+y,barW,6,'#0a0806');
+    pxRect(c,hx+10,hy+y,barW,6,'#0a1a10',1);
+    px(c,hx+11,hy+y+1,Math.round((barW-2)*G.oxygen/100),4,'#1e5a8a');
+    y+=14;
+  }
+
+  // divider
+  px(c,hx+8,hy+y,hw-16,1,'#1e1a10');y+=6;
+
+  // Tetris next piece label
+  pxText(c,'NÖVBƏTI',hx+10,hy+y,'#1e2a18',8,'VT323');y+=8;
+  // Draw next piece
+  if(tet.next){
+    const ns=tet.next.shape;
+    const ncs=10;
+    const offX=hx+10, offY=hy+y;
+    ns.forEach((row,r)=>row.forEach((v,cc)=>{
+      if(v) px(c,offX+cc*ncs,offY+r*ncs,ncs-1,ncs-1,tet.next.col);
+    }));
+    y+=ns.length*ncs+8;
+  }
+
+  // divider
+  px(c,hx+8,hy+y,hw-16,1,'#1e1a10');y+=6;
+
+  // Controls hint
+  const keys=[['←→','hərəkət'],['↑','fırlat'],['↓/SPC','sal']];
+  keys.forEach(([k,v])=>{
+    pxText(c,k,hx+10,hy+y,'#1e3a20',7,'VT323');
+    pxText(c,v,hx+50,hy+y,'#142a18',7,'VT323');
+    y+=9;
+  });
+
+  // ALERT
+  if(G.phase!=='idle'){
+    const alertY=hy+hh-50;
+    const pa=0.6+0.4*Math.sin(ts*0.008);
+    px(c,hx+6,alertY,hw-12,30,'#120000');
+    c.strokeStyle=`rgba(180,30,30,${pa})`;c.lineWidth=1;
+    c.strokeRect(hx+6,alertY,hw-12,30);
+    pxTextC(c,'⚠ TƏHLÜKƏ',hx+hw/2,alertY+12,`rgba(200,30,30,${pa})`,9,'VT323');
+    const phases={'window':'PƏNCƏRƏ!','door':'QAPI!','vent':'VENT!'};
+    pxTextC(c,phases[G.phase]||'',hx+hw/2,alertY+24,`rgba(200,30,30,${pa*0.8})`,8,'VT323');
+  }
+}
+
+/* ====================================================
+   MONSTER LOGIC
+   ==================================================== */
+function maybeSpawn(){
+  if(G.phase!=='idle') return;
+  const pace=G.score/(HOURS[G.hour].goal||1);
+  G.danger+=(0.003+(1-pace)*0.007+(G.hunger<40?0.005:0)+(G.hour>4?0.004:0));
+  G.danger=Math.min(G.danger,100);
+  if(G.danger>25+Math.random()*35){
+    G.danger=0;
+    const r=Math.random();
+    if(r<0.35) startWindow();
+    else if(r<0.65) startDoor();
+    else startVent();
+  }
+}
+
+function startWindow(){
+  if(G.curtain){showNotif('Kənar səs...');setTimeout(hideNotif,3000);return;}
+  G.phase='window';G.winTimer=8000;G.monsterAlpha=0;
+  showOv('ov-window');
 }
 function resolveWindow(survived){
-  hideOverlay('overlay-window');
-  clearAlert();
+  hideOv('ov-window');
   if(survived){
-    G.curtainClosed=true;
-    G.darkLevel=Math.min(1,G.darkLevel+0.2);
-    G.monsterPhase='idle';
-    syncRoom();
-    setTimeout(()=>{
-      G.curtainClosed=false;
-      G.darkLevel=Math.max(0,G.darkLevel-0.2);
-      syncRoom();
-    },5000);
+    G.curtain=true;G.darkAlpha=Math.min(1,G.darkAlpha+0.25);
+    G.phase='idle';G.monsterAlpha=0;
+    setTimeout(()=>{G.curtain=false;G.darkAlpha=Math.max(0,G.darkAlpha-0.25);},5000);
   } else {
-    G.monsterPhase='idle';
-    syncRoom();
-    triggerJumpscare('Pəncərəni gördü!');
+    G.phase='idle';G.monsterAlpha=0;
+    jumpscare('Pəncərəni gördü!');
   }
 }
 
-/* DOOR */
-let knockInterval=null;
-function startDoorEvent(){
-  G.monsterPhase='door';
-  const isFood=G.hunger<50&&Math.random()<0.4;
-  G.isRealFood=isFood&&Math.random()<0.65;
-
-  const lockBtn=document.getElementById('btn-lock');
-  const foodBtn=document.getElementById('btn-open-food');
-  const title=document.getElementById('door-title');
-  const desc=document.getElementById('door-desc');
-
-  if(isFood){
+let knockIv=null;
+function startDoor(){
+  G.phase='door';
+  const food=G.hunger<50&&Math.random()<0.4;
+  G.isRealFood=food&&Math.random()<0.65;
+  const tit=document.getElementById('door-title');
+  const dsc=document.getElementById('door-desc');
+  const lb=document.getElementById('btn-lock');
+  const fb=document.getElementById('btn-food');
+  if(food){
     if(G.isRealFood){
-      document.getElementById('notif').style.display='block';
-      setTimeout(()=>document.getElementById('notif').style.display='none',3000);
-      title.textContent='Çatdırılma + Qapı döyülür';
-      desc.textContent='Bildiriş gəldi — yemək ola bilər.\nQərar ver!';
-      lockBtn.style.display='block';
-      foodBtn.style.display='block';
+      showNotif('▶ Delivery has arrived.');
+      setTimeout(hideNotif,3000);
+      tit.textContent='QAPI + ÇATDIRILma';
+      dsc.textContent='Bildiriş gəldi — yemək ola bilər.\nQərar ver!';
+      lb.style.display='block';fb.style.display='block';
     } else {
-      title.textContent='Qapı döyülür...';
-      desc.textContent='Bildiriş yoxdur — ehtiyatlı ol!';
-      lockBtn.style.display='block';
-      foodBtn.style.display='block';
+      tit.textContent='QAPI DÖYÜLÜR';
+      dsc.textContent='Bildiriş yoxdur — ehtiyatlı ol!';
+      lb.style.display='block';fb.style.display='block';
     }
   } else {
-    lockBtn.style.display='block';
-    foodBtn.style.display='none';
-    title.textContent='QAPI DÖYÜLÜR!';
-    desc.textContent='Tez gedin qapını kilidləyin!';
+    tit.textContent='QAPI DÖYÜLÜR!';
+    dsc.textContent='Tez gedin qapını kilidləyin!';
+    lb.style.display='block';fb.style.display='none';
   }
-
-  showOverlay('overlay-door');
-  showAlert('QAPINI KİLİDLƏ!');
-  startKnockBar();
-}
-function startKnockBar(){
-  const bar=document.getElementById('knock-bar');
+  showOv('ov-door');
   G.knockTimer=8000;
-  clearInterval(knockInterval);
-  knockInterval=setInterval(()=>{
-    if(G.knockTimer<=0){clearInterval(knockInterval);resolveDoor(false);return;}
+  clearInterval(knockIv);
+  const bar=document.getElementById('knock-fill');
+  knockIv=setInterval(()=>{
     G.knockTimer-=100;
     bar.style.width=(G.knockTimer/8000*100)+'%';
+    if(G.knockTimer<=0){clearInterval(knockIv);resolveDoor(false);}
   },100);
 }
-function resolveDoor(survived,ateFood){
-  clearInterval(knockInterval);
-  hideOverlay('overlay-door');
-  clearAlert();
-  G.monsterPhase='idle';
-  if(survived){
-    G.doorLocked=true;
-    syncRoom();
-    setTimeout(()=>{G.doorLocked=false;syncRoom();},4000);
-    if(ateFood){G.hunger=Math.min(100,G.hunger+40);}
+function resolveDoor(ok,ate){
+  clearInterval(knockIv);hideOv('ov-door');
+  G.phase='idle';
+  G.doorLocked=ok;
+  if(ok){
+    if(ate&&G.isRealFood) G.hunger=Math.min(100,G.hunger+45);
+    setTimeout(()=>{G.doorLocked=false;},4000);
   } else {
-    syncRoom();
-    triggerJumpscare('Qapını açdı!');
+    jumpscare('Qapını açdı!');
   }
 }
 
-/* VENT */
-let ventTimeout=null;
-function startVentEvent(){
-  G.monsterPhase='vent';
-  syncRoom();
-  const closeBtn=document.getElementById('btn-vent-close');
-  const waitDiv=document.getElementById('vent-waiting');
-  const openBtn=document.getElementById('btn-vent-open');
-  closeBtn.style.display='block';
-  waitDiv.style.display='none';
-  openBtn.style.display='none';
-  showOverlay('overlay-vent');
-  showAlert('HAVALANDIRMADAN SƏS!');
+let ventTout=null;
+function startVent(){
+  G.phase='vent';
+  const vc=document.getElementById('btn-vent-close');
+  const vw2=document.getElementById('btn-vent-open');
+  const vwait=document.getElementById('vent-wait');
+  vc.style.display='block';vw2.style.display='none';vwait.style.display='none';
+  showOv('ov-vent');
 }
 
 document.getElementById('btn-curtain').onclick=()=>resolveWindow(true);
-document.getElementById('btn-lock').onclick=()=>{clearInterval(knockInterval);resolveDoor(true,false);};
-document.getElementById('btn-open-food').onclick=()=>{
-  clearInterval(knockInterval);
+document.getElementById('btn-lock').onclick=()=>{clearInterval(knockIv);resolveDoor(true,false);};
+document.getElementById('btn-food').onclick=()=>{
+  clearInterval(knockIv);
   G.isRealFood?resolveDoor(true,true):resolveDoor(false);
 };
 document.getElementById('btn-vent-close').onclick=()=>{
   G.ventClosed=true;G.oxyActive=true;
-  syncRoom();
   document.getElementById('btn-vent-close').style.display='none';
-  document.getElementById('vent-waiting').style.display='block';
-  const wait=3000+Math.random()*4000;
-  ventTimeout=setTimeout(()=>{document.getElementById('btn-vent-open').style.display='block';},wait);
+  document.getElementById('vent-wait').style.display='block';
+  ventTout=setTimeout(()=>{
+    document.getElementById('btn-vent-open').style.display='block';
+  },3000+Math.random()*4000);
 };
 document.getElementById('btn-vent-open').onclick=()=>{
-  clearTimeout(ventTimeout);
+  clearTimeout(ventTout);
   G.ventClosed=false;G.oxyActive=false;G.oxygen=100;
-  syncRoom();
-  hideOverlay('overlay-vent');
-  clearAlert();
-  G.monsterPhase='idle';
+  hideOv('ov-vent');G.phase='idle';
   document.getElementById('btn-vent-close').style.display='block';
-  document.getElementById('vent-waiting').style.display='none';
+  document.getElementById('vent-wait').style.display='none';
   document.getElementById('btn-vent-open').style.display='none';
 };
 
-/* ============================================================
+/* ====================================================
    JUMPSCARE
-   ============================================================ */
-function triggerJumpscare(msg){
-  G.paused=true;
-  G.monsterPhase='idle';
-  hideAllOverlays();
-  clearAlert();
-  G.lives--;
-  updateHUD();
+   ==================================================== */
+function jumpscare(msg){
+  G.paused=true;G.phase='idle';
+  hideAllOv();G.lives--;
   const msgs=['GÖRDİ','GİRDİ','TAPDI'];
   const js=document.getElementById('jumpscare');
-  document.getElementById('jumpscare-text').textContent=msgs[Math.floor(Math.random()*msgs.length)];
-  document.getElementById('jumpscare-sub').textContent=msg;
+  document.getElementById('js-text').textContent=msgs[Math.floor(Math.random()*msgs.length)];
+  document.getElementById('js-sub').textContent=msg;
   js.style.display='flex';
   let f=0;
-  const fi=setInterval(()=>{
-    js.style.background=f%2===0?'#1a0000':'#000';
-    if(++f>8) clearInterval(fi);
-  },70);
+  const fi=setInterval(()=>{js.style.background=f++%2?'#000':'#1a0000';if(f>8)clearInterval(fi);},70);
   setTimeout(()=>{
-    js.style.display='none';
-    js.style.background='#000';
+    js.style.display='none';js.style.background='#000';
     if(G.lives<=0) gameOver();
     else G.paused=false;
   },1600);
 }
 
-/* ============================================================
+/* ====================================================
    OXYGEN
-   ============================================================ */
-let oxyInterval=null;
-function startOxyDrain(){
-  clearInterval(oxyInterval);
-  oxyInterval=setInterval(()=>{
+   ==================================================== */
+let oxyIv=null;
+function startOxy(){
+  clearInterval(oxyIv);
+  oxyIv=setInterval(()=>{
     if(!G.oxyActive) return;
     G.oxygen=Math.max(0,G.oxygen-2);
-    updateHUD();
-    if(G.oxygen<=0){
-      G.oxyActive=false;G.ventClosed=false;
-      syncRoom();
-      triggerJumpscare('Nəfəssiz qaldınız!');
-    }
+    if(G.oxygen<=0){G.oxyActive=false;G.ventClosed=false;jumpscare('Nəfəssiz qaldınız!');}
   },500);
 }
 
-/* ============================================================
+/* ====================================================
    HOUR SYSTEM
-   ============================================================ */
-function checkHourEnd(){
+   ==================================================== */
+function checkHour(){
   if(G.hourTimer>0) return;
   if(G.score<HOURS[G.hour].goal){
-    triggerJumpscare(`${HOURS[G.hour].label} xalı çatmadı!`);
+    jumpscare(`${HOURS[G.hour].label} — xal çatmadı!`);
     G.hour=Math.min(G.hour+1,HOURS.length-1);
-    setTimeout(showHourTransition,2000);
-    return;
+    setTimeout(showHourFlash,2000);return;
   }
   G.hour++;
   if(G.hour>=HOURS.length){winGame();return;}
-  showHourTransition();
-  maybeShowLore();
+  showHourFlash();maybeLore();
 }
-function showHourTransition(){
+function showHourFlash(){
   if(G.nightOver) return;
   G.paused=true;
   const h=HOURS[G.hour];
-  document.getElementById('hour-flash-text').textContent=h.label;
-  document.getElementById('hour-flash-sub').textContent=`Yeni hədəf: ${h.goal} xal`;
-  const fl=document.getElementById('hour-flash');
-  fl.style.display='flex';
+  document.getElementById('hf-text').textContent=h.label;
+  document.getElementById('hf-sub').textContent=`Yeni hədəf: ${h.goal} xal`;
+  document.getElementById('hour-flash').style.display='flex';
   G.hunger=Math.max(0,G.hunger-15);
-  updateHUD();
   setTimeout(()=>{
-    fl.style.display='none';
-    G.hourTimer=HOUR_DURATION;
-    G.paused=false;
+    document.getElementById('hour-flash').style.display='none';
+    G.hourTimer=HOUR_DUR;G.paused=false;
   },2200);
 }
-function maybeShowLore(){
-  if(G.loreUnlocked<LORE_NOTES.length&&G.hour>G.lastLoreHour){
+function maybeLore(){
+  if(G.loreIdx<LORE.length&&G.hour>G.lastLoreHour){
     G.lastLoreHour=G.hour;
-    const note=LORE_NOTES[G.loreUnlocked++];
+    const note=LORE[G.loreIdx++];
     setTimeout(()=>showNote(note),3000);
   }
 }
 function showNote(note){
   G.paused=true;
-  document.getElementById('note-title').textContent=note.title;
-  document.getElementById('note-body').textContent=note.body;
+  document.getElementById('note-title').textContent=note.t;
+  document.getElementById('note-body').textContent=note.b;
   document.getElementById('note-overlay').style.display='flex';
 }
 document.getElementById('note-close').onclick=()=>{
-  document.getElementById('note-overlay').style.display='none';
-  G.paused=false;
+  document.getElementById('note-overlay').style.display='none';G.paused=false;
 };
 
-/* ============================================================
+/* ====================================================
    GAME OVER / WIN
-   ============================================================ */
+   ==================================================== */
 function gameOver(){
   G.running=false;G.nightOver=true;
   const es=document.getElementById('endscreen');
   es.style.display='flex';
   document.getElementById('end-title').textContent='ÖLDÜNÜZ';
   document.getElementById('end-title').style.color='#8a1010';
-  document.getElementById('end-sub').textContent='Canavar qalib gəldi. The Grand Hollow Hotel sirrini qoruyur.';
-  document.getElementById('end-note').textContent='— '+HOURS[Math.min(G.hour,HOURS.length-1)].label+' —';
+  document.getElementById('end-sub').textContent='Canavar qalib gəldi.\nThe Grand Hollow Hotel sirrini qoruyur.';
+  document.getElementById('end-note').textContent='— '+HOURS[Math.min(G.hour,7)].label+' —';
 }
 function winGame(){
   G.running=false;G.nightOver=true;
   document.getElementById('endscreen').style.display='flex';
   document.getElementById('end-title').textContent='SƏHƏRƏ ÇIXDINIZ';
   document.getElementById('end-title').style.color='#c8a84a';
-  document.getElementById('end-sub').textContent='Telefon zəng çalır. Müdir deyir: "Təbrik edirəm. Sən də əvvəlkilər kimi sağ qaldın."';
+  document.getElementById('end-sub').textContent='Telefon zəng çalır.\nMüdir: "Təbrik edirəm. Sağ qaldın."';
   document.getElementById('end-note').textContent='Tomorrow. 12:00 AM.';
 }
 document.getElementById('end-btn').onclick=()=>{
-  document.getElementById('endscreen').style.display='none';
-  resetGame();
+  document.getElementById('endscreen').style.display='none';resetGame();
 };
 
-/* ============================================================
-   ALERT / NOTIF
-   ============================================================ */
-function showAlert(msg){
-  const el=document.getElementById('alert');
-  el.textContent='⚠ '+msg;el.style.display='block';
+/* ====================================================
+   OVERLAY HELPERS
+   ==================================================== */
+function showOv(id){G.paused=true;document.getElementById(id).classList.add('show');}
+function hideOv(id){
+  document.getElementById(id).classList.remove('show');
+  if(!document.querySelector('.overlay.show')) G.paused=false;
 }
-function clearAlert(){document.getElementById('alert').style.display='none';}
+function hideAllOv(){document.querySelectorAll('.overlay').forEach(o=>o.classList.remove('show'));G.paused=false;}
+function showNotif(msg){const n=document.getElementById('notif');n.textContent=msg;n.style.display='block';}
+function hideNotif(){document.getElementById('notif').style.display='none';}
 
-/* ============================================================
-   OVERLAYS
-   ============================================================ */
-function showOverlay(id){G.paused=true;document.getElementById(id).classList.add('visible');}
-function hideOverlay(id){
-  document.getElementById(id).classList.remove('visible');
-  if(!document.querySelector('.action-overlay.visible')) G.paused=false;
-}
-function hideAllOverlays(){
-  document.querySelectorAll('.action-overlay').forEach(o=>o.classList.remove('visible'));
-  G.paused=false;
-}
-
-/* ============================================================
+/* ====================================================
    GAME LOOP
-   ============================================================ */
-let lastTime=0;
-function gameLoop(ts){
+   ==================================================== */
+let lastT=0;
+function loop(ts){
   if(!G.running) return;
-  const dt=ts-lastTime;
-  lastTime=ts;
+  const dt=ts-lastT; lastT=ts;
+
   if(!G.paused){
     G.hourTimer=Math.max(0,G.hourTimer-dt);
-    if(G.hourTimer<=0) checkHourEnd();
-    G.hunger=Math.max(0,G.hunger-(dt*0.002));
-    tetDrop(dt);
-    maybeSpawnMonster();
-    if(G.monsterPhase==='window'){
-      G.monsterTimer-=dt;
-      if(G.monsterTimer<=0) resolveWindow(false);
+    if(G.hourTimer<=0) checkHour();
+    G.hunger=Math.max(0,G.hunger-dt*0.002);
+    tetStep(dt);
+    maybeSpawn();
+    // window monster fade in
+    if(G.phase==='window'){
+      G.winTimer-=dt;
+      G.monsterAlpha=Math.min(1,(8000-G.winTimer)/4000);
+      if(G.winTimer<=0) resolveWindow(false);
     }
-    updateHUD();
-    syncRoom();
+    // flicker effect for atmosphere
+    G.flickerT+=dt;
+    if(G.flickerT>3000+Math.random()*4000){
+      G.flickerT=0;
+      G.flickerAlpha=0.4;
+      setTimeout(()=>{G.flickerAlpha=0;},80);
+    }
   }
-  drawTetris();
-  requestAnimationFrame(gameLoop);
+
+  ctx.clearRect(0,0,W,H);
+  drawRoom(ts);
+  drawPapers(ctx);
+
+  requestAnimationFrame(loop);
 }
 
-/* ============================================================
+/* ====================================================
    INIT
-   ============================================================ */
+   ==================================================== */
 function resetGame(){
-  G={
-    lives:3,hour:0,score:0,hunger:100,oxygen:100,
-    curtainClosed:false,ventClosed:false,doorLocked:false,
-    darkLevel:0,oxyActive:false,hourTimer:HOUR_DURATION,
-    danger:0,running:false,paused:false,
-    loreUnlocked:0,lastLoreHour:-1,
-    monsterPhase:'idle',monsterTimer:0,
-    knockCount:0,knockTimer:0,isRealFood:false,
-    ventWaiting:false,nightOver:false,dead:false,tetrisScore:0,
-  };
-  hideAllOverlays();
-  clearAlert();
-  document.getElementById('notif').style.display='none';
+  resetState();
+  hideAllOv();
+  hideNotif();
   document.getElementById('endscreen').style.display='none';
-  syncRoom();
-  updateHUD();
-  initTetris();
+  document.getElementById('note-overlay').style.display='none';
+  initTet();
   G.running=true;
-  lastTime=performance.now();
-  requestAnimationFrame(gameLoop);
-  startOxyDrain();
+  lastT=performance.now();
+  requestAnimationFrame(loop);
+  startOxy();
 }
 
 document.getElementById('start-btn').onclick=()=>{
