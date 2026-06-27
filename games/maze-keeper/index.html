@@ -1,0 +1,958 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Maze Keeper</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+        .pixel-font {
+            font-family: 'Press Start 2P', cursive, sans-serif;
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #111827;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1f2937;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body class="bg-gray-950 text-slate-100 min-h-screen flex flex-col items-center justify-between p-2 md:p-4 select-none overflow-x-hidden">
+
+    <!-- Üst Panel -->
+    <header class="w-full max-w-5xl bg-emerald-950 border-4 border-emerald-600 rounded-lg p-3 flex flex-wrap justify-between items-center gap-2 shadow-2xl">
+        <div class="flex items-center gap-2">
+            <span class="text-2xl">🌿</span>
+            <h1 class="text-base md:text-lg font-bold tracking-wider text-emerald-400 pixel-font">MAZE KEEPER</h1>
+        </div>
+        <div class="flex gap-4 text-[10px] md:text-xs pixel-font items-center">
+            <div>Raund: <span id="round-val" class="text-yellow-400">1</span></div>
+            <div>Taymer: <span id="timer-val" class="text-red-400">100.0s</span></div>
+            <div>Xal: <span id="score-val" class="text-cyan-400">0</span></div>
+            <div>Qorunan: <span id="saved-val" class="text-green-400">0</span></div>
+        </div>
+    </header>
+
+    <!-- Oyun Ekranı və İdarəetmə Paneli -->
+    <main class="w-full max-w-5xl my-3 flex flex-col lg:flex-row gap-4 items-center justify-center flex-grow">
+        <!-- Canvas sahəsi -->
+        <div class="relative bg-emerald-900 border-4 border-emerald-700 rounded-xl overflow-hidden shadow-2xl flex items-center justify-center w-full max-w-[650px] aspect-square">
+            <canvas id="gameCanvas" class="w-full h-full block bg-emerald-950"></canvas>
+            
+            <!-- Ekran Üstü Modallar -->
+            <div id="overlay" class="absolute inset-0 bg-black/95 flex flex-col items-center justify-center p-6 text-center z-10">
+                <div id="overlay-content" class="space-y-6 max-w-md">
+                    <h2 id="overlay-title" class="text-xl md:text-2xl font-extrabold text-emerald-400 pixel-font">MAZE KEEPER</h2>
+                    <p id="overlay-desc" class="text-xs text-slate-300 leading-relaxed text-left space-y-2">
+                        <span>Siz yaşıl bağın keşikçisisiniz! 50x50 ölçülü böyük labirintin mərkəzindəki qırmızı bayrağı qoruyun.</span><br><br>
+                        <span>• Bağban sürəti: 1.2 xana/san. (Fasiləsiz hərəkət üçün düymələri basılı tutun).</span><br>
+                        <span>• İnsan sürəti: 1.35 xana/san.</span><br>
+                        <span>• Daşlaşma: İnsanların önünü kəsdikdə onları 0.50 saniyəlik dondurursunuz.</span><br>
+                        <span>• Qoruyucu İtlər (🐕): İnsanlar 5% şansla it çağırır. İt sizi izləyir və dondurur!</span>
+                    </p>
+                    <button id="start-btn" class="px-6 py-3 bg-emerald-500 hover:bg-emerald-400 active:translate-y-1 text-slate-950 font-bold rounded-lg border-b-4 border-emerald-700 transition-all pixel-font text-xs w-full">
+                        Oyuna Başla
+                    </button>
+                </div>
+            </div>
+
+            <!-- Perk Seçim Modalı -->
+            <div id="perk-modal" class="absolute inset-0 bg-black/95 flex flex-col items-center justify-center p-6 text-center z-20 hidden">
+                <h2 class="text-lg md:text-xl font-extrabold text-yellow-400 pixel-font mb-2">RAUND TAMAMLANDI!</h2>
+                <p class="text-xs text-slate-300 mb-6">Növbəti raund üçün 3 xüsusiyyətdən birini seçin:</p>
+                <div id="perk-container" class="grid grid-cols-1 md:grid-cols-3 gap-4 w-full max-w-lg mb-6">
+                    <!-- Kartlar bura dinamik yüklənəcək -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Panel -->
+        <div class="w-full lg:w-80 flex flex-col gap-3 self-stretch justify-between">
+            <!-- Oyun Qaydaları -->
+            <div class="bg-gray-900 border-2 border-gray-800 rounded-lg p-3 space-y-2 text-xs">
+                <h3 class="font-bold text-emerald-400 text-sm border-b border-gray-800 pb-1">Taktika:</h3>
+                <ul class="space-y-1 list-disc list-inside text-slate-300">
+                    <li>Klaviatura oxları və ya <strong class="text-white">WASD</strong> basılı tutun.</li>
+                    <li>İtlərdən (🐕) uzaq durun, onlar sizi dondura bilər.</li>
+                    <li>Qalxan və dondurma perkləri müdafiəni asanlaşdırır.</li>
+                </ul>
+            </div>
+
+            <!-- Aktiv Xüsusiyyət Göstəricisi -->
+            <div class="bg-gray-900 border-2 border-gray-800 rounded-lg p-3 text-xs">
+                <h3 class="font-bold text-yellow-500 text-sm border-b border-gray-800 pb-1 mb-2">Aktiv Gücləndirici:</h3>
+                <div id="active-perk-text" class="text-slate-300 italic">Heç bir gücləndirici yoxdur.</div>
+            </div>
+
+            <!-- Virtual Joystick -->
+            <div class="bg-gray-900 border-2 border-gray-800 rounded-lg p-3 flex flex-col items-center justify-center gap-2">
+                <span class="text-xs text-slate-400 font-semibold">Mobil İdarəetmə</span>
+                <div class="grid grid-cols-3 gap-2 w-32 h-32">
+                    <div></div>
+                    <button id="btn-up" class="bg-gray-800 hover:bg-gray-700 active:bg-emerald-500 text-white rounded-lg flex items-center justify-center font-bold text-lg">▲</button>
+                    <div></div>
+                    <button id="btn-left" class="bg-gray-800 hover:bg-gray-700 active:bg-emerald-500 text-white rounded-lg flex items-center justify-center font-bold text-lg">◀</button>
+                    <div class="bg-gray-950 border border-gray-800 rounded-lg flex items-center justify-center text-[10px] text-gray-500 font-bold">JOY</div>
+                    <button id="btn-right" class="bg-gray-800 hover:bg-gray-700 active:bg-emerald-500 text-white rounded-lg flex items-center justify-center font-bold text-lg">▶</button>
+                    <div></div>
+                    <button id="btn-down" class="bg-gray-800 hover:bg-gray-700 active:bg-emerald-500 text-white rounded-lg flex items-center justify-center font-bold text-lg">▼</button>
+                    <div></div>
+                </div>
+            </div>
+
+            <!-- Konsol Logları -->
+            <div class="bg-gray-950 border border-gray-900 rounded-lg p-2 h-24 overflow-y-auto text-[10px] font-mono text-emerald-500" id="game-log">
+                <div>[Sistem] Oyun başladıla bilər.</div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="w-full text-center text-[10px] text-gray-600 py-2 border-t border-gray-900 max-w-5xl">
+        Maze Keeper © 2026. Bütün hüquqlar qorunur.
+    </footer>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const overlay = document.getElementById('overlay');
+        const overlayTitle = document.getElementById('overlay-title');
+        const overlayDesc = document.getElementById('overlay-desc');
+        const startBtn = document.getElementById('start-btn');
+        const scoreValSpan = document.getElementById('score-val');
+        const savedValSpan = document.getElementById('saved-val');
+        const roundValSpan = document.getElementById('round-val');
+        const timerValSpan = document.getElementById('timer-val');
+        const gameLog = document.getElementById('game-log');
+        const perkModal = document.getElementById('perk-modal');
+        const perkContainer = document.getElementById('perk-container');
+        const activePerkText = document.getElementById('active-perk-text');
+
+        const GRID_SIZE = 50; 
+        let cellSize = 0;
+
+        let gameActive = false;
+        let score = 0;
+        let savedCount = 0;
+        let currentRound = 1;
+        let activeEntrancesCount = 1;
+        let activeEntrancesList = [];
+
+        let roundTimer = 100.0; 
+        let statePhase = 1; 
+        let lastTime = 0;
+
+        let maze = [];
+
+        let activePerk = null; 
+        let flagShieldActive = false;
+        let freezeActive = false;
+        let roundTimeOverride = 100;
+
+        const allPerks = [
+            {
+                id: 'slow_npcs',
+                title: 'Asta İnsanlar',
+                desc: 'İlk 10 saniyə insanların sürəti 1.275 xana/saniyəyə enir.',
+                action: () => {
+                    addLog("Asta İnsanlar gücləndiricisi aktivdir (10 san).", "text-blue-400");
+                }
+            },
+            {
+                id: 'fast_player',
+                title: 'Cəld Bağban',
+                desc: 'İlk 15 saniyə bağbanın sürəti 1.275 xana/saniyəyə qalxır.',
+                action: () => {
+                    addLog("Cəld Bağban gücləndiricisi aktivdir (15 san).", "text-blue-400");
+                }
+            },
+            {
+                id: 'flag_shield',
+                title: 'Bayraq Qalxanı',
+                desc: 'Bayraq qalxan qazanır. İlk toxunuşda uduzmursunuz, qalxan qırılır.',
+                action: () => {
+                    flagShieldActive = true;
+                    addLog("Bayraq Qalxanı aktivləşdirildi!", "text-yellow-400 font-bold");
+                }
+            },
+            {
+                id: 'short_timer',
+                title: 'Zaman Sıçrayışı',
+                desc: 'Raund müddəti 100 saniyədən 85 saniyəyə enir.',
+                action: () => {
+                    roundTimeOverride = 85;
+                    addLog("Zaman Sıçrayışı! Taymer 85 saniyədən başlayır.", "text-blue-400");
+                }
+            },
+            {
+                id: 'freeze_start',
+                title: 'Buzlu Başlanğıc',
+                desc: 'Bütün insanlar raundun ilk 5 saniyəsi dondurulur.',
+                action: () => {
+                    freezeActive = true;
+                    addLog("Buzlu Başlanğıc! İnsanlar 5 saniyə tərpənə bilməz.", "text-blue-400");
+                }
+            }
+        ];
+
+        const possibleEntrances = [
+            {x: 0, y: 2}, {x: GRID_SIZE-1, y: 12}, {x: 8, y: 0}, {x: GRID_SIZE-1, y: 24},
+            {x: 0, y: 46}, {x: 24, y: GRID_SIZE-1}, {x: 40, y: 0}, {x: 0, y: 16},
+            {x: GRID_SIZE-1, y: 38}, {x: 14, y: GRID_SIZE-1}
+        ];
+
+        function addLog(text, colorClass = '') {
+            const time = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = colorClass;
+            logEntry.innerHTML = `[${time}] ${text}`;
+            gameLog.appendChild(logEntry);
+            gameLog.scrollTop = gameLog.scrollHeight;
+        }
+
+        function generateMaze() {
+            maze = Array(GRID_SIZE).fill().map(() => Array(GRID_SIZE).fill(1));
+            
+            function carve(x, y) {
+                maze[y][x] = 0;
+                const directions = [
+                    [0, -2], [2, 0], [0, 2], [-2, 0]
+                ].sort(() => Math.random() - 0.5);
+
+                for (let [dx, dy] of directions) {
+                    let nx = x + dx;
+                    let ny = y + dy;
+                    if (nx > 0 && nx < GRID_SIZE - 1 && ny > 0 && ny < GRID_SIZE - 1) {
+                        if (maze[ny][nx] === 1) {
+                            maze[ny - dy/2][nx - dx/2] = 0;
+                            carve(nx, ny);
+                        }
+                    }
+                }
+            }
+
+            carve(1, 1);
+
+            const center = Math.floor(GRID_SIZE / 2);
+
+            for (let i = 4; i < GRID_SIZE - 4; i += 4) {
+                for (let j = 4; j < GRID_SIZE - 4; j += 4) {
+                    if (Math.abs(i - center) > 4 || Math.abs(j - center) > 4) {
+                        if (maze[i][j] === 1 && Math.random() > 0.4) {
+                            maze[i][j] = 0; 
+                        }
+                    }
+                }
+            }
+
+            for (let i = -2; i <= 2; i++) {
+                for (let j = -2; j <= 2; j++) {
+                    maze[center + i][center + j] = 0;
+                }
+            }
+
+            for (let i = 2; i < center - 2; i++) maze[center][i] = 0; 
+            for (let i = center + 3; i < GRID_SIZE - 2; i++) maze[center][i] = 0; 
+            for (let i = 2; i < center - 2; i++) maze[i][center] = 0; 
+
+            possibleEntrances.forEach(ent => {
+                maze[ent.y][ent.x] = 0;
+                if (ent.x === 0) maze[ent.y][1] = 0;
+                if (ent.x === GRID_SIZE-1) maze[ent.y][GRID_SIZE-2] = 0;
+                if (ent.y === 0) maze[1][ent.x] = 0;
+                if (ent.y === GRID_SIZE-1) maze[GRID_SIZE-2][ent.x] = 0;
+            });
+        }
+
+        let player = {
+            x: 0,
+            y: 0,
+            targetX: 0,
+            targetY: 0,
+            moveProgress: 0,
+            speed: 1.2 / 60, 
+            stunTimer: 0 
+        };
+
+        let npcs = [];
+        let dogs = []; 
+
+        function findShortestPath(startX, startY, endX, endY, avoidX = -1, avoidY = -1) {
+            let path = runAStar(startX, startY, endX, endY, avoidX, avoidY);
+            if (!path && avoidX !== -1) {
+                path = runAStar(startX, startY, endX, endY, -1, -1);
+            }
+            if (!path) {
+                let neighbors = [
+                    {x: startX + 1, y: startY},
+                    {x: startX - 1, y: startY},
+                    {x: startX, y: startY + 1},
+                    {x: startX, y: startY - 1}
+                ];
+                let bestNeighbor = null;
+                let minDist = Infinity;
+                for (let n of neighbors) {
+                    if (n.x >= 0 && n.x < GRID_SIZE && n.y >= 0 && n.y < GRID_SIZE && maze[n.y][n.x] === 0) {
+                        let dist = Math.abs(n.x - endX) + Math.abs(n.y - endY);
+                        if (dist < minDist) {
+                            minDist = dist;
+                            bestNeighbor = n;
+                        }
+                    }
+                }
+                if (bestNeighbor) {
+                    return [bestNeighbor];
+                }
+            }
+            return path;
+        }
+
+        function runAStar(startX, startY, endX, endY, avoidX, avoidY) {
+            let openSet = [];
+            let closedSet = new Set();
+            
+            let startNode = {
+                x: startX,
+                y: startY,
+                g: 0,
+                h: Math.abs(startX - endX) + Math.abs(startY - endY),
+                parent: null
+            };
+            startNode.f = startNode.g + startNode.h;
+            openSet.push(startNode);
+
+            while (openSet.length > 0) {
+                let currentIdx = 0;
+                for (let i = 1; i < openSet.length; i++) {
+                    if (openSet[i].f < openSet[currentIdx].f) {
+                        currentIdx = i;
+                    }
+                }
+                let current = openSet[currentIdx];
+
+                if (current.x === endX && current.y === endY) {
+                    let path = [];
+                    let temp = current;
+                    while (temp.parent) {
+                        path.push({x: temp.x, y: temp.y});
+                        temp = temp.parent;
+                    }
+                    return path.reverse();
+                }
+
+                openSet.splice(currentIdx, 1);
+                closedSet.add(`${current.x},${current.y}`);
+
+                let neighbors = [
+                    {x: current.x + 1, y: current.y},
+                    {x: current.x - 1, y: current.y},
+                    {x: current.x, y: current.y + 1},
+                    {x: current.x, y: current.y - 1}
+                ];
+
+                for (let neighbor of neighbors) {
+                    if (neighbor.x < 0 || neighbor.x >= GRID_SIZE || neighbor.y < 0 || neighbor.y >= GRID_SIZE) continue;
+                    if (maze[neighbor.y][neighbor.x] === 1) continue;
+                    if (closedSet.has(`${neighbor.x},${neighbor.y}`)) continue;
+
+                    if ((neighbor.x === avoidX && neighbor.y === avoidY) || 
+                        (neighbor.x === player.targetX && neighbor.y === player.targetY)) continue;
+
+                    let gScore = current.g + 1;
+                    let existingNode = openSet.find(n => n.x === neighbor.x && n.y === neighbor.y);
+
+                    if (!existingNode) {
+                        let neighborNode = {
+                            x: neighbor.x,
+                            y: neighbor.y,
+                            g: gScore,
+                            h: Math.abs(neighbor.x - endX) + Math.abs(neighbor.y - endY),
+                            parent: current
+                        };
+                        neighborNode.f = neighborNode.g + neighborNode.h;
+                        openSet.push(neighborNode);
+                    } else if (gScore < existingNode.g) {
+                        existingNode.g = gScore;
+                        existingNode.f = gScore + existingNode.h;
+                        existingNode.parent = current;
+                    }
+                }
+            }
+            return null;
+        }
+
+        function initRound(roundNum) {
+            currentRound = roundNum;
+            activeEntrancesCount = Math.min(roundNum, 10);
+            
+            let shuffledEntrances = [...possibleEntrances].sort(() => Math.random() - 0.5);
+            activeEntrancesList = shuffledEntrances.slice(0, activeEntrancesCount);
+            
+            generateMaze();
+            
+            const center = Math.floor(GRID_SIZE / 2);
+
+            let playerPlaced = false;
+            for (let offset = 3; offset < GRID_SIZE; offset++) {
+                let checkCoords = [
+                    {x: center - offset, y: center - offset},
+                    {x: center + offset, y: center - offset},
+                    {x: center - offset, y: center + offset},
+                    {x: center + offset, y: center + offset}
+                ];
+                for (let coord of checkCoords) {
+                    if (coord.x > 0 && coord.x < GRID_SIZE - 1 && coord.y > 0 && coord.y < GRID_SIZE - 1) {
+                        if (maze[coord.y][coord.x] === 0) {
+                            player.x = coord.x;
+                            player.y = coord.y;
+                            player.targetX = coord.x;
+                            player.targetY = coord.y;
+                            player.moveProgress = 0;
+                            player.stunTimer = 0;
+                            playerPlaced = true;
+                            break;
+                        }
+                    }
+                }
+                if (playerPlaced) break;
+            }
+
+            npcs = [];
+            dogs = [];
+            
+            activeEntrancesList.forEach((ent, index) => {
+                npcs.push({
+                    id: index,
+                    x: ent.x,
+                    y: ent.y,
+                    targetX: ent.x,
+                    targetY: ent.y,
+                    moveProgress: 0,
+                    speed: 1.35 / 60, 
+                    stunTimer: 0, 
+                    isFast: false,
+                    escaping: false,
+                    cachedPath: []
+                });
+
+                if (Math.random() < 0.05) {
+                    dogs.push({
+                        x: ent.x,
+                        y: ent.y,
+                        targetX: ent.x,
+                        targetY: ent.y,
+                        moveProgress: 0,
+                        speed: 1.50 / 60, 
+                        lifeTimer: 30 * 60,
+                        cachedPath: []
+                    });
+                    addLog("DİQQƏT! İnsanlardan biri özü ilə qoruyucu it gətirdi! 🐕", "text-red-400 font-bold");
+                }
+            });
+
+            roundTimer = roundTimeOverride; 
+            statePhase = 1;
+            lastTime = performance.now();
+
+            if (activePerk) {
+                activePerkText.innerHTML = `<strong class="text-yellow-400">${activePerk.title}</strong><br>${activePerk.desc}`;
+                activePerk.action();
+            } else {
+                activePerkText.textContent = "Heç bir gücləndirici yoxdur.";
+            }
+
+            roundValSpan.textContent = currentRound;
+            scoreValSpan.textContent = score;
+            savedValSpan.textContent = savedCount;
+            timerValSpan.textContent = roundTimer.toFixed(1) + "s";
+
+            addLog(`Raund ${currentRound} Başladı! Uğurlar!`, "text-yellow-400 font-bold");
+        }
+
+        function resizeCanvas() {
+            const size = Math.min(canvas.parentElement.clientWidth, canvas.parentElement.clientHeight);
+            canvas.width = size;
+            canvas.height = size;
+            cellSize = size / GRID_SIZE;
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        const keys = {};
+        window.addEventListener('keydown', e => {
+            keys[e.key.toLowerCase()] = true;
+        });
+        window.addEventListener('keyup', e => {
+            keys[e.key.toLowerCase()] = false;
+        });
+
+        // Təkmilləşdirilmiş fasiləsiz hərəkət mexanikası
+        function checkInput() {
+            if (keys['arrowup'] || keys['w']) {
+                startMove(0, -1);
+            } else if (keys['arrowdown'] || keys['s']) {
+                startMove(0, 1);
+            } else if (keys['arrowleft'] || keys['a']) {
+                startMove(-1, 0);
+            } else if (keys['arrowright'] || keys['d']) {
+                startMove(1, 0);
+            }
+        }
+
+        function startMove(dx, dy) {
+            let nextX = player.x + dx;
+            let nextY = player.y + dy;
+            const center = Math.floor(GRID_SIZE / 2);
+            if (nextX === center && nextY === center) return;
+
+            if (nextX >= 0 && nextX < GRID_SIZE && nextY >= 0 && nextY < GRID_SIZE) {
+                if (maze[nextY][nextX] === 0) {
+                    player.targetX = nextX;
+                    player.targetY = nextY;
+                    player.moveProgress = 0;
+                }
+            }
+        }
+
+        // Joystick və digər tək klik idarəetmələri üçün dəstək
+        function movePlayer(dx, dy) {
+            if (!gameActive || player.stunTimer > 0) return;
+            if (player.x === player.targetX && player.y === player.targetY) {
+                startMove(dx, dy);
+            }
+        }
+
+        document.getElementById('btn-up').addEventListener('click', () => movePlayer(0, -1));
+        document.getElementById('btn-down').addEventListener('click', () => movePlayer(0, 1));
+        document.getElementById('btn-left').addEventListener('click', () => movePlayer(-1, 0));
+        document.getElementById('btn-right').addEventListener('click', () => movePlayer(1, 0));
+
+        // NPC Yenilənməsi
+        function updateNPCs() {
+            const center = Math.floor(GRID_SIZE / 2);
+            let pRealX = player.x + (player.targetX - player.x) * player.moveProgress;
+            let pRealY = player.y + (player.targetY - player.y) * player.moveProgress;
+
+            if (freezeActive && ((roundTimeOverride - roundTimer) < 5)) {
+                return; 
+            }
+
+            for (let i = npcs.length - 1; i >= 0; i--) {
+                let npc = npcs[i];
+
+                if (npc.stunTimer > 0) {
+                    npc.stunTimer--;
+                    continue; 
+                }
+
+                let currentNpcSpeed = 1.35 / 60;
+                if (npc.isFast) {
+                    currentNpcSpeed = 1.50 / 60;
+                } else if (activePerk && activePerk.id === 'slow_npcs' && ((roundTimeOverride - roundTimer) < 10)) {
+                    currentNpcSpeed = 1.275 / 60; 
+                }
+                npc.speed = currentNpcSpeed;
+
+                let npcNextX = npc.targetX;
+                let npcNextY = npc.targetY;
+                
+                if (Math.abs(npcNextX - pRealX) < 0.6 && Math.abs(npcNextY - pRealY) < 0.6 && npc.stunTimer <= 0) {
+                    npc.stunTimer = 30; 
+                    npc.cachedPath = []; 
+                    addLog("İnsan daşlaşdı! (0.50s)", "text-blue-300");
+                    continue;
+                }
+
+                if (npc.x === npc.targetX && npc.y === npc.targetY) {
+                    if (!npc.escaping && npc.x === center && npc.y === center) {
+                        if (flagShieldActive) {
+                            flagShieldActive = false;
+                            addLog("Qalxan bayrağı qorudu! Qalxan məhv oldu.", "text-yellow-400 font-bold");
+                            npc.stunTimer = 180; 
+                            npc.x = center - 2; 
+                            npc.targetX = center - 2;
+                            continue;
+                        } else {
+                            gameOver(false);
+                            return;
+                        }
+                    }
+
+                    if (npc.escaping) {
+                        let nearestEnt = activeEntrancesList.reduce((prev, curr) => {
+                            let distPrev = Math.abs(npc.x - prev.x) + Math.abs(npc.y - prev.y);
+                            let distCurr = Math.abs(npc.x - curr.x) + Math.abs(npc.y - curr.y);
+                            return distPrev < distCurr ? prev : curr;
+                        });
+
+                        if (npc.x === nearestEnt.x && npc.y === nearestEnt.y) {
+                            npcs.splice(i, 1);
+                            addLog("Bir insan labirinti tərk etdi!", "text-gray-400");
+                            if (npcs.length === 0 && dogs.length === 0) {
+                                showPerkSelection();
+                            }
+                            continue;
+                        }
+                    }
+
+                    let destX = center;
+                    let destY = center;
+
+                    if (npc.escaping) {
+                        let nearestEnt = activeEntrancesList.reduce((prev, curr) => {
+                            let distPrev = Math.abs(npc.x - prev.x) + Math.abs(npc.y - prev.y);
+                            let distCurr = Math.abs(npc.x - curr.x) + Math.abs(npc.y - curr.y);
+                            return distPrev < distCurr ? prev : curr;
+                        });
+                        destX = nearestEnt.x;
+                        destY = nearestEnt.y;
+                    }
+
+                    let distToPlayer = Math.abs(npc.x - player.x) + Math.abs(npc.y - player.y);
+
+                    if (npc.cachedPath.length === 0 || distToPlayer <= 5) {
+                        let avoidX = (distToPlayer <= 4 && !npc.escaping) ? player.x : -1;
+                        let avoidY = (distToPlayer <= 4 && !npc.escaping) ? player.y : -1;
+                        let path = findShortestPath(npc.x, npc.y, destX, destY, avoidX, avoidY);
+                        if (path && path.length > 0) {
+                            npc.cachedPath = path;
+                        }
+                    }
+
+                    if (npc.cachedPath.length > 0) {
+                        let nextStep = npc.cachedPath.shift();
+                        npc.targetX = nextStep.x;
+                        npc.targetY = nextStep.y;
+                        npc.moveProgress = 0;
+                    } else {
+                        npc.targetX = npc.x;
+                        npc.targetY = npc.y;
+                    }
+                }
+
+                npc.moveProgress += npc.speed;
+                if (npc.moveProgress >= 1) {
+                    npc.x = npc.targetX;
+                    npc.y = npc.targetY;
+                    npc.moveProgress = 0;
+                }
+
+                let nRealX = npc.x + (npc.targetX - npc.x) * npc.moveProgress;
+                let nRealY = npc.y + (npc.targetY - npc.y) * npc.moveProgress;
+
+                let dist = Math.hypot(pRealX - nRealX, pRealY - nRealY);
+                if (dist < 0.7) {
+                    npcs.splice(i, 1);
+                    score += 20 * currentRound;
+                    savedCount += 1;
+                    scoreValSpan.textContent = score;
+                    savedValSpan.textContent = savedCount;
+                    addLog("Bir nəfər tutuldu!", "text-cyan-300");
+
+                    if (npcs.length === 0 && dogs.length === 0) {
+                        showPerkSelection();
+                    }
+                }
+            }
+        }
+
+        // Qoruyucu İtlər
+        function updateDogs() {
+            let pRealX = player.x + (player.targetX - player.x) * player.moveProgress;
+            let pRealY = player.y + (player.targetY - player.y) * player.moveProgress;
+
+            if (freezeActive && ((roundTimeOverride - roundTimer) < 5)) {
+                return;
+            }
+
+            for (let i = dogs.length - 1; i >= 0; i--) {
+                let dog = dogs[i];
+
+                dog.lifeTimer--;
+                if (dog.lifeTimer <= 0) {
+                    dogs.splice(i, 1);
+                    addLog("Bir qoruyucu it hürərək qaçıb getdi. 🐕", "text-gray-400");
+                    if (npcs.length === 0 && dogs.length === 0) {
+                        showPerkSelection();
+                    }
+                    continue;
+                }
+
+                if (dog.x === dog.targetX && dog.y === dog.targetY) {
+                    if (dog.cachedPath.length === 0) {
+                        let path = findShortestPath(dog.x, dog.y, player.x, player.y, -1, -1);
+                        if (path && path.length > 0) {
+                            dog.cachedPath = path;
+                        }
+                    }
+
+                    if (dog.cachedPath.length > 0) {
+                        let nextStep = dog.cachedPath.shift();
+                        dog.targetX = nextStep.x;
+                        dog.targetY = nextStep.y;
+                        dog.moveProgress = 0;
+                    }
+                }
+
+                dog.moveProgress += dog.speed;
+                if (dog.moveProgress >= 1) {
+                    dog.x = dog.targetX;
+                    dog.y = dog.targetY;
+                    dog.moveProgress = 0;
+                }
+
+                let dRealX = dog.x + (dog.targetX - dog.x) * dog.moveProgress;
+                let dRealY = dog.y + (dog.targetY - dog.y) * dog.moveProgress;
+
+                let dist = Math.hypot(pRealX - dRealX, pRealY - dRealY);
+                if (dist < 0.7 && player.stunTimer <= 0) {
+                    let stunFrames = Math.floor(60 + Math.random() * 120);
+                    player.stunTimer = stunFrames;
+                    addLog(`İt sizi dişlədi! ${(stunFrames / 60).toFixed(1)} saniyəlik daşlaşdınız! 🐕🐾`, "text-red-500 font-bold");
+                    
+                    dogs.splice(i, 1);
+                    if (npcs.length === 0 && dogs.length === 0) {
+                        showPerkSelection();
+                    }
+                }
+            }
+        }
+
+        // Oyunçu Hərəkəti (Hamar fasiləsiz hərəkət idarəetməsi ilə)
+        function updatePlayer() {
+            if (player.stunTimer > 0) {
+                player.stunTimer--;
+                return; 
+            }
+
+            let currentPlayerSpeed = 1.2 / 60;
+            if (activePerk && activePerk.id === 'fast_player' && ((roundTimeOverride - roundTimer) < 15)) {
+                currentPlayerSpeed = 1.275 / 60; 
+            }
+            player.speed = currentPlayerSpeed;
+
+            // Əgər hərəkətsizdirsə, dərhal növbəti addımı yoxla
+            if (player.x === player.targetX && player.y === player.targetY) {
+                checkInput();
+            }
+
+            // Hərəkət zamanı animasiyanı tamamilə axıcı davam etdirir
+            if (player.x !== player.targetX || player.y !== player.targetY) {
+                player.moveProgress += player.speed;
+                if (player.moveProgress >= 1) {
+                    player.x = player.targetX;
+                    player.y = player.targetY;
+                    player.moveProgress -= 1; // Artıq qalan tərəqqini saxla (gecikmə olmasın)
+                    
+                    // Növbəti xanaya fasiləsiz keçid üçün dərhal yenidən girişləri yoxla
+                    checkInput();
+                }
+            }
+        }
+
+        function updateTimers() {
+            let now = performance.now();
+            let dt = (now - lastTime) / 1000;
+            lastTime = now;
+
+            if (!gameActive) return;
+
+            roundTimer -= dt;
+            if (roundTimer < 0) roundTimer = 0;
+
+            timerValSpan.textContent = roundTimer.toFixed(1) + "s";
+
+            if (statePhase === 1 && roundTimer <= 0) {
+                statePhase = 2;
+                roundTimer = 30.0; 
+                npcs.forEach(npc => {
+                    npc.speed = 1.50 / 60; 
+                    npc.isFast = true;
+                    npc.cachedPath = []; 
+                });
+                addLog("XƏBƏRDARLIQ! Vaxt bitdi. İnsanlar qəzəbləndi (1.50 xana/san)!", "text-red-500 font-bold");
+            }
+            else if (statePhase === 2 && roundTimer <= 0) {
+                statePhase = 3;
+                npcs.forEach(npc => {
+                    npc.escaping = true;
+                    npc.cachedPath = []; 
+                });
+                addLog("VAXT BİTDİ! Qalan insanlar qorxu ilə labirintdən qaçırlar!", "text-purple-400 font-bold");
+            }
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Labirint
+            for (let y = 0; y < GRID_SIZE; y++) {
+                for (let x = 0; x < GRID_SIZE; x++) {
+                    if (maze[y][x] === 1) {
+                        ctx.fillStyle = '#0f2411';
+                        ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+                    } else {
+                        ctx.fillStyle = '#111c12';
+                        ctx.fillRect(x * cellSize, y * cellSize, cellSize + 0.5, cellSize + 0.5);
+                    }
+                }
+            }
+
+            // Giriş Nöqtələri
+            activeEntrancesList.forEach(ent => {
+                ctx.fillStyle = 'rgba(234, 179, 8, 0.4)';
+                ctx.beginPath();
+                ctx.arc((ent.x + 0.5) * cellSize, (ent.y + 0.5) * cellSize, cellSize * 0.5, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            // Mərkəzdəki Qorunan Bayraq
+            const center = Math.floor(GRID_SIZE / 2);
+            ctx.font = `${cellSize * 1.2}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('🚩', (center + 0.5) * cellSize, (center + 0.5) * cellSize);
+
+            if (flagShieldActive) {
+                ctx.strokeStyle = '#06b6d4';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc((center + 0.5) * cellSize, (center + 0.5) * cellSize, cellSize * 1.5, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+
+            // İnsanlar (🚶)
+            for (let npc of npcs) {
+                let currX = npc.x + (npc.targetX - npc.x) * npc.moveProgress;
+                let currY = npc.y + (npc.targetY - npc.y) * npc.moveProgress;
+                
+                if (npc.stunTimer > 0) {
+                    ctx.fillStyle = 'rgba(147, 197, 253, 0.6)'; 
+                    ctx.beginPath();
+                    ctx.arc((currX + 0.5) * cellSize, (currY + 0.5) * cellSize, cellSize * 0.6, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                let emoji = '🚶';
+                if (npc.escaping) {
+                    emoji = '🏃‍♀️';
+                } else if (npc.isFast) {
+                    emoji = '🏃';
+                }
+                ctx.fillText(emoji, (currX + 0.5) * cellSize, (currY + 0.5) * cellSize);
+            }
+
+            // Qoruyucu İtlər (🐕)
+            for (let dog of dogs) {
+                let currX = dog.x + (dog.targetX - dog.x) * dog.moveProgress;
+                let currY = dog.y + (dog.targetY - dog.y) * dog.moveProgress;
+                ctx.fillText('🐕', (currX + 0.5) * cellSize, (currY + 0.5) * cellSize);
+            }
+
+            // Bağban (🧑‍🌾)
+            let playX = player.x + (player.targetX - player.x) * player.moveProgress;
+            let playY = player.y + (player.targetY - player.y) * player.moveProgress;
+
+            if (player.stunTimer > 0) {
+                ctx.fillStyle = 'rgba(239, 68, 68, 0.4)'; 
+                ctx.beginPath();
+                ctx.arc((playX + 0.5) * cellSize, (playY + 0.5) * cellSize, cellSize * 0.7, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            ctx.fillText('🧑‍🌾', (playX + 0.5) * cellSize, (playY + 0.5) * cellSize);
+        }
+
+        function loop() {
+            if (!gameActive) return;
+
+            updatePlayer();
+            updateNPCs();
+            updateDogs();
+            updateTimers();
+            draw();
+
+            requestAnimationFrame(loop);
+        }
+
+        function showPerkSelection() {
+            gameActive = false;
+            
+            flagShieldActive = false;
+            freezeActive = false;
+            roundTimeOverride = 100;
+            activePerk = null;
+
+            perkContainer.innerHTML = '';
+            perkModal.classList.remove('hidden');
+
+            let shuffled = [...allPerks].sort(() => Math.random() - 0.5);
+            let selectedPerks = shuffled.slice(0, 3);
+
+            selectedPerks.forEach(perk => {
+                const card = document.createElement('div');
+                card.className = "bg-slate-900 hover:bg-slate-800 border-2 border-emerald-600 rounded-lg p-4 cursor-pointer hover:scale-105 transition-all text-left flex flex-col justify-between";
+                card.innerHTML = `
+                    <div>
+                        <h4 class="font-bold text-sm text-emerald-400 pixel-font mb-2">${perk.title}</h4>
+                        <p class="text-[10px] text-slate-300 leading-normal">${perk.desc}</p>
+                    </div>
+                    <button class="mt-4 w-full py-1.5 bg-emerald-600 text-slate-950 font-bold text-[10px] rounded hover:bg-emerald-500 pixel-font">SEÇ</button>
+                `;
+                card.addEventListener('click', () => {
+                    activePerk = perk;
+                    perkModal.classList.add('hidden');
+                    gameActive = true;
+                    initRound(currentRound + 1);
+                    loop();
+                });
+                perkContainer.appendChild(card);
+            });
+        }
+
+        function gameOver(isVictory) {
+            gameActive = false;
+            overlay.classList.remove('hidden');
+            
+            flagShieldActive = false;
+            freezeActive = false;
+            roundTimeOverride = 100;
+            activePerk = null;
+            activePerkText.textContent = "Heç bir gücləndirici yoxdur.";
+
+            overlayTitle.textContent = "OYUN BİTDİ";
+            overlayTitle.className = "text-xl md:text-2xl font-extrabold text-red-500 pixel-font";
+            overlayDesc.innerHTML = `Təəssüf! İnsanlardan biri mərkəzə daxil oldu və bayrağı götürdü.<br><br><b>Uğurlu Raund: ${currentRound}</b><br><b>Yekun Xal: ${score}</b>`;
+            
+            const restartBtn = startBtn.cloneNode(true);
+            restartBtn.textContent = "Yenidən Başla";
+            startBtn.parentNode.replaceChild(restartBtn, startBtn);
+            
+            restartBtn.addEventListener('click', () => {
+                overlay.classList.add('hidden');
+                gameActive = true;
+                score = 0;
+                savedCount = 0;
+                initRound(1);
+                loop();
+            });
+        }
+
+        startBtn.addEventListener('click', () => {
+            overlay.classList.add('hidden');
+            gameActive = true;
+            initRound(1);
+            loop();
+        });
+
+        generateMaze();
+        draw();
+    </script>
+</body>
+</html>
