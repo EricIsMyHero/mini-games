@@ -364,11 +364,9 @@ function resetState() {
     // computer interaction
     tetrisActive:false,
     isRealFoodPending:false,
-    // zoom/camera state: null | 'window' | 'door' | 'vent'
-    zoom:null,
-    zoomT:0,       // 0→1 animation progress
-    zoomDir:1,     // 1=zooming in, -1=zooming out
-    // vent waiting state (after closing, wait for crawl to stop)
+    // view state: null | 'window' | 'door' | 'vent'
+    view:null,
+    // vent waiting state
     ventWaiting:false,
     ventDone:false,
   };
@@ -422,7 +420,7 @@ function tLock(){
     }
   }
   if(cleared){
-    const pts=[0,100,300,500,800][cleared]||800;
+    const pts=[0,50,150,300,500][cleared]||500;
     tet.score+=pts;G.score+=pts;G.tetScore=G.score;
     sndTetrisClear();
   }
@@ -478,12 +476,12 @@ const R = {
   monX:   30,  monY:   115, monW:  130, monH:  100,
   // tetris screen inside monitor
   tsX:    36,  tsY:    122, tsW:   86,  tsH:   82,
-  // lamp — on desk right side
-  lampX:  245, lampY:  155,
+  // lamp — on desk, right side (moved further right)
+  lampX:  285, lampY:  155,
   // clock (digital, on desk)
   clkX:   175, clkY:   238,
   // pizza box (right of desk)
-  pizzaX: 215, pizzaY: 235,
+  pizzaX: 220, pizzaY: 235,
   // hud panel
   hudX:   322, hudY:   0, hudW: 158, hudH: 270,
   // monitor clickable zone (canvas coords) — used for click detection
@@ -1163,12 +1161,11 @@ function sndMonitorClick(){
 }
 
 /* ====================================================
-   ZOOM CAMERA SYSTEM
-   Each clickable zone maps to a canvas region (in game pixels).
-   Click zone → zoom in → second click → perform action → zoom out.
+   FULL-SCREEN VIEW SYSTEM
+   Click zone → immediate full-screen pixel-art closeup.
+   One more click (or action) → return to room.
    ==================================================== */
 
-// Clickable zones in canvas pixel space (before scaling)
 const ZONES = {
   window: {x:18, y:45, w:80, h:110},
   door:   {x:190,y:90, w:70, h:120},
@@ -1189,7 +1186,7 @@ function hitZone(cx,cy,z){
 
 canvas.style.cursor='default';
 canvas.addEventListener('mousemove',e=>{
-  if(!G.running||G.zoom) return;
+  if(!G.running||G.view) return;
   const {cx,cy}=getCanvasPos(e);
   let hit=false;
   for(const z of Object.values(ZONES)) if(hitZone(cx,cy,z)){hit=true;break;}
@@ -1200,228 +1197,410 @@ canvas.addEventListener('click',e=>{
   if(!G.running) return;
   const {cx,cy}=getCanvasPos(e);
 
-  // If currently zoomed in — second click performs action
-  if(G.zoom){
-    handleZoomClick(cx,cy);
+  if(G.view){
+    handleViewClick(cx,cy);
     return;
   }
 
-  // First click — zoom into a zone
   for(const [name,z] of Object.entries(ZONES)){
     if(hitZone(cx,cy,z)){
       if(name==='monitor'){
         G.tetrisActive=!G.tetrisActive;
         sndMonitorClick();
       } else {
-        startZoom(name);
+        G.view=name;
+        canvas.style.cursor='default';
       }
       return;
     }
   }
 });
 
-// ESC to zoom out
 document.addEventListener('keydown',e=>{
   if(e.key==='Escape'){
-    if(G.zoom) zoomOut();
+    if(G.view) G.view=null;
     else if(G.tetrisActive) G.tetrisActive=false;
   }
 },true);
 
-function startZoom(target){
-  G.zoom=target;
-  G.zoomT=0;
-  G.zoomDir=1;
-  canvas.style.cursor='default';
-}
-function zoomOut(){
-  G.zoomDir=-1;
-}
-
-// Called every frame to animate zoom
-function updateZoom(dt){
-  if(!G.zoom) return;
-  const speed=0.003;
-  if(G.zoomDir===1){
-    G.zoomT=Math.min(1,G.zoomT+dt*speed);
-  } else {
-    G.zoomT=Math.max(0,G.zoomT-dt*speed);
-    if(G.zoomT<=0) G.zoom=null;
-  }
-}
-
-// Handles click while zoomed in — acts on the current zone
 let knockIv=null;
 let ventTout=null;
 
-function handleZoomClick(cx,cy){
-  const z=G.zoom;
-  if(z==='window'){
-    // Close curtain
-    resolveWindow(true);
-    zoomOut();
-  } else if(z==='door'){
+function handleViewClick(cx,cy){
+  const v=G.view;
+  if(v==='window'){
+    if(G.phase==='window' && !G.curtain){
+      resolveWindow(true);
+    }
+    G.view=null;
+  } else if(v==='door'){
     if(G.phase==='door'){
-      // Is it food or monster?
       if(G.isRealFoodPending){
-        // Two choices drawn on the zoomed door — top half = open (food), bottom half = lock
-        const midY = H*0.5;
-        if(cy < midY){
-          // Open door — take food
+        // Top half = lock, bottom half = open (food)
+        if(cy > H*0.55){
           clearInterval(knockIv);
-          G.isRealFood?resolveDoor(true,true):resolveDoor(false);
+          G.isRealFood ? resolveDoor(true,true) : resolveDoor(false);
         } else {
-          // Lock door
           clearInterval(knockIv);
           sndDoorLocked();
           resolveDoor(true,false);
         }
       } else {
-        // Just lock
         clearInterval(knockIv);
         sndDoorLocked();
         resolveDoor(true,false);
       }
     }
-    zoomOut();
-  } else if(z==='vent'){
+    G.view=null;
+  } else if(v==='vent'){
     if(!G.ventClosed){
-      // Close vent
-      G.ventClosed=true;G.oxyActive=true;
-      G.ventWaiting=true;G.ventDone=false;
+      G.ventClosed=true; G.oxyActive=true;
+      G.ventWaiting=true; G.ventDone=false;
       sndVentClose();
       ventTout=setTimeout(()=>{
-        G.ventDone=true;
-        G.ventWaiting=false;
-      },3000+Math.random()*4000);
+        G.ventDone=true; G.ventWaiting=false;
+      }, 3000+Math.random()*4000);
+      // stay in view while waiting
     } else if(G.ventDone){
-      // Open vent back up
       clearTimeout(ventTout);
-      G.ventClosed=false;G.oxyActive=false;G.oxygen=100;
-      G.ventWaiting=false;G.ventDone=false;
+      G.ventClosed=false; G.oxyActive=false; G.oxygen=100;
+      G.ventWaiting=false; G.ventDone=false;
       if(G.phase==='vent') G.phase='idle';
-      zoomOut();
+      G.view=null;
     }
-    // If ventWaiting — click does nothing, wait for crawl to stop
+    // ventWaiting: click does nothing, player must wait
   }
 }
 
-/* Zoom draw — renders a close-up view of the target zone */
-function drawZoom(ts){
-  if(!G.zoom||G.zoomT<=0) return;
-  const t=G.zoomT; // 0→1 easing
-  const ease=t*t*(3-2*t); // smoothstep
-
-  let srcX,srcY,srcW,srcH;
-  switch(G.zoom){
-    case 'window': srcX=0;  srcY=20; srcW=130;srcH=150;break;
-    case 'door':   srcX=155;srcY=70; srcW=150;srcH=170;break;
-    case 'vent':   srcX=240;srcY=0;  srcW=80; srcH=60; break;
-    default: return;
-  }
-
-  // Lerp from full view to zoomed rect
-  const dstX=srcX*ease;
-  const dstY=srcY*ease;
-  const dstW=W-(W-srcW)*ease;  // shrinks source seen area
-  const dstH=H-(H-srcH)*ease;
-
-  // Draw zoomed region into full canvas
-  const offscr=document.createElement('canvas');
-  offscr.width=W;offscr.height=H;
-  const oc=offscr.getContext('2d');
-  // Copy current frame onto offscreen (already drawn)
-  oc.drawImage(canvas,0,0);
-
-  // Overlay: darken edges
-  ctx.fillStyle=`rgba(0,0,0,${ease*0.7})`;
+/* ---- DRAW FULL-SCREEN VIEWS ---- */
+function drawView(ts){
+  const v=G.view;
+  ctx.fillStyle='#080406';
   ctx.fillRect(0,0,W,H);
+  if(v==='window') drawViewWindow(ts);
+  else if(v==='door') drawViewDoor(ts);
+  else if(v==='vent') drawViewVent(ts);
 
-  // Draw the zoomed region scaled up
-  ctx.drawImage(offscr,
-    srcX,srcY,srcW,srcH,
-    0,0,W,H
-  );
-
-  // Draw zone-specific UI
-  ctx.save();
-  if(G.zoom==='window' && ease>0.7){
-    drawZoomWindow(ts,ease);
-  } else if(G.zoom==='door' && ease>0.7){
-    drawZoomDoor(ts,ease);
-  } else if(G.zoom==='vent' && ease>0.7){
-    drawZoomVent(ts,ease);
-  }
-  ctx.restore();
+  // ESC hint bottom-right (always)
+  ctx.fillStyle='rgba(40,30,20,0.8)';
+  ctx.fillRect(W-80,H-16,80,16);
+  ctx.fillStyle='#3a3020';
+  ctx.font='12px VT323';
+  ctx.textAlign='right';
+  ctx.fillText('[ ESC — GERİ ]',W-4,H-4);
 }
 
-function drawZoomWindow(ts,ease){
-  const a=ease-0.7;
-  // "Pərdəni çək" hint at bottom
-  if(!G.curtain && G.phase==='window'){
-    ctx.fillStyle=`rgba(0,0,0,${a*2})`;
-    ctx.fillRect(0,H-30,W,30);
-    ctx.fillStyle=`rgba(200,50,50,${a*3})`;
-    ctx.font='18px VT323';ctx.textAlign='center';
-    ctx.fillText('[ KLİK → PƏRDƏNİ ÇƏK ]',W/2,H-10);
+/* --- WINDOW VIEW --- */
+function drawViewWindow(ts){
+  const c=ctx;
+  const W2=W, H2=H;
+  // Full wall background
+  for(let i=0;i<H2;i++){
+    const t=i/H2;
+    const rv=0x28-(0x28-0x18)*t|0;
+    const gv=0x20-(0x20-0x12)*t|0;
+    const bv=0x18-(0x18-0x0c)*t|0;
+    px(c,0,i,W2,1,`rgb(${rv},${gv},${bv})`);
+  }
+
+  // Large window — fills most of canvas
+  const wx=30, wy=20, ww=W2-60, wh=H2-60;
+  // Frame (thick wood)
+  px(c,wx-8,wy-8,ww+16,wh+16,'#3a2810');
+  px(c,wx-5,wy-5,ww+10,wh+10,'#2a1e10');
+  // Night sky
+  px(c,wx,wy,ww,wh,'#040810');
+  // Moon
+  pxCircle(c,wx+ww*0.8,wy+wh*0.15,18,'#b0a870');
+  pxCircle(c,wx+ww*0.83,wy+wh*0.12,14,'#040810'); // crescent
+  // Stars
+  const stars2=[
+    [0.1,0.1],[0.25,0.05],[0.4,0.15],[0.6,0.08],[0.75,0.12],
+    [0.15,0.4],[0.35,0.35],[0.55,0.45],[0.7,0.3],[0.9,0.5],
+    [0.05,0.65],[0.3,0.7],[0.5,0.6],[0.65,0.75],[0.85,0.8],
+    [0.2,0.85],[0.45,0.9],[0.7,0.88],
+  ];
+  stars2.forEach(([sx,sy])=>{
+    const blink=Math.sin(ts*0.001+sx*20+sy*10)>0.3?1:0.4;
+    c.fillStyle=`rgba(220,220,240,${blink*0.8})`;
+    const s=Math.random()<0.3?2:1;
+    c.fillRect(Math.round(wx+sx*ww),Math.round(wy+sy*wh),s,s);
+  });
+  // Distant trees silhouette at bottom
+  c.fillStyle='#0a0c06';
+  for(let tx=wx;tx<wx+ww;tx+=8){
+    const th=10+Math.floor(Math.sin(tx*0.3)*6);
+    px(c,tx,wy+wh-th,7,th,'#080a05');
+  }
+
+  // Monster shadow
+  if(G.phase==='window' && !G.curtain){
+    const a=Math.min(1,G.monsterAlpha);
+    c.fillStyle=`rgba(4,3,10,${a*0.94})`;
+    c.fillRect(wx,wy,ww,wh);
+    if(a>0.2){
+      // Large claw reaching down from top
+      c.strokeStyle=`rgba(15,8,25,${a})`; c.lineWidth=8;
+      for(let fi=0;fi<4;fi++){
+        const bx=wx+ww*(0.2+fi*0.18);
+        c.beginPath();
+        c.moveTo(bx,wy);
+        c.quadraticCurveTo(bx+fi*6-9,wy+wh*0.4,bx+fi*4-6,wy+wh*0.65);
+        c.stroke();
+        // claw tip
+        c.fillStyle=`rgba(10,5,20,${a})`;
+        c.beginPath();c.arc(bx+fi*4-6,wy+wh*0.65,5,0,Math.PI*2);c.fill();
+      }
+      // Eyes
+      if(a>0.5){
+        const ea=(a-0.5)*2;
+        [[0.3,0.3],[0.58,0.3]].forEach(([ex,ey])=>{
+          const ecx=wx+ex*ww, ecy=wy+ey*wh;
+          // glow
+          const eg=c.createRadialGradient(ecx,ecy,0,ecx,ecy,20);
+          eg.addColorStop(0,`rgba(200,0,0,${ea*0.6})`);
+          eg.addColorStop(1,'rgba(200,0,0,0)');
+          c.fillStyle=eg; c.fillRect(ecx-20,ecy-20,40,40);
+          // pupil
+          c.fillStyle=`rgba(220,20,20,${ea})`;
+          c.beginPath();c.ellipse(ecx,ecy,8,5,0,0,Math.PI*2);c.fill();
+          c.fillStyle=`rgba(60,0,0,${ea})`;
+          c.beginPath();c.ellipse(ecx,ecy,4,3,0,0,Math.PI*2);c.fill();
+        });
+      }
+    }
+    // Action prompt
+    if(a>0.4){
+      const pulse=0.7+0.3*Math.sin(ts*0.008);
+      px(c,0,H2-32,W2,32,'#150000');
+      c.fillStyle=`rgba(220,40,40,${pulse})`;
+      c.font='bold 22px VT323'; c.textAlign='center';
+      c.fillText('[ KLİK — PƏRDƏNİ ÇƏK ]',W2/2,H2-10);
+    }
   } else if(G.curtain){
-    ctx.fillStyle=`rgba(0,0,0,${a*2})`;
-    ctx.fillRect(0,H-30,W,30);
-    ctx.fillStyle=`rgba(80,160,80,${a*3})`;
-    ctx.font='16px VT323';ctx.textAlign='center';
-    ctx.fillText('PƏRDƏ BAĞLIDIR — ESC',W/2,H-10);
+    // Curtain closed view
+    px(c,wx,wy,ww,wh,'#2a1006');
+    // Curtain folds
+    c.strokeStyle='#1e0c04'; c.lineWidth=3;
+    for(let f=0;f<8;f++){
+      c.beginPath();
+      c.moveTo(wx+f*(ww/8),wy);
+      c.lineTo(wx+f*(ww/8)+(f%2?4:-4),wy+wh);
+      c.stroke();
+    }
+    // Rod
+    px(c,wx-6,wy-6,ww+12,5,'#5c3818');
+    px(c,wx-6,wy-6,ww+12,2,'#7a5028');
+    // Message
+    px(c,0,H2-28,W2,28,'#050200');
+    c.fillStyle='#3a8040'; c.font='bold 20px VT323'; c.textAlign='center';
+    c.fillText('PƏRDƏ BAĞLIDIR',W2/2,H2-8);
+  } else {
+    // No threat, just looking out
+    // Window cross bars
+    px(c,wx,wy+Math.round(wh/2)-2,ww,4,'#3a2810');
+    px(c,wx+Math.round(ww/2)-2,wy,4,wh,'#3a2810');
+    px(c,0,H2-28,W2,28,'#080604');
+    c.fillStyle='#2a2818'; c.font='18px VT323'; c.textAlign='center';
+    c.fillText('Xarici — Hər şey sakit görünür',W2/2,H2-8);
   }
+  // Window cross bars always
+  if(!G.curtain && G.phase!=='window'){
+    px(c,wx,wy+Math.round(wh/2)-2,ww,4,'#3a2810');
+    px(c,wx+Math.round(ww/2)-2,wy,4,wh,'#3a2810');
+  }
+  // Frame inner edge
+  pxRect(c,wx,wy,ww,wh,'#5a4020',2);
 }
 
-function drawZoomDoor(ts,ease){
-  const a=(ease-0.7)*3;
+/* --- DOOR VIEW --- */
+function drawViewDoor(ts){
+  const c=ctx;
+  // Wall bg
+  for(let i=0;i<H;i++){
+    const t=i/H;
+    const rv=0x26-(0x26-0x16)*t|0;
+    const gv=0x1e-(0x1e-0x10)*t|0;
+    const bv=0x16-(0x16-0x0a)*t|0;
+    px(c,0,i,W,1,`rgb(${rv},${gv},${bv})`);
+  }
+  // Floor
+  px(c,0,H*0.78,W,H*0.22,'#1a1208');
+  pxLine(c,0,H*0.78,W,H*0.78,'#3a2810',1);
+
+  // Large door
+  const dx=W*0.22, dy=H*0.05, dw=W*0.56, dh=H*0.73;
+  // Door frame
+  px(c,dx-12,dy-8,dw+24,dh+8,'#2a1808');
+  px(c,dx-8,dy-5,dw+16,dh+5,'#3a2010');
+  // Door surface — wood gradient
+  for(let i=0;i<dh;i++){
+    const t=i/dh;
+    const rv=(0x60+(0x10)*t)|0;
+    const gv=(0x38+(0x08)*t)|0;
+    const bv=(0x18+(0x04)*t)|0;
+    px(c,dx,dy+i,dw,1,`rgb(${rv},${gv},${bv})`);
+  }
+  // Wood grain
+  c.strokeStyle='rgba(40,20,8,0.4)'; c.lineWidth=1;
+  [0.15,0.3,0.5,0.7,0.85].forEach(fx=>{
+    c.beginPath();c.moveTo(dx+fx*dw,dy);c.lineTo(dx+fx*dw+(fx>0.5?-2:2),dy+dh);c.stroke();
+  });
+  // Recessed panels
+  px(c,dx+dw*0.1,dy+dh*0.05,dw*0.8,dh*0.38,'#4a2c12');
+  px(c,dx+dw*0.1,dy+dh*0.48,dw*0.8,dh*0.42,'#4a2c12');
+  pxRect(c,dx+dw*0.1,dy+dh*0.05,dw*0.8,dh*0.38,'#7a5028',1);
+  pxRect(c,dx+dw*0.1,dy+dh*0.48,dw*0.8,dh*0.42,'#7a5028',1);
+  // Door knob
+  const kx=dx+dw*0.82, ky=dy+dh*0.54;
+  const kc=G.doorLocked?'#d4a030':'#8a6020';
+  c.fillStyle=kc; c.beginPath(); c.arc(kx,ky,8,0,Math.PI*2); c.fill();
+  c.fillStyle='rgba(255,255,255,0.2)'; c.beginPath(); c.arc(kx-2,ky-2,3,0,Math.PI*2); c.fill();
+  // Keyhole
+  c.fillStyle='#0a0604'; c.beginPath(); c.arc(kx,ky-12,4,0,Math.PI*2); c.fill();
+  px(c,kx-2,ky-12,4,8,'#0a0604');
+
   if(G.phase==='door'){
-    // Knock timer bar at top
+    // Knock timer bar
     const pct=G.knockTimer/8000;
-    ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillRect(0,0,W,14);
-    ctx.fillStyle=pct>0.4?'#cc2020':'#ff4040';
-    ctx.fillRect(0,0,W*pct,14);
+    px(c,0,0,W,14,'#150000');
+    px(c,0,0,W*pct,14,pct>0.4?'#cc2020':'#ff5050');
+    px(c,0,12,W,2,'#2a0000');
 
     if(G.isRealFoodPending){
-      // Two action zones
-      ctx.fillStyle=`rgba(0,60,0,${a*0.3})`;ctx.fillRect(0,H/2-1,W,H/2);
-      ctx.fillStyle=`rgba(60,0,0,${a*0.3})`;ctx.fillRect(0,0,W,H/2-1);
-      ctx.fillStyle=`rgba(80,200,80,${a})`;
-      ctx.font='20px VT323';ctx.textAlign='center';
-      ctx.fillText('[ QAPINI AÇ — YEMƏYİ GÖT ]',W/2,H*0.75);
-      ctx.fillStyle=`rgba(200,60,60,${a})`;
-      ctx.fillText('[ QAPINI KİLİDLƏ ]',W/2,H*0.25);
+      // Glowing zones: top=lock, bottom=open
+      px(c,0,H*0.55,W,H*0.45,'rgba(0,40,0,0.25)');
+      px(c,0,0,W,H*0.55,'rgba(40,0,0,0.15)');
+
+      const pulse=0.8+0.2*Math.sin(ts*0.01);
+      c.fillStyle=`rgba(220,50,50,${pulse})`;
+      c.font='bold 22px VT323'; c.textAlign='center';
+      c.fillText('[ KLİK — KİLİDLƏ ]',W/2,H*0.32);
+      px(c,0,H*0.52,W,2,'#1a2010');
+      c.fillStyle=`rgba(60,200,80,${pulse})`;
+      c.fillText('[ KLİK — QAPINI AÇ (yemək) ]',W/2,H*0.72);
     } else {
-      ctx.fillStyle=`rgba(0,0,0,${a*0.4})`;ctx.fillRect(0,H-36,W,36);
-      ctx.fillStyle=`rgba(200,60,60,${a})`;
-      ctx.font='20px VT323';ctx.textAlign='center';
-      ctx.fillText('[ KLİK → QAPINI KİLİDLƏ ]',W/2,H-12);
+      // Knock sound visual — door shaking
+      const shake=(Math.sin(ts*0.04)*1.5)|0;
+      px(c,dx+shake,dy,dw,dh,'rgba(0,0,0,0)'); // just offset reference
+      // Prompt
+      const pulse=0.8+0.2*Math.sin(ts*0.01);
+      px(c,0,H-38,W,38,'#150000');
+      c.fillStyle=`rgba(220,40,40,${pulse})`;
+      c.font='bold 24px VT323'; c.textAlign='center';
+      c.fillText('[ KLİK — QAPINI KİLİDLƏ ]',W/2,H-10);
     }
   } else {
-    ctx.fillStyle=`rgba(0,0,0,${a*0.5})`;ctx.fillRect(0,H-28,W,28);
-    ctx.fillStyle=`rgba(160,160,80,${a})`;
-    ctx.font='14px VT323';ctx.textAlign='center';
-    ctx.fillText('ESC — GERİ QAY',W/2,H-10);
+    // Quiet door
+    px(c,0,H-28,W,28,'#060402');
+    c.fillStyle='#2a2818'; c.font='18px VT323'; c.textAlign='center';
+    c.fillText('Qapı bağlıdır — Hər şey sakit',W/2,H-8);
   }
+  // Frame detail
+  pxRect(c,dx,dy,dw,dh,'#8a6030',1);
 }
 
-function drawZoomVent(ts,ease){
-  const a=(ease-0.7)*3;
-  ctx.fillStyle=`rgba(0,0,0,${a*0.5})`;ctx.fillRect(0,H-36,W,36);
-  if(!G.ventClosed){
-    ctx.fillStyle=`rgba(200,60,60,${a})`;
-    ctx.font='18px VT323';ctx.textAlign='center';
-    ctx.fillText('[ KLİK → BAĞLA ]',W/2,H-12);
-  } else if(G.ventWaiting){
-    const pulse=0.6+0.4*Math.sin(ts*0.008);
-    ctx.fillStyle=`rgba(80,160,80,${a*pulse})`;
-    ctx.font='16px VT323';ctx.textAlign='center';
-    ctx.fillText('Gözlə... Səs kəsilir',W/2,H-12);
-  } else if(G.ventDone){
-    ctx.fillStyle=`rgba(80,200,80,${a})`;
-    ctx.font='18px VT323';ctx.textAlign='center';
-    ctx.fillText('[ KLİK → AÇ ]',W/2,H-12);
+/* --- VENT VIEW --- */
+function drawViewVent(ts){
+  const c=ctx;
+  // Ceiling close-up
+  for(let i=0;i<H*0.6;i++){
+    const t=i/(H*0.6);
+    const rv=0x20-(0x20-0x10)*t|0;
+    const gv=0x1a-(0x1a-0x0c)*t|0;
+    const bv=0x14-(0x14-0x08)*t|0;
+    px(c,0,i,W,1,`rgb(${rv},${gv},${bv})`);
   }
+  px(c,0,H*0.6,W,H*0.4,'#0e0a06');
+  px(c,0,H*0.6,W,2,'#2a2010');
+
+  // Large vent grate — fills canvas
+  const vx=W*0.1, vy=H*0.08, vw=W*0.8, vh=H*0.5;
+  // Outer frame
+  px(c,vx-8,vy-8,vw+16,vh+16,'#1a1510');
+  px(c,vx-5,vy-5,vw+10,vh+10,'#252015');
+  // Vent bg
+  px(c,vx,vy,vw,vh,G.ventClosed?'#0c0a06':'#100e0a');
+
+  if(!G.ventClosed){
+    // Grate bars — vertical
+    const barW=8, gap=14;
+    for(let i=0;i*(barW+gap)<vw;i++){
+      const bx=vx+i*(barW+gap);
+      px(c,bx,vy,barW,vh,'#2a2418');
+      px(c,bx,vy,2,vh,'#3a3428'); // highlight
+    }
+    // Horizontal bar
+    px(c,vx,vy+vh/2-2,vw,4,'#222018');
+    // Dark interior behind bars
+    px(c,vx+2,vy+2,vw-4,vh-4,'rgba(0,0,0,0.5)');
+
+    // Threat — crawling sound visual
+    if(G.phase==='vent'){
+      const a=0.5+0.5*Math.sin(ts*0.006);
+      // Red glow from inside vent
+      const vg=c.createRadialGradient(vx+vw/2,vy+vh/2,10,vx+vw/2,vy+vh/2,vw*0.6);
+      vg.addColorStop(0,`rgba(180,30,0,${a*0.4})`);
+      vg.addColorStop(1,'rgba(180,30,0,0)');
+      c.fillStyle=vg; c.fillRect(vx,vy,vw,vh);
+      // Scratching marks on bars
+      c.strokeStyle=`rgba(180,60,20,${a*0.6})`; c.lineWidth=2;
+      [[0.2,0.3,0.25,0.7],[0.5,0.2,0.48,0.8],[0.75,0.35,0.78,0.65]].forEach(([x1,y1,x2,y2])=>{
+        c.beginPath();
+        c.moveTo(vx+x1*vw,vy+y1*vh);
+        c.lineTo(vx+x2*vw,vy+y2*vh);
+        c.stroke();
+      });
+      // Prompt
+      px(c,0,H-42,W,42,'#150000');
+      const pulse=0.8+0.2*Math.sin(ts*0.01);
+      c.fillStyle=`rgba(220,50,50,${pulse})`;
+      c.font='bold 22px VT323'; c.textAlign='center';
+      c.fillText('[ KLİK — VENTİ BAĞLA ]',W/2,H-12);
+    }
+  } else {
+    // Closed plate — screws + metal
+    px(c,vx+1,vy+1,vw-2,vh-2,'#181410');
+    // Screws
+    [[0.05,0.08],[0.95,0.08],[0.05,0.92],[0.95,0.92]].forEach(([sx,sy])=>{
+      const scx=vx+sx*vw, scy=vy+sy*vh;
+      pxCircle(c,scx,scy,5,'#2a2418');
+      pxCircle(c,scx,scy,3,'#3a3428');
+      // cross
+      pxLine(c,scx-3,scy,scx+3,scy,'#1a1810',1);
+      pxLine(c,scx,scy-3,scx,scy+3,'#1a1810',1);
+    });
+    // Horizontal ridges
+    for(let ri=0;ri<5;ri++){
+      px(c,vx+4,vy+vh*(0.15+ri*0.18),vw-8,3,'#201c14');
+      px(c,vx+4,vy+vh*(0.15+ri*0.18),vw-8,1,'#2a2418');
+    }
+    // Status
+    if(G.ventWaiting){
+      const pulse=0.5+0.5*Math.sin(ts*0.008);
+      px(c,0,H-42,W,42,'#000a00');
+      c.fillStyle=`rgba(60,180,80,${pulse})`;
+      c.font='bold 20px VT323'; c.textAlign='center';
+      c.fillText('Gözlə... Səs kəsilir',W/2,H-12);
+    } else if(G.ventDone){
+      px(c,0,H-42,W,42,'#000800');
+      const pulse=0.8+0.2*Math.sin(ts*0.008);
+      c.fillStyle=`rgba(80,220,100,${pulse})`;
+      c.font='bold 22px VT323'; c.textAlign='center';
+      c.fillText('[ KLİK — VENTİ AÇ ]',W/2,H-12);
+    } else {
+      px(c,0,H-28,W,28,'#060402');
+      c.fillStyle='#2a3820'; c.font='18px VT323'; c.textAlign='center';
+      c.fillText('Havalandırma bağlıdır',W/2,H-8);
+    }
+    // Danger border if oxy low
+    if(G.oxygen<60){
+      const oa=(1-G.oxygen/60)*0.6+0.3*Math.sin(ts*0.008);
+      c.strokeStyle=`rgba(180,100,0,${oa})`; c.lineWidth=4;
+      c.strokeRect(vx-6,vy-6,vw+12,vh+12);
+    }
+  }
+  pxRect(c,vx,vy,vw,vh,'#3a3020',2);
 }
 
 /* ====================================================
@@ -1445,18 +1624,14 @@ function startWindow(){
   if(G.curtain){return;}
   G.phase='window';G.winTimer=8000;G.monsterAlpha=0;
   sndWindowShadow();
-  // Auto-open zoom so player sees window
-  startZoom('window');
+  G.view='window';
 }
 function resolveWindow(survived){
   G.phase='idle';G.monsterAlpha=0;
   if(survived){
     G.curtain=true;
     G.darkAlpha=Math.min(1,G.darkAlpha+0.25);
-    setTimeout(()=>{
-      G.curtain=false;
-      G.darkAlpha=Math.max(0,G.darkAlpha-0.25);
-    },5000);
+    setTimeout(()=>{G.curtain=false;G.darkAlpha=Math.max(0,G.darkAlpha-0.25);},5000);
   } else {
     jumpscare('Pəncərəni gördü!');
   }
@@ -1474,8 +1649,7 @@ function startDoor(){
     G.knockTimer-=100;
     if(G.knockTimer<=0){clearInterval(knockIv);resolveDoor(false);}
   },100);
-  // Auto-open zoom so player sees door
-  startZoom('door');
+  G.view='door';
 }
 function resolveDoor(ok,ate){
   clearInterval(knockIv);
@@ -1493,7 +1667,7 @@ function startVent(){
   G.phase='vent';
   sndCreep();
   setTimeout(sndCreep,2000);
-  startZoom('vent');
+  G.view='vent';
 }
 
 /* button handlers removed — interaction now via canvas zoom clicks */
@@ -1503,7 +1677,7 @@ function startVent(){
    ==================================================== */
 function jumpscare(msg){
   G.paused=true;G.phase='idle';
-  G.zoom=null;
+  G.view=null;
   G.lives--;
   sndJumpscare();
   const msgs=['GÖRDİ','GİRDİ','TAPDI'];
@@ -1616,13 +1790,11 @@ function loop(ts){
     G.hunger=Math.max(0,G.hunger-dt*0.002);
     tetStep(dt);
     maybeSpawn();
-    // window monster fade in
     if(G.phase==='window'){
       G.winTimer-=dt;
       G.monsterAlpha=Math.min(1,(8000-G.winTimer)/4000);
       if(G.winTimer<=0) resolveWindow(false);
     }
-    // flicker
     G.flickerT+=dt;
     if(G.flickerT>3000+Math.random()*4000){
       G.flickerT=0;G.flickerAlpha=0.4;
@@ -1630,12 +1802,12 @@ function loop(ts){
     }
   }
 
-  updateZoom(dt);
-
   ctx.clearRect(0,0,W,H);
-  drawRoom(ts);
-  // Zoom overlay drawn on top
-  if(G.zoom) drawZoom(ts);
+  if(G.view){
+    drawView(ts);
+  } else {
+    drawRoom(ts);
+  }
 
   requestAnimationFrame(loop);
 }
