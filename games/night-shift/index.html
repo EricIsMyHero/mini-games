@@ -366,6 +366,7 @@ function resetState() {
     isRealFoodPending:false,
     // view state: null | 'window' | 'door' | 'vent'
     view:null,
+    viewMode:'action', // 'action' | 'look'
     // vent waiting state
     ventWaiting:false,
     ventDone:false,
@@ -373,9 +374,9 @@ function resetState() {
 }
 
 /* ====================================================
-   TETRIS
+   TETRIS — larger grid for better playability
    ==================================================== */
-const TC=6, TR=12; // cols, rows (small — fits in monitor)
+const TC=8, TR=16; // wider + taller grid
 const TPIECES=[
   [[1,1,1,1]],[[1,1],[1,1]],
   [[0,1,0],[1,1,1]],[[1,0,0],[1,1,1]],
@@ -472,20 +473,20 @@ const R = {
   ventX:  270, ventY:  24,  ventW: 42,  ventH: 22,
   // desk surface — bottom strip (we see the desk edge from above)
   deskY:  230, deskH:  40,
-  // monitor — front-center, large (we are at the desk)
-  monX:   30,  monY:   115, monW:  130, monH:  100,
+  // monitor — larger, easier to play tetris
+  monX:   10,  monY:   80,  monW:  185, monH:  140,
   // tetris screen inside monitor
-  tsX:    36,  tsY:    122, tsW:   86,  tsH:   82,
-  // lamp — on desk, right side (moved further right)
-  lampX:  285, lampY:  155,
+  tsX:    17,  tsY:    87,  tsW:   125, tsH:   120,
+  // lamp — on desk, right side
+  lampX:  285, lampY:  140,
   // clock (digital, on desk)
   clkX:   175, clkY:   238,
   // pizza box (right of desk)
   pizzaX: 220, pizzaY: 235,
   // hud panel
   hudX:   322, hudY:   0, hudW: 158, hudH: 270,
-  // monitor clickable zone (canvas coords) — used for click detection
-  monClickX: 30, monClickY: 115, monClickW: 130, monClickH: 100,
+  // monitor clickable zone
+  monClickX: 10, monClickY: 80, monClickW: 185, monClickH: 140,
 };
 
 function drawRoom(ts) {
@@ -1193,32 +1194,9 @@ canvas.addEventListener('mousemove',e=>{
   canvas.style.cursor=hit?'pointer':'default';
 });
 
-canvas.addEventListener('click',e=>{
-  if(!G.running) return;
-  const {cx,cy}=getCanvasPos(e);
-
-  if(G.view){
-    handleViewClick(cx,cy);
-    return;
-  }
-
-  for(const [name,z] of Object.entries(ZONES)){
-    if(hitZone(cx,cy,z)){
-      if(name==='monitor'){
-        G.tetrisActive=!G.tetrisActive;
-        sndMonitorClick();
-      } else {
-        G.view=name;
-        canvas.style.cursor='default';
-      }
-      return;
-    }
-  }
-});
-
 document.addEventListener('keydown',e=>{
   if(e.key==='Escape'){
-    if(G.view) G.view=null;
+    if(G.view){G.view=null;G.viewMode='action';}
     else if(G.tetrisActive) G.tetrisActive=false;
   }
 },true);
@@ -1273,21 +1251,275 @@ function handleViewClick(cx,cy){
 }
 
 /* ---- DRAW FULL-SCREEN VIEWS ---- */
+// Layout: main content left (0..W-90), right sidebar 90px wide with buttons
+const SB = 90; // sidebar width
+
+// Sidebar button click zones (canvas px)
+const BTN_ACTION = {x:W-SB+4, y:60,  w:SB-8, h:36};
+const BTN_LOOK   = {x:W-SB+4, y:104, w:SB-8, h:36};
+const BTN_BACK   = {x:W-SB+4, y:H-44,w:SB-8, h:36};
+
+canvas.addEventListener('click',e=>{
+  if(!G.running) return;
+  const {cx,cy}=getCanvasPos(e);
+
+  if(G.view){
+    // Check sidebar buttons first
+    if(inBtn(cx,cy,BTN_BACK)){G.view=null;G.viewMode='action';return;}
+    if(inBtn(cx,cy,BTN_ACTION)){G.viewMode='action';return;}
+    if(inBtn(cx,cy,BTN_LOOK)){G.viewMode='look';return;}
+    // Main area click
+    if(cx < W-SB) handleViewClick(cx,cy);
+    return;
+  }
+
+  for(const [name,z] of Object.entries(ZONES)){
+    if(hitZone(cx,cy,z)){
+      if(name==='monitor'){G.tetrisActive=!G.tetrisActive;sndMonitorClick();}
+      else{G.view=name;G.viewMode='action';}
+      return;
+    }
+  }
+},true);
+// Remove old click listener added before (the one without ,true)
+// This replaces it — note we use capture phase
+
+function inBtn(cx,cy,b){return cx>=b.x&&cx<=b.x+b.w&&cy>=b.y&&cy<=b.y+b.h;}
+
 function drawView(ts){
   const v=G.view;
-  ctx.fillStyle='#080406';
-  ctx.fillRect(0,0,W,H);
-  if(v==='window') drawViewWindow(ts);
-  else if(v==='door') drawViewDoor(ts);
-  else if(v==='vent') drawViewVent(ts);
+  const c=ctx;
+  c.fillStyle='#080406';
+  c.fillRect(0,0,W,H);
 
-  // ESC hint bottom-right (always)
-  ctx.fillStyle='rgba(40,30,20,0.8)';
-  ctx.fillRect(W-80,H-16,80,16);
-  ctx.fillStyle='#3a3020';
-  ctx.font='12px VT323';
-  ctx.textAlign='right';
-  ctx.fillText('[ ESC — GERİ ]',W-4,H-4);
+  // Main content area (0 .. W-SB)
+  c.save();
+  c.beginPath();c.rect(0,0,W-SB,H);c.clip();
+  if(G.viewMode==='look'){
+    if(v==='window') drawLookWindow(ts);
+    else if(v==='door') drawLookDoor(ts);
+    else if(v==='vent') drawLookVent(ts);
+  } else {
+    if(v==='window') drawViewWindow(ts);
+    else if(v==='door') drawViewDoor(ts);
+    else if(v==='vent') drawViewVent(ts);
+  }
+  c.restore();
+
+  // Sidebar
+  drawViewSidebar(ts,v);
+}
+
+function drawViewSidebar(ts,v){
+  const c=ctx;
+  const sx=W-SB;
+
+  // Sidebar bg
+  px(c,sx,0,SB,H,'#060402');
+  pxLine(c,sx,0,sx,H,'#2a2010',1);
+
+  // Zone label
+  const labels={window:'PƏNCƏRƏ',door:'QAPI',vent:'VENTİLYASİYA'};
+  c.fillStyle='#3a3020';
+  c.font='bold 11px VT323';c.textAlign='center';
+  c.fillText(labels[v]||'',sx+SB/2,20);
+  pxLine(c,sx+6,26,sx+SB-6,26,'#1e1a10',1);
+
+  // ACTION button
+  const aActive=G.viewMode==='action';
+  drawSideBtn(c,BTN_ACTION,'ƏMƏL',aActive,'#cc3030','#3a0808');
+
+  // LOOK button
+  const lActive=G.viewMode==='look';
+  drawSideBtn(c,BTN_LOOK,'BAX',lActive,'#4a90c0','#0a2030');
+
+  pxLine(c,sx+6,H-52,sx+SB-6,H-52,'#1e1a10',1);
+
+  // BACK button
+  drawSideBtn(c,BTN_BACK,'GERİ','#c8a84a',false,'#2a1808');
+}
+
+function drawSideBtn(c,b,label,active,activeCol,bgCol){
+  // bg
+  px(c,b.x,b.y,b.w,b.h,active?bgCol:'#0c0a08');
+  // border
+  c.strokeStyle=active?(activeCol||'#c8a84a'):'#2a2010';
+  c.lineWidth=active?1.5:1;
+  c.strokeRect(b.x+0.5,b.y+0.5,b.w-1,b.h-1);
+  if(active){
+    // left accent bar
+    px(c,b.x,b.y,2,b.h,activeCol||'#c8a84a');
+  }
+  c.fillStyle=active?(activeCol||'#c8a84a'):'#4a4030';
+  c.font=`bold ${active?13:12}px VT323`;
+  c.textAlign='center';
+  c.fillText(label,b.x+b.w/2,b.y+b.h*0.65);
+}
+
+/* ===== LOOK MODE SCENES ===== */
+
+function drawLookWindow(ts){
+  const c=ctx;
+  const cw=W-SB, ch=H;
+  // Pure outside view — no frame, as if pressing face to glass
+  // Dark blue night sky gradient
+  for(let i=0;i<ch;i++){
+    const t=i/ch;
+    const rv=(0x04+(0x08-0x04)*t)|0;
+    const gv=(0x06+(0x0c-0x06)*t)|0;
+    const bv=(0x14+(0x10-0x14)*t)|0;
+    px(c,0,i,cw,1,`rgb(${rv},${gv},${bv})`);
+  }
+  // Moon
+  pxCircle(c,cw*0.78,ch*0.12,22,'#c0b878');
+  pxCircle(c,cw*0.82,ch*0.09,17,'#04070f');// crescent shadow
+  // Moonlight glow
+  const mg=c.createRadialGradient(cw*0.78,ch*0.12,0,cw*0.78,ch*0.12,80);
+  mg.addColorStop(0,'rgba(180,170,100,0.12)');mg.addColorStop(1,'rgba(0,0,0,0)');
+  c.fillStyle=mg;c.fillRect(0,0,cw,ch);
+  // Stars (fixed seed so they don't flicker per-frame)
+  const SR=[[0.05,0.04],[0.18,0.08],[0.32,0.03],[0.48,0.11],[0.62,0.06],
+    [0.77,0.14],[0.9,0.05],[0.12,0.22],[0.38,0.19],[0.55,0.28],
+    [0.7,0.18],[0.88,0.25],[0.04,0.38],[0.25,0.42],[0.44,0.35],
+    [0.6,0.44],[0.82,0.4],[0.95,0.32],[0.15,0.55],[0.35,0.6],
+    [0.52,0.52],[0.68,0.58],[0.85,0.62],[0.08,0.7],[0.28,0.75],
+    [0.45,0.68],[0.65,0.78],[0.88,0.72]];
+  SR.forEach(([sx,sy])=>{
+    const blink=0.5+0.5*Math.sin(ts*0.0008+sx*17+sy*13);
+    c.fillStyle=`rgba(220,225,240,${blink*0.9})`;
+    c.fillRect(Math.round(sx*cw),Math.round(sy*ch*0.75),sx>0.5?2:1,1);
+  });
+  // Tree silhouettes
+  c.fillStyle='#050704';
+  for(let tx=0;tx<cw;tx+=6){
+    const th=20+Math.round(12*Math.sin(tx*0.18+1.2));
+    c.fillRect(tx,ch-th,5,th);
+  }
+  // Ground strip
+  px(c,0,ch-20,cw,20,'#060804');
+  // Frost/glass effect on edges
+  c.fillStyle='rgba(200,220,255,0.04)';
+  c.fillRect(0,0,8,ch);c.fillRect(cw-8,0,8,ch);
+  c.fillRect(0,0,cw,6);c.fillRect(0,ch-6,cw,6);
+  // Label
+  px(c,0,ch-22,cw,22,'rgba(0,0,0,0.5)');
+  c.fillStyle='#2a3820';c.font='14px VT323';c.textAlign='center';
+  c.fillText('Çöl — Gecə mənzərəsi',cw/2,ch-6);
+}
+
+function drawLookDoor(ts){
+  const c=ctx;
+  const cw=W-SB, ch=H;
+  // Keyhole view — dark with a peephole circle showing outside
+  px(c,0,0,cw,ch,'#050302');
+  // Door texture (close up, we see the door surface)
+  for(let i=0;i<ch;i++){
+    const t=i/ch;
+    const rv=(0x58+(0x0a)*t)|0;
+    const gv=(0x34+(0x06)*t)|0;
+    const bv=(0x18+(0x04)*t)|0;
+    px(c,0,i,cw,1,`rgb(${rv},${gv},${bv})`);
+  }
+  // Wood grain
+  c.strokeStyle='rgba(40,18,6,0.5)';c.lineWidth=1;
+  [0.12,0.28,0.48,0.65,0.82].forEach(fx=>{
+    c.beginPath();c.moveTo(fx*cw,0);c.lineTo(fx*cw+(fx>0.4?-3:3),ch);c.stroke();
+  });
+  // Peephole (keyhole-lens view)
+  const phx=cw/2, phy=ch*0.45, phr=55;
+  // Vignette mask around peephole
+  const pg=c.createRadialGradient(phx,phy,phr*0.7,phx,phy,phr*1.8);
+  pg.addColorStop(0,'rgba(0,0,0,0)');pg.addColorStop(1,'rgba(0,0,0,0.92)');
+  // Peephole circle — corridor outside
+  c.save();
+  c.beginPath();c.arc(phx,phy,phr,0,Math.PI*2);c.clip();
+  // Fisheye corridor view
+  for(let i=0;i<phr*2;i++){
+    const t=i/(phr*2);
+    const rv=(0x10+(0x08-0x10)*t)|0;
+    const gv=(0x0c+(0x06-0x0c)*t)|0;
+    const bv=(0x08+(0x04-0x08)*t)|0;
+    px(c,phx-phr,phy-phr+i,phr*2,1,`rgb(${rv},${gv},${bv})`);
+  }
+  // Corridor walls (perspective lines into distance)
+  c.strokeStyle='#1e1408';c.lineWidth=2;
+  const vx=phx,vy=phy;
+  [[phx-phr,phy-phr],[phx+phr,phy-phr],[phx-phr,phy+phr],[phx+phr,phy+phr]].forEach(([ex,ey])=>{
+    c.beginPath();c.moveTo(vx+(ex-vx)*0.15,vy+(ey-vy)*0.15);c.lineTo(ex,ey);c.stroke();
+  });
+  // Floor line
+  px(c,phx-phr,phy+phr*0.5,phr*2,2,'#1a1008');
+  // Wall sconce light far end
+  pxCircle(c,phx,phy-phr*0.3,4,'#c8a030');
+  const slg=c.createRadialGradient(phx,phy-phr*0.3,0,phx,phy-phr*0.3,20);
+  slg.addColorStop(0,'rgba(200,160,48,0.3)');slg.addColorStop(1,'rgba(0,0,0,0)');
+  c.fillStyle=slg;c.fillRect(phx-20,phy-phr*0.3-20,40,40);
+  // Room numbers on wall (distant)
+  c.fillStyle='rgba(180,150,80,0.4)';c.font='6px monospace';c.textAlign='center';
+  c.fillText('301  302  303',phx,phy-5);
+  c.restore();
+  // Peephole rim
+  c.strokeStyle='#3a2c14';c.lineWidth=4;
+  c.beginPath();c.arc(phx,phy,phr,0,Math.PI*2);c.stroke();
+  c.strokeStyle='#5a4420';c.lineWidth=1.5;
+  c.beginPath();c.arc(phx,phy,phr+3,0,Math.PI*2);c.stroke();
+  // Fisheye vignette
+  c.fillStyle=pg;c.fillRect(phx-phr*1.8,phy-phr*1.8,phr*3.6,phr*3.6);
+  // Label
+  px(c,0,ch-22,cw,22,'rgba(0,0,0,0.6)');
+  c.fillStyle='#2a2818';c.font='14px VT323';c.textAlign='center';
+  c.fillText('Deşikdən koridor görünür',cw/2,ch-6);
+}
+
+function drawLookVent(ts){
+  const c=ctx;
+  const cw=W-SB, ch=H;
+  // Inside vent shaft — dark tunnel
+  px(c,0,0,cw,ch,'#030202');
+  // Vent shaft walls (square tunnel perspective)
+  const depth=8;
+  for(let d=depth;d>=1;d--){
+    const t=d/depth;
+    const margin=t*(cw*0.42);
+    const tmargin=t*(ch*0.42);
+    const rv=(0x10*t)|0, gv=(0x0c*t)|0, bv=(0x08*t)|0;
+    c.strokeStyle=`rgb(${rv},${gv},${bv})`;c.lineWidth=1;
+    c.strokeRect(margin,tmargin,cw-margin*2,ch-tmargin*2);
+    // Floor/ceiling lines
+    px(c,margin,ch/2,cw-margin*2,1,`rgb(${rv},${gv},${bv})`);
+  }
+  // Dust particles
+  for(let i=0;i<14;i++){
+    const px2=Math.sin(ts*0.0005+i*2.1)*cw*0.3+cw/2;
+    const py2=Math.cos(ts*0.0004+i*1.7)*ch*0.3+ch/2;
+    const a=0.2+0.15*Math.sin(ts*0.001+i);
+    c.fillStyle=`rgba(180,160,120,${a})`;
+    c.fillRect(px2,py2,1,1);
+  }
+  // Far end glow (deeper in shaft)
+  const fg=c.createRadialGradient(cw/2,ch/2,0,cw/2,ch/2,40);
+  fg.addColorStop(0,'rgba(140,100,40,0.15)');fg.addColorStop(1,'rgba(0,0,0,0)');
+  c.fillStyle=fg;c.fillRect(0,0,cw,ch);
+  // Scratch marks on shaft walls
+  c.strokeStyle='rgba(80,50,30,0.4)';c.lineWidth=1;
+  [[0.25,0.3,0.28,0.7],[0.72,0.2,0.68,0.6],[0.48,0.1,0.5,0.5]].forEach(([x1,y1,x2,y2])=>{
+    c.beginPath();c.moveTo(x1*cw,y1*ch);c.lineTo(x2*cw,y2*ch);c.stroke();
+  });
+  // Grate frame edge (we are looking through the grate)
+  pxRect(c,0,0,cw,ch,'#1a1410',6);
+  pxRect(c,4,4,cw-8,ch-8,'#0e0c0a',2);
+  // Horizontal bar shadows from grate
+  [0.25,0.5,0.75].forEach(fy=>{
+    px(c,0,ch*fy-1,cw,3,'rgba(0,0,0,0.6)');
+  });
+  // Vertical bar shadows
+  [0.2,0.4,0.6,0.8].forEach(fx=>{
+    px(c,cw*fx-1,0,3,ch,'rgba(0,0,0,0.5)');
+  });
+  // Label
+  px(c,0,ch-22,cw,22,'rgba(0,0,0,0.6)');
+  c.fillStyle='#1e2a18';c.font='14px VT323';c.textAlign='center';
+  c.fillText('Havalandırma kanalının içi',cw/2,ch-6);
 }
 
 /* --- WINDOW VIEW --- */
