@@ -42,6 +42,13 @@
     "status": "live"
   },
   {
+    "id": "maze-keeper",
+    "title": "Bağban",
+    "emoji": "🌱",
+    "path": "games/maze-keeper/",
+    "status": "live"
+  },
+  {
     "id": "flappy-bird",
     "title": "Flappy Bird",
     "emoji": "🐦",
