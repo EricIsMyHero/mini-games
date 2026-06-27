@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Tarazlıq — Prezident Simulyasiyası</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy-deep:#0b1320;
+    --navy-panel:#131e30;
+    --navy-panel2:#1c2c47;
+    --parchment:#ece4d2;
+    --parchment-dark:#d9cdb0;
+    --ink:#241d14;
+    --gold:#c9a227;
+    --gold-bright:#e8c84d;
+    --crimson:#9a3a3a;
+    --sage:#5b8a72;
+    --text-light:#e9e4d8;
+    --slate:#8a93a8;
+    --line:rgba(201,162,39,0.18);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html{-webkit-tap-highlight-color:transparent;}
+  body{
+    background:var(--navy-deep);
+    background-image:
+      radial-gradient(ellipse at 50% -10%, rgba(201,162,39,0.10), transparent 55%),
+      repeating-linear-gradient(0deg, rgba(255,255,255,0.015) 0px, rgba(255,255,255,0.015) 1px, transparent 1px, transparent 3px);
+    color:var(--text-light);
+    font-family:'IBM Plex Mono', monospace;
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  .back-link{
+    position:fixed; top:14px; left:14px; z-index:80;
+    display:flex; align-items:center; gap:6px;
+    padding:7px 14px; font-size:11px; font-weight:600; letter-spacing:.5px;
+    color:var(--slate); text-decoration:none;
+    border:1px solid var(--line); border-radius:20px;
+    background:rgba(19,30,48,0.8); backdrop-filter:blur(4px);
+  }
+  .back-link:hover{ color:var(--gold-bright); border-color:var(--gold); }
+
+  #root{ max-width:720px; margin:0 auto; padding:64px 16px 48px; position:relative; }
+
+  .screen{ display:none; }
+  .screen.active{ display:block; animation:fadeIn .35s ease; }
+  @keyframes fadeIn{ from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);} }
+  @media (prefers-reduced-motion: reduce){ .screen.active{ animation:none; } }
+
+  h1,h2,h3{ font-family:'IBM Plex Serif', serif; font-weight:700; }
+
+  /* ============ SEAL / HEADER BAR ============ */
+  .seal-bar{
+    display:flex; align-items:center; justify-content:space-between;
+    gap:14px; padding:14px 18px; margin-bottom:18px;
+    background:linear-gradient(180deg, var(--navy-panel2), var(--navy-panel));
+    border:1px solid var(--line); border-radius:12px;
+  }
+  .seal-id{ display:flex; align-items:center; gap:12px; }
+  .seal-emblem{ width:42px; height:42px; flex-shrink:0; }
+  .seal-text .seal-title{ font-size:13px; letter-spacing:1px; color:var(--gold-bright); }
+  .seal-text .seal-sub{ font-size:10px; color:var(--slate); letter-spacing:1px; margin-top:2px; }
+  .day-counter{ text-align:right; font-size:11px; color:var(--slate); }
+  .day-counter b{ color:var(--text-light); font-size:13px; display:block; }
+
+  .scale-wrap{ width:64px; height:40px; flex-shrink:0; }
+  .scale-beam{ transform-origin:50px 18px; transition:transform .6s cubic-bezier(.4,1.4,.6,1); }
+  @media (prefers-reduced-motion: reduce){ .scale-beam{ transition:none; } }
+
+  /* ============ STAT DIALS ============ */
+  .dials{
+    display:grid; grid-template-columns:repeat(5,1fr); gap:8px;
+    margin-bottom:20px;
+  }
+  @media (max-width:420px){
+    .dials{ grid-template-columns:repeat(3,1fr); }
+    .seal-text .seal-sub{ display:none; }
+    .scale-wrap{ width:50px; }
+  }
+  .dial{ background:var(--navy-panel); border:1px solid var(--line); border-radius:10px; padding:8px 6px 10px; text-align:center; }
+  .dial .ico{ font-size:15px; }
+  .dial .lbl{ font-size:8.5px; letter-spacing:.5px; color:var(--slate); margin:3px 0 6px; text-transform:uppercase; }
+  .dial .track{ height:5px; border-radius:3px; background:rgba(255,255,255,0.08); overflow:hidden; }
+  .dial .fill{ height:100%; border-radius:3px; transition:width .5s ease, background .5s ease; }
+  .dial .val{ font-size:11px; font-weight:600; margin-top:5px; }
+  .dial.warn .fill{ background:var(--crimson) !important; }
+  .dial.warn .val{ color:#e08a8a; }
+
+  /* ============ DOSSIER CARD ============ */
+  .dossier{
+    background:var(--parchment); color:var(--ink); border-radius:4px;
+    position:relative; padding:26px 22px 22px;
+    box-shadow:0 14px 30px rgba(0,0,0,0.35), 0 0 0 1px rgba(0,0,0,0.08);
+    margin-bottom:16px;
+  }
+  .dossier::before{
+    content:''; position:absolute; top:-9px; left:22px; width:130px; height:18px;
+    background:var(--parchment-dark); border-radius:3px 3px 0 0;
+  }
+  .dossier.event{ background:#e6d3c8; }
+  .dossier.event::before{ background:#d6b9a6; }
+  .dossier.crisis{ background:#e3c4c0; }
+  .dossier.crisis::before{ background:#d2a09a; }
+
+  .tag-row{ display:flex; align-items:center; gap:10px; margin-bottom:14px; }
+  .tag-row .icon{
+    width:44px; height:44px; border-radius:50%; background:rgba(0,0,0,0.06);
+    display:flex; align-items:center; justify-content:center; font-size:22px; flex-shrink:0;
+  }
+  .tag-row .who .role{ font-size:10px; letter-spacing:1px; text-transform:uppercase; color:#6b5d44; }
+  .tag-row .who .name{ font-family:'IBM Plex Serif',serif; font-weight:600; font-size:15px; }
+  .stamp{
+    margin-left:auto; font-family:'IBM Plex Serif',serif; font-weight:700; font-size:10px;
+    letter-spacing:1.5px; color:var(--crimson); border:2px solid var(--crimson);
+    border-radius:4px; padding:3px 8px; transform:rotate(-4deg); opacity:.85;
+  }
+  .quote{ font-size:14.5px; line-height:1.55; margin-bottom:10px; }
+  .quote::before{ content:'“'; } .quote::after{ content:'”'; }
+  .advisor{ font-size:11.5px; color:#5a4d38; border-top:1px dashed rgba(0,0,0,0.15); padding-top:9px; margin-top:4px; }
+  .advisor b{ color:#3d3322; }
+  .shock-line{ font-size:12px; background:rgba(0,0,0,0.07); border-radius:6px; padding:8px 10px; margin:6px 0 12px; font-weight:600; }
+
+  /* ============ OPTIONS ============ */
+  .options{ display:flex; flex-direction:column; gap:10px; }
+  .opt{
+    display:flex; align-items:flex-start; gap:10px; text-align:left;
+    background:rgba(255,255,255,0.55); border:1.5px solid rgba(0,0,0,0.12);
+    border-radius:8px; padding:11px 13px; cursor:pointer; font-family:inherit; color:var(--ink);
+    transition:transform .12s ease, border-color .12s ease, background .12s ease;
+  }
+  .opt:hover, .opt:focus-visible{ background:#fff; border-color:var(--gold); transform:translateY(-1px); outline:none; }
+  .opt .letter{
+    font-family:'IBM Plex Serif',serif; font-weight:700; font-size:13px; width:22px; height:22px;
+    border-radius:50%; background:var(--navy-panel2); color:var(--gold-bright);
+    display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:1px;
+  }
+  .opt .opt-title{ font-size:13.5px; font-weight:600; line-height:1.4; }
+
+  /* ============ RESULT / FEEDBACK ============ */
+  .feedback{ background:var(--parchment); color:var(--ink); border-radius:4px; padding:22px; text-align:center; }
+  .feedback h3{ font-size:14px; margin-bottom:14px; }
+  .deltas{ display:flex; flex-wrap:wrap; justify-content:center; gap:8px; margin-bottom:16px; }
+  .delta-chip{
+    font-size:12px; font-weight:700; padding:5px 10px; border-radius:20px;
+    background:rgba(91,138,114,0.18); color:#2d5c41;
+  }
+  .delta-chip.neg{ background:rgba(154,58,58,0.16); color:#7a2c2c; }
+  .btn{
+    font-family:'IBM Plex Mono', monospace; font-weight:700; font-size:12.5px; letter-spacing:.5px;
+    background:var(--gold); color:#221a08; border:none; border-radius:7px;
+    padding:12px 22px; cursor:pointer; transition:background .15s ease, transform .1s ease;
+  }
+  .btn:hover{ background:var(--gold-bright); transform:translateY(-1px); }
+  .btn.ghost{ background:transparent; color:var(--gold-bright); border:1.5px solid var(--gold); }
+  .btn-row{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+
+  /* ============ NEWSPAPER ============ */
+  .newspaper{
+    background:#efe9da; color:var(--ink); border-radius:3px; padding:24px 22px;
+    box-shadow:0 14px 30px rgba(0,0,0,0.35);
+    background-image:repeating-linear-gradient(180deg, rgba(0,0,0,0.015) 0 2px, transparent 2px 4px);
+  }
+  .masthead{ text-align:center; border-bottom:3px double #2a2418; padding-bottom:10px; margin-bottom:14px; }
+  .masthead .name{ font-family:'IBM Plex Serif',serif; font-weight:700; font-size:24px; letter-spacing:1px; }
+  .masthead .meta{ font-size:10px; letter-spacing:1.5px; color:#5a4d38; margin-top:3px; text-transform:uppercase; }
+  .headline{ font-family:'IBM Plex Serif',serif; font-weight:700; font-size:19px; line-height:1.3; text-align:center; margin-bottom:14px; }
+  .subhead{ font-size:12px; color:#4a3f2c; border-top:1px solid rgba(0,0,0,0.15); padding-top:10px; }
+  .subhead .item{ margin-bottom:6px; padding-left:14px; position:relative; }
+  .subhead .item::before{ content:'—'; position:absolute; left:0; }
+
+  /* ============ CABINET MODAL ============ */
+  .cabinet-line{
+    display:flex; gap:10px; align-items:flex-start; padding:10px 0;
+    border-bottom:1px solid var(--line);
+  }
+  .cabinet-line:last-child{ border-bottom:none; }
+  .cabinet-line .ico{ font-size:18px; flex-shrink:0; }
+  .cabinet-line .name{ font-size:11px; color:var(--gold-bright); font-weight:700; letter-spacing:.3px; }
+  .cabinet-line .txt{ font-size:12.5px; color:var(--text-light); line-height:1.5; margin-top:2px; }
+
+  /* ============ INTRO / MENU ============ */
+  .panel{ background:var(--navy-panel); border:1px solid var(--line); border-radius:12px; padding:24px 20px; }
+  .intro-emblem{ width:92px; height:92px; margin:0 auto 16px; display:block; }
+  .intro h1{ text-align:center; font-size:24px; color:var(--gold-bright); letter-spacing:.5px; margin-bottom:6px; }
+  .intro .motto{ text-align:center; font-size:12px; color:var(--slate); letter-spacing:1px; margin-bottom:18px; font-style:italic; }
+  .intro p{ font-size:13px; line-height:1.7; color:var(--text-light); margin-bottom:12px; }
+  .intro .stat-key{ display:flex; flex-wrap:wrap; gap:8px; margin:16px 0 20px; }
+  .stat-key span{ font-size:11px; background:var(--navy-panel2); border-radius:16px; padding:5px 11px; color:var(--text-light); }
+  .start-row{ text-align:center; margin-top:6px; }
+
+  /* ============ ENDING ============ */
+  .end-bars{ margin:18px 0; }
+  .end-bar-row{ display:flex; align-items:center; gap:10px; margin-bottom:10px; font-size:12px; }
+  .end-bar-row .lbl{ width:110px; flex-shrink:0; color:var(--slate); }
+  .end-bar-row .track{ flex:1; height:9px; border-radius:5px; background:rgba(255,255,255,0.08); overflow:hidden; }
+  .end-bar-row .fill{ height:100%; border-radius:5px; }
+  .end-bar-row .num{ width:30px; text-align:right; font-weight:700; }
+  .verdict{ text-align:center; font-family:'IBM Plex Serif',serif; font-weight:700; font-size:21px; color:var(--gold-bright); margin:10px 0 8px; }
+  .verdict-sub{ text-align:center; font-size:12px; color:var(--slate); margin-bottom:18px; }
+  .epilogue{ font-size:13px; line-height:1.7; color:var(--text-light); background:var(--navy-panel2); border-radius:8px; padding:14px 16px; margin-bottom:18px; }
+
+  footer.note{ text-align:center; font-size:10.5px; color:var(--slate); margin-top:28px; letter-spacing:.5px; }
+</style>
+</head>
+<body>
+
+<a class="back-link" href="../../">← Arcade</a>
+
+<div id="root">
+
+  <!-- ================= INTRO ================= -->
+  <section class="screen active" id="screen-intro">
+    <div class="panel intro">
+      <svg class="intro-emblem" viewBox="0 0 100 100" id="emblem-intro"></svg>
+      <h1>TARAZLIQ</h1>
+      <div class="motto">Yeni Cəmiyyət Partiyası — "Güclü millət, güclü dövlət, parlaq gələcək!"</div>
+      <p>2026. Heç vaxt başqa bir imperiyanın tərkibində olmamış bu Azərbaycanda, YCP seçkiləri qazandı. Möhürü təhvil aldınız — indi qərarlar sizindir.</p>
+      <p>Hər gün qəbul otağınıza vətəndaşlar gəlir. Hər birinin problemi var, hər həllin qiyməti. Məqsəd ölkəni "idarə etmək" deyil — beş göstərici arasında <b>tarazlıq</b> saxlamaqdır. Heç bir variant tam doğru deyil; hər addımın həm xeyri, həm zərəri var.</p>
+      <div class="stat-key">
+        <span>🪙 Əmək haqqı</span>
+        <span>🏠 Həyat rifahı</span>
+        <span>🎓 Təhsil</span>
+        <span>🤝 Hökumətə inam</span>
+        <span>💰 Dövlət xəzinəsi</span>
+      </div>
+      <p style="font-size:11.5px;color:var(--slate);">Hər göstərici 0–100 arasındadır. Hədlərə yaxınlaşsa, böhran qaçılmaz olur. 4 illik vəzifə müddəti bitəndə xalq səsini verəcək.</p>
+      <div class="start-row"><button class="btn" id="btn-start">VƏZİFƏYƏ BAŞLA</button></div>
+    </div>
+    <footer class="note">Tarazlıq — Əli's Arcade üçün hazırlanıb</footer>
+  </section>
+
+  <!-- ================= GAME ================= -->
+  <section class="screen" id="screen-game">
+    <div class="seal-bar">
+      <div class="seal-id">
+        <svg class="seal-emblem" viewBox="0 0 100 100" id="emblem-game"></svg>
+        <div class="seal-text">
+          <div class="seal-title">PREZİDENT KABİNETİ</div>
+          <div class="seal-sub">YENİ CƏMİYYƏT PARTİYASI</div>
+        </div>
+      </div>
+      <svg class="scale-wrap" viewBox="0 0 100 50" id="scale-svg">
+        <line x1="50" y1="6" x2="50" y2="18" stroke="#c9a227" stroke-width="2.5"/>
+        <g class="scale-beam" id="scale-beam">
+          <line x1="6" y1="18" x2="94" y2="18" stroke="#c9a227" stroke-width="2.5"/>
+          <line x1="6" y1="18" x2="6" y2="30" stroke="#c9a227" stroke-width="1.6"/>
+          <line x1="94" y1="18" x2="94" y2="30" stroke="#c9a227" stroke-width="1.6"/>
+          <path d="M -2 30 Q 6 40 14 30 Z" fill="none" stroke="#c9a227" stroke-width="1.6"/>
+          <path d="M 86 30 Q 94 40 102 30 Z" fill="none" stroke="#c9a227" stroke-width="1.6"/>
+        </g>
+      </svg>
+      <div class="day-counter"><b id="day-label">Gün 1</b><span id="il-label">I İl</span></div>
+    </div>
+
+    <div class="dials" id="dials"></div>
+
+    <div id="card-area"></div>
+  </section>
+
+  <!-- ================= ELECTION ================= -->
+  <section class="screen" id="screen-end">
+    <div class="panel">
+      <h2 style="text-align:center;font-size:16px;letter-spacing:1px;color:var(--gold-bright);">SEÇKİ GECƏSİ</h2>
+      <div class="end-bars" id="end-bars"></div>
+      <div class="verdict" id="verdict-text"></div>
+      <div class="verdict-sub" id="verdict-sub"></div>
+      <div class="epilogue" id="epilogue-text"></div>
+      <div class="start-row"><button class="btn" id="btn-restart">YENİDƏN BAŞLA</button></div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+/* =========================================================
+   TARAZLIQ — engine
+   ========================================================= */
+
+const STAT_META = {
+  salary:    { label:'Əmək haqqı',     icon:'🪙' },
+  welfare:   { label:'Həyat rifahı',   icon:'🏠' },
+  education: { label:'Təhsil',         icon:'🎓' },
+  trust:     { label:'Hökumətə inam',  icon:'🤝' },
+  budget:    { label:'Dövlət xəzinəsi',icon:'💰' },
+};
+const STAT_KEYS = Object.keys(STAT_META);
+
+const IL_LENGTH = 4;
+const TOTAL_DAYS = 16;
+
+function rand(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
+function clamp(v){ return Math.max(0, Math.min(100, v)); }
+function shuffle(arr){ const a=arr.slice(); for(let i=a.length-1;i>0;i--){ const j=rand(0,i); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+function pickN(arr, n){ return shuffle(arr).slice(0, Math.min(n, arr.length)); }
+
+/* ---------------- CONTENT: DILEMMAS ---------------- */
+const DILEMMAS = [
+  { id:'teacher_salary', icon:'👩‍🏫', role:'Müəllim', name:'Aygün müəllimə',
+    quote:'Otuz ildir dərs deyirəm, amma maaşım kirayəyə güc-bəla çatır. Bizi unutmayın.',
+    advisor:{name:'Əmək Naziri', note:'Müəllim ordusu bizimlədir — onları itirsək, sinifləri kim doldurar?'},
+    options:[
+      { letter:'A', title:'Maaşı 20% artır', headline:'Müəllim maaşları 20% qalxdı, sinif otaqlarında alqış səsləndi', effects:{salary:11,budget:-10,trust:4} },
+      { letter:'B', title:'Maaşı 10% artır', headline:'Müəllim maaşlarına 10% əlavə edildi', effects:{salary:6,budget:-5,trust:2} },
+      { letter:'C', title:'Hələlik dəyişiklik yox', headline:'Müəllimlər yenə əliboş qaldı, sinif otaqlarında narazılıq', effects:{trust:-5,salary:-2} },
+    ]},
+
+  { id:'university', icon:'🎓', role:'Tələbə Nümayəndəsi', name:'Rəşad',
+    quote:'Universitetimizin damı axır, laboratoriyalarda 20 illik avadanlıq var. Bu, gələcəyimizdir.',
+    advisor:{name:'Təhsil Naziri', note:'Köhnə binalarla yeni nəsil yetişdirə bilmərik, cənab Prezident.'},
+    options:[
+      { letter:'A', title:'Yeni universitet binası tikilsin', headline:'Şəhərdə yeni universitet kompleksinin təməli qoyuldu', effects:{education:12,budget:-15,trust:5} },
+      { letter:'B', title:'Mövcud binanı təmir et', headline:'Universitet binasında əsaslı təmir başladı', effects:{education:6,budget:-6} },
+      { letter:'C', title:'Büdcə hazırda yoxdur', headline:'Universitet təmiri növbəti ilə saxlanıldı', effects:{education:-4,trust:-4} },
+    ]},
+
+  { id:'taxes', icon:'💼', role:'Sahibkar', name:'Tural bəy',
+    quote:'Vergilər biznesi boğur. Kiçik müəssisələr bir-bir bağlanır.',
+    advisor:{name:'Maliyyə Naziri', note:'Vergi endirimi xalqı sevindirər, amma xəzinə bunun bahasını ödəyəcək.'},
+    options:[
+      { letter:'A', title:'Vergiləri azalt', headline:'Sahibkarlara vergi endirimi tətbiq edildi', effects:{budget:-8,trust:4,salary:2}, delayed:{after:4, effects:{budget:4}, headline:'Vergi endirimindən sonra yerli biznes canlandı, xəzinəyə qismən qayıdış oldu'} },
+      { letter:'B', title:'Dəyişiklik etmə', headline:'Vergi siyasətində dəyişiklik olmadı', effects:{trust:-1} },
+      { letter:'C', title:'Vergiləri artır', headline:'Yeni vergi tarifləri elan edildi, sahibkarlar etiraz edir', effects:{budget:10,trust:-8,welfare:-3} },
+    ]},
+
+  { id:'pension', icon:'👵', role:'Pensiyaçı', name:'Validə xanım',
+    quote:'Pensiya yaşına çatmaq üçün illərlə gözlədim, indi də pensiya azdır.',
+    advisor:{name:'Sosial Müdafiə Naziri', note:'Yaşlı nəslimiz bizə etibar edib. Onları arxada qoymaq olmaz.'},
+    options:[
+      { letter:'A', title:'Pensiya yaşını aşağı sal', headline:'Pensiya yaşı endirildi, yaşlı vətəndaşlar arasında ovqat yüksəldi', effects:{welfare:8,trust:6,budget:-12} },
+      { letter:'B', title:'Mövcud səviyyədə saxla', headline:'Pensiya sistemi dəyişməz qaldı', effects:{} },
+      { letter:'C', title:'İqtisadi səbəblərlə yüksəlt', headline:'Pensiya yaşının artırılması qərarı kəskin tənqid doğurdu', effects:{budget:8,trust:-10,welfare:-6} },
+    ]},
+
+  { id:'child_benefit', icon:'👶', role:'Gənc Ailə Başçısı', name:'Nicat',
+    quote:'Üçüncü uşağımız doğuldu. Uşaq pulu olmasa ailəmi necə dolandırım?',
+    options:[
+      { letter:'A', title:'Uşaq pulunu artır', headline:'Doğum müavinətləri artırıldı, gənc ailələr razıdır', effects:{welfare:7,trust:5,budget:-9} },
+      { letter:'B', title:'Mövcud səviyyədə saxla', headline:'Uşaq pulu eyni səviyyədə qaldı', effects:{} },
+      { letter:'C', title:'Proqramı ləğv et', headline:'Doğum müavinətinin ləğvi gənc ailələri qəzəbləndirdi', effects:{budget:6,trust:-12,welfare:-8} },
+    ]},
+
+  { id:'media', icon:'📺', role:'Müstəqil Jurnalist', name:'Lalə',
+    quote:'Televiziya kanallarının çoxu bir tərəfin sözünü deyir. Xalq həqiqəti bilməlidir.',
+    advisor:{name:'Daxili Siyasət Naziri', note:'Media islahatı vədimiz idi — amma kanal sahibləri sakit dayanmayacaq.'},
+    options:[
+      { letter:'A', title:'Kanalları tərəfsizləşdirməyə məcbur et', headline:'Yeni media qanunu qəbul edildi, kanallar tərəfsizliyə çağırıldı', effects:{trust:8,budget:-2}, delayed:{after:3, effects:{trust:-3}, headline:'Bəzi media sahibləri yeni qanuna qarşı kampaniya başlatdı'} },
+      { letter:'B', title:'Qismən tənzimləmə tətbiq et', headline:'Media sahəsində qismən tənzimləmə tətbiq olundu', effects:{trust:3} },
+      { letter:'C', title:'Toxunma', headline:'Media qərəzliliyi mövzusunda heç bir addım atılmadı', effects:{trust:-4} },
+    ]},
+
+  { id:'football', icon:'⚽', role:'İdman Müxbiri', name:'Kamran',
+    quote:'Futbol federasiyasında rüşvətxorluq dedi-qodusu hər yerdədir. Xalq həqiqəti istəyir.',
+    options:[
+      { letter:'A', title:'Sərt araşdırma apar', headline:'Futbolda rüşvətxorluq araşdırması başladı, klublar cəzalandırıldı', effects:{trust:10,budget:-4} },
+      { letter:'B', title:'Xəbərdarlıqla keç', headline:'Federasiyaya formal xəbərdarlıq edildi', effects:{trust:2} },
+      { letter:'C', title:'Görməzə gəl', headline:'Futbolda rüşvətxorluq iddialarına hökumətdən reaksiya yox', effects:{trust:-9,budget:2} },
+    ]},
+
+  { id:'auto_industry', icon:'🚗', role:'Mühəndis', name:'Elvin',
+    quote:'Niyə öz avtomobilimizi, öz gəmimizi istehsal etmirik? Hər şeyi xaricdən alırıq.',
+    advisor:{name:'Maliyyə Naziri', note:'Yerli istehsal gözəl şüardır, amma ilk investisiya ağırdır.'},
+    options:[
+      { letter:'A', title:'Dövlət dəstəyi ilə zavod aç', headline:'Yerli avtomobil zavodunun açılışı keçirildi, minlərlə iş yeri yaradıldı', effects:{budget:-14,salary:5,education:3}, delayed:{after:6, effects:{budget:10}, headline:'Yerli istehsal məhsulları ilk ixracını həyata keçirdi'} },
+      { letter:'B', title:'Kiçik pilot proqram başlat', headline:'Yerli istehsal üçün pilot proqram elan edildi', effects:{budget:-5,salary:2} },
+      { letter:'C', title:'Hələ vaxtı deyil', headline:'Yerli istehsal təşəbbüsü təxirə salındı', effects:{trust:-3} },
+    ]},
+
+  { id:'disability_insurance', icon:'🦽', role:'Sosial Fəal', name:'Səbinə',
+    quote:'Əlil və işsiz qalan insanlar üçün düzgün sığorta sistemi yoxdur.',
+    advisor:{name:'Sosial Müdafiə Naziri', note:'Bu, vəd verdiyimiz sahələrdən biridir — gözlər bizdədir.'},
+    options:[
+      { letter:'A', title:'Tam sığorta proqramı qur', headline:'Əlil və işsiz vətəndaşlar üçün tam sığorta proqramı işə düşdü', effects:{welfare:10,trust:7,budget:-12} },
+      { letter:'B', title:'Qismən dəstək proqramı', headline:'Sosial dəstək proqramı qismən genişləndirildi', effects:{welfare:5,trust:3,budget:-5} },
+      { letter:'C', title:'Hazırkı vəziyyəti saxla', headline:'Sosial sığorta islahatı təxirə salındı', effects:{trust:-6,welfare:-3} },
+    ]},
+
+  { id:'local_markets', icon:'🧺', role:'Bazar Satıcısı', name:'Zaur',
+    quote:'Böyük marketlər bizi sıxışdırır. Yerli bazarlara kömək lazımdır.',
+    options:[
+      { letter:'A', title:'Yerli bazarlara subsidiya ver', headline:'Yerli bazarlara dövlət subsidiyası ayrıldı', effects:{welfare:5,budget:-6,salary:3} },
+      { letter:'B', title:'Vergi güzəşti tətbiq et', headline:'Kiçik satıcılara vergi güzəşti verildi', effects:{budget:-3,welfare:3} },
+      { letter:'C', title:'Bazara qarışma', headline:'Yerli bazar satıcıları dəstəksiz qaldı', effects:{trust:-2} },
+    ]},
+
+  { id:'judiciary', icon:'⚖️', role:'Hüquqşünas', name:'Murad',
+    quote:'Məhkəmələrə inam çox aşağıdır. İnsanlar ədalətə inanmır.',
+    advisor:{name:'Daxili Siyasət Naziri', note:'Vəd 5 məhz bu idi — ədalətli məhkəmə sistemi. Xalq izləyir.'},
+    options:[
+      { letter:'A', title:'Tam məhkəmə islahatı keçir', headline:'Müstəqil məhkəmə islahatı qəbul edildi', effects:{trust:10,education:2,budget:-7}, delayed:{after:5, effects:{trust:4}, headline:'İlk ədalətli məhkəmə qərarları xalqın inamını artırdı'} },
+      { letter:'B', title:'Qismən islahat et', headline:'Məhkəmə sistemində qismən dəyişikliklər edildi', effects:{trust:4,budget:-3} },
+      { letter:'C', title:'Toxunma', headline:'Məhkəmə islahatı gözləntiləri qarşılanmadı', effects:{trust:-7} },
+    ]},
+
+  { id:'press_freedom', icon:'📰', role:'Hüquq Müdafiəçisi', name:'Günay',
+    quote:'Tənqidi məqalə yazan jurnalist həbs olundu. Bu, söz azadlığına ziddir.',
+    options:[
+      { letter:'A', title:'Jurnalisti azad et, qanunu yumşalt', headline:'Jurnalist azad edildi, söz azadlığı qanunu yumşaldıldı', effects:{trust:9}, delayed:{after:3, effects:{trust:-3}, headline:'Mühafizəkar dairələr yeni qanuna qarşı təzyiq göstərir'} },
+      { letter:'B', title:'Vəziyyəti araşdır', headline:'Hadisə üzrə daxili araşdırma başladıldı', effects:{trust:2} },
+      { letter:'C', title:'Qanunu sərtləşdir', headline:'Mediaya nəzarət qanunu sərtləşdirildi, tənqidlər artdı', effects:{trust:-10,budget:1} },
+    ]},
+
+  { id:'religion', icon:'🕊️', role:'Dini İcma Nümayəndəsi', name:'İlqar',
+    quote:'Ölkədə hər icmanın öz ibadət yerini tikmək hüququ olmalıdır.',
+    options:[
+      { letter:'A', title:'Bütün icmalara bərabər icazə ver', headline:'Bütün dini icmalara bərabər tikinti icazəsi verildi', effects:{trust:6,welfare:3,budget:-2} },
+      { letter:'B', title:'Mövcud qaydaları saxla', headline:'Dini icmalar üzrə qaydalar dəyişmədi', effects:{} },
+      { letter:'C', title:'Məhdudiyyət qoy', headline:'Yeni ibadət yeri tikintisinə məhdudiyyət qoyulması narazılıq yaratdı', effects:{trust:-8,welfare:-4} },
+    ]},
+
+  { id:'factory', icon:'🏭', role:'Sənaye Nümayəndəsi', name:'Orxan',
+    quote:'Bölgədə işsizlik yüksəkdir. Yeni zavod minlərlə iş yeri yaradardı.',
+    options:[
+      { letter:'A', title:'Böyük fabrik kompleksi tik', headline:'Bölgədə nəhəng fabrik kompleksinin tikintisinə start verildi', effects:{budget:-16,salary:8}, delayed:{after:6, effects:{budget:12}, headline:'Yeni fabrik kompleksi ilk məhsulunu bazara çıxardı'} },
+      { letter:'B', title:'Orta ölçülü fabrik tik', headline:'Orta ölçülü istehsal müəssisəsi açıldı', effects:{budget:-7,salary:4} },
+      { letter:'C', title:'Gözlət', headline:'Fabrik layihəsi gələcək üçün saxlanıldı', effects:{trust:-2} },
+    ]},
+
+  { id:'army', icon:'🪖', role:'Hərbi General', name:'General Səfərov',
+    quote:'Ordumuzun texnikası köhnəlib. Müasirləşmə vaxtı çatıb.',
+    advisor:{name:'Müdafiə Naziri', note:'Sərhədlərimizin gücü, xalqın gücüdür, cənab Prezident.'},
+    options:[
+      { letter:'A', title:'Böyük modernləşmə proqramı', headline:'Orduda böyük modernləşmə proqramı elan edildi', effects:{trust:6,budget:-14}, delayed:{after:5, effects:{education:2}, headline:'Hərbi-texniki məktəblərə yeni mütəxəssis axını başladı'} },
+      { letter:'B', title:'Orta səviyyəli yenilənmə', headline:'Ordu texnikasının qismən yenilənməsi başladı', effects:{budget:-6,trust:2} },
+      { letter:'C', title:'İndi yox', headline:'Hərbi modernləşmə təxirə salındı', effects:{trust:-5} },
+    ]},
+
+  { id:'prices', icon:'🏘️', role:'Ailə Başçısı', name:'Fərid',
+    quote:'Ev, maşın, telefon — hamısı əlçatmaz qiymətdədir. Adi insan necə yaşasın?',
+    options:[
+      { letter:'A', title:'Geniş subsidiya proqramı', headline:'Ev, nəqliyyat və texnika üçün geniş subsidiya proqramı başladı', effects:{welfare:9,budget:-13,trust:5} },
+      { letter:'B', title:'Hədəflənmiş yardım (aztəminatlılara)', headline:'Aztəminatlı ailələrə hədəflənmiş yardım proqramı işə düşdü', effects:{welfare:5,budget:-5} },
+      { letter:'C', title:'Bazar öz-özünü tənzimləsin', headline:'Qiymət siyasətinə dövlət müdaxilə etmədi', effects:{trust:-3} },
+    ]},
+
+  { id:'service_wages', icon:'🧑‍🔧', role:'Xidmət Sahəsi İşçisi', name:'Aysel',
+    quote:'Xidmət sektorunda maaşlar illərdir dondurulub, qiymətlər isə qalxır.',
+    options:[
+      { letter:'A', title:'Bütün xidmət sahəsinə əlavə', headline:'Xidmət sahəsi işçilərinə maaş əlavəsi tətbiq edildi', effects:{salary:8,budget:-9,welfare:3} },
+      { letter:'B', title:'Yalnız aztəminatlı işçilərə', headline:'Aztəminatlı xidmət işçilərinə hədəfli əlavə verildi', effects:{salary:4,budget:-4} },
+      { letter:'C', title:'İndi mümkün deyil', headline:'Xidmət sahəsi maaş əlavəsi gündəmdən düşdü', effects:{trust:-4} },
+    ]},
+
+  { id:'nepotism', icon:'🗂️', role:'Nazirlik Müfəttişi', name:'Kamil',
+    quote:'Bir nazirimiz vəzifəyə qohumluq xətti ilə gəlib və idarəetmə bacarığı şübhəlidir.',
+    advisor:{name:'Daxili Siyasət Naziri', note:'Vəd 10 elə bunun üçün idi — bacarıqsızlığa güzəşt yoxdur.'},
+    options:[
+      { letter:'A', title:'Naziri vəzifədən azad et', headline:'Bacarıqsızlıqla ittiham olunan nazir vəzifədən azad edildi', effects:{trust:9}, delayed:{after:2, effects:{trust:-2}, headline:'Nazirin ailəsinə yaxın dairələr qərara etiraz edir'} },
+      { letter:'B', title:'Xəbərdarlıq et, izlə', headline:'Nazirə formal xəbərdarlıq edildi, fəaliyyəti izlənilir', effects:{trust:2} },
+      { letter:'C', title:'Toxunma', headline:'Qohumbazlıq iddialarına hökumətdən reaksiya olmadı', effects:{trust:-10} },
+    ]},
+];
+
+/* ---------------- CONTENT: SPECIAL EVENTS ---------------- */
+const EVENTS = [
+  { id:'earthquake', icon:'🌍', tag:'TƏBİİ FƏLAKƏT', headline:'Ölkənin şərqində orta şiddətli zəlzələ baş verdi',
+    shock:{ effects:{welfare:-14,budget:-6} },
+    options:[
+      { letter:'A', title:'Tam bərpa proqramı elan et', headline:'Zəlzələ bölgəsində tam bərpa proqramı başladı', effects:{welfare:9,budget:-10,trust:5} },
+      { letter:'B', title:'Minimal yardımla kifayətlən', headline:'Zəlzələ bölgəsinə minimal yardım göndərildi, narazılıq var', effects:{welfare:2,trust:-7} },
+    ]},
+  { id:'oil_price', icon:'🛢️', tag:'İQTİSADİ ŞOK', headline:'Dünya bazarında neft qiyməti kəskin düşdü',
+    shock:{ effects:{budget:-16} },
+    options:[
+      { letter:'A', title:'Bütün sahələrdə balanslaşdırılmış kəsinti', headline:'Büdcə kəsintiləri bütün nazirliklərə şamil edildi', effects:{salary:-3,welfare:-3,education:-3,trust:-2} },
+      { letter:'B', title:'Xarici kredit götür', headline:'Hökumət böhranı aradan qaldırmaq üçün xarici kredit götürdü', effects:{budget:9,trust:-2}, delayed:{after:6, effects:{budget:-6}, headline:'Xarici kredit üzrə ilk ödəniş xəzinəyə yük gətirdi'} },
+    ]},
+  { id:'drought', icon:'🌾', tag:'TƏBİİ HADİSƏ', headline:'Quraqlıq kənd təsərrüfatı məhsuluna ağır zərbə vurdu',
+    shock:{ effects:{welfare:-9} },
+    options:[
+      { letter:'A', title:'Fermerlərə kompensasiya ver', headline:'Quraqlıqdan zərər çəkmiş fermerlərə kompensasiya ödənildi', effects:{budget:-7,welfare:5} },
+      { letter:'B', title:'Kompensasiya yoxdur', headline:'Fermerlər dövlətdən dəstək almadıqlarını bildirir', effects:{trust:-6} },
+    ]},
+  { id:'investor', icon:'💼', tag:'FÜRSƏT', headline:'Xarici nəhəng investor ölkəyə böyük sərmayə təklif edir',
+    shock:{ effects:{} },
+    options:[
+      { letter:'A', title:'Bütün şərtləri qəbul et', headline:'Tarixi xarici investisiya müqaviləsi imzalandı', effects:{budget:14,salary:5}, delayed:{after:4, effects:{welfare:-3}, headline:'Yerli işçilər xarici şirkətin iş şəraitindən narazıdır'} },
+      { letter:'B', title:'Daha yumşaq şərtlərlə razılaş', headline:'Investisiya müqaviləsi daha yumşaq şərtlərlə imzalandı', effects:{budget:6,trust:3} },
+    ]},
+  { id:'championship', icon:'🏆', tag:'QÜRUR', headline:'Milli komandamız beynəlxalq yarışda tarixi qələbə qazandı',
+    shock:{ effects:{trust:9,welfare:4} },
+    options:[
+      { letter:'A', title:'Xalqla bayram elan et', headline:'Ölkə tarixi qələbəni bayram əhval-ruhiyyəsi ilə qarşıladı', effects:{trust:3,budget:-2} },
+      { letter:'B', title:'Sadə təbrik mesajı ilə kifayətlən', headline:'Prezidentdən qısa təbrik mesajı yayıldı', effects:{trust:1} },
+    ]},
+  { id:'pandemic', icon:'🦠', tag:'SƏHİYYƏ BÖHRANI', headline:'Ölkədə yeni virusun yayılması qeydə alındı',
+    shock:{ effects:{welfare:-16,budget:-8} },
+    options:[
+      { letter:'A', title:'Sərt qarantin tədbirləri', headline:'Hökumət sərt qarantin rejimi tətbiq etdi', effects:{welfare:-4,budget:-6}, delayed:{after:5, effects:{welfare:13}, headline:'Qarantin tədbirləri nəticə verdi, xəstəlik yayılması zəiflədi'} },
+      { letter:'B', title:'Yumşaq tövsiyə xarakterli tədbirlər', headline:'Hökumət yumşaq tövsiyələrlə kifayətləndi, tənqidlər artır', effects:{trust:-6} },
+    ]},
+  { id:'cyber', icon:'🖥️', tag:'KİBERHÜCUM', headline:'Dövlət informasiya sistemlərinə kiberhücum edildi',
+    shock:{ effects:{trust:-10,budget:-4} },
+    options:[
+      { letter:'A', title:'Kibertəhlükəsizliyə təcili investisiya', headline:'Kibertəhlükəsizlik sistemlərinə təcili investisiya yatırıldı', effects:{budget:-7,trust:6} },
+      { letter:'B', title:'Standart tədbirlərlə kifayətlən', headline:'Hücuma qarşı yalnız standart tədbirlər görüldü', effects:{trust:-3} },
+    ]},
+  { id:'bank_crisis', icon:'🏦', tag:'MALİYYƏ BÖHRANI', headline:'Ölkənin iri banklarından biri ödəmə qabiliyyətini itirdi',
+    shock:{ effects:{budget:-14,trust:-5} },
+    options:[
+      { letter:'A', title:'Dövlət zəmanəti ilə bankı xilas et', headline:'Hökumət bankı dövlət zəmanəti ilə xilas etdi', effects:{budget:-8,trust:6}, delayed:{after:6, effects:{budget:7}, headline:'Xilas edilən bank yenidən sabit fəaliyyətə qayıtdı'} },
+      { letter:'B', title:'Bankı öz başına burax', headline:'Hökumət bankın iflasına müdaxilə etmədi, əmanətçilər narahatdır', effects:{trust:-9,welfare:-5} },
+    ]},
+  { id:'protest', icon:'📢', tag:'KÜTLƏVİ ETİRAZ', headline:'Paytaxtın mərkəzində kütləvi etiraz aksiyası başladı',
+    shock:{ effects:{trust:-12} },
+    options:[
+      { letter:'A', title:'Dialoq və güzəştlər təklif et', headline:'Hökumət etirazçılarla dialoqa getdi, gərginlik azaldı', effects:{trust:8,budget:-4} },
+      { letter:'B', title:'Sərt qaydada nizamla', headline:'Etiraz aksiyası sərt tədbirlərlə dağıdıldı, beynəlxalq tənqid gəldi', effects:{trust:-6}, delayed:{after:3, effects:{trust:-5}, headline:'Beynəlxalq təşkilatlar etiraza münasibətə görə hökuməti tənqid etdi'} },
+    ]},
+];
+
+/* ---------------- CONTENT: FORCED CRISES (threshold-triggered) ---------------- */
+const CRISES = {
+  salary: { icon:'✊', tag:'BÖHRAN', headline:'Aşağı maaşlara qarşı kütləvi tətil dalğası başladı',
+    options:[
+      { letter:'A', title:'Təcili maaş artımı elan et', headline:'Hökumət təzyiq altında təcili maaş artımı elan etdi', effects:{salary:15,budget:-12,trust:3} },
+      { letter:'B', title:'Güzəştə getmə', headline:'Hökumət tətilçilərə güzəştə getmədi, gərginlik artır', effects:{trust:-9} },
+    ]},
+  budget: { icon:'📉', tag:'BÖHRAN', headline:'Dövlət xəzinəsi kritik səviyyəyə düşdü, ödəmələr ləngiyir',
+    options:[
+      { letter:'A', title:'Beynəlxalq kredit təşkilatına müraciət et', headline:'Hökumət beynəlxalq kredit təşkilatından təcili maliyyə yardımı aldı', effects:{budget:20,trust:-3}, delayed:{after:6, effects:{budget:-10}, headline:'Beynəlxalq kreditin ilk ödəniş tarixi yaxınlaşır'} },
+      { letter:'B', title:'Vergiləri kəskin artır', headline:'Hökumət vergiləri kəskin artıraraq xəzinəni doldurmağa çalışır', effects:{budget:15,trust:-12,welfare:-6} },
+    ]},
+  trust: { icon:'🗳️', tag:'BÖHRAN', headline:'Parlamentdə hökumətə etimadsızlıq səs verməsi təhlükəsi yarandı',
+    options:[
+      { letter:'A', title:'Kabinetdə islahat keçir', headline:'Prezident bir sıra naziri əvəz edərək kabinetdə islahat keçirdi', effects:{trust:12,budget:-4} },
+      { letter:'B', title:'İctimaiyyətə izahat kampaniyası', headline:'Hökumət fəaliyyətini izah edən media kampaniyası başlatdı', effects:{trust:5,budget:-2} },
+    ]},
+  education: { icon:'🎓', tag:'BÖHRAN', headline:'Gənc mütəxəssislərin xaricə kütləvi axını qeydə alındı',
+    options:[
+      { letter:'A', title:'Təhsilə fövqəladə fond ayır', headline:'Təhsil sahəsinə fövqəladə dövlət fondu yaradıldı', effects:{education:15,budget:-10} },
+      { letter:'B', title:'Xaricdə təhsil proqramlarını genişləndir', headline:'Gənclər üçün xaricdə təhsil proqramları genişləndirildi', effects:{education:8,budget:-6} },
+    ]},
+};
+
+/* ---------------- CABINET (advisory lines, shown every new "il") ---------------- */
+const CABINET = [
+  { key:'budget', icon:'💰', name:'Maliyyə Naziri',
+    low:'Büdcə kritik vəziyyətdədir, cənab Prezident. Xərcləri nəzərdən keçirməliyik.',
+    mid:'Maliyyə vəziyyəti sabitdir, amma ehtiyatlı addımlar lazımdır.',
+    high:'Xəzinəmiz sağlamdır — yeni investisiyalar üçün yaxşı fürsətdir.' },
+  { key:'salary', icon:'🪙', name:'Əmək Naziri',
+    low:'Maaşlar üzərində təzyiq böyükdür, insanlar narazıdır.',
+    mid:'Əmək haqqı sahəsi nisbətən sabitdir.',
+    high:'Maaşlar yüksək səviyyədədir — bunun büdcəyə təsirini izləməliyik.' },
+  { key:'welfare', icon:'🏠', name:'Sosial Müdafiə Naziri',
+    low:'Həyat rifahı aşağı düşür, sosial proqramlara ehtiyac var.',
+    mid:'Xalqın həyat səviyyəsi orta səviyyədə saxlanılır.',
+    high:'Həyat rifahı yüksəkdir — xalq razılığını hiss edirik.' },
+  { key:'education', icon:'🎓', name:'Təhsil Naziri',
+    low:'Təhsil sistemi geridə qalır, bu, gələcəyimizə təhlükədir.',
+    mid:'Təhsil sahəsində irəliləyiş davam edir.',
+    high:'Təhsil göstəricilərimiz qürur doğurur.' },
+  { key:'trust', icon:'🤝', name:'Daxili Siyasət Naziri',
+    low:'Xalqın hökumətə etimadı azalır — addımlarımızı izah etməliyik.',
+    mid:'Xalqla əlaqələrimiz sabit səviyyədədir.',
+    high:'Xalqın dəstəyi yüksəkdir — bu, gücümüzün təməlidir.' },
+];
+
+function cabinetLine(item, stats){
+  const v = stats[item.key];
+  const txt = v < 40 ? item.low : (v > 70 ? item.high : item.mid);
+  return { icon:item.icon, name:item.name, txt };
+}
+
+/* ---------------- EMBLEM SVG ---------------- */
+const EMBLEM_SVG = `
+  <g fill="none" stroke="#c9a227" stroke-width="2">
+    <polygon points="50,4 58,30 86,30 63,46 71,72 50,56 29,72 37,46 14,30 42,30" stroke-linejoin="round"/>
+    <circle cx="50" cy="50" r="20" fill="#0b1320" stroke="#c9a227" stroke-width="2"/>
+  </g>
+  <path d="M58 38 a14 14 0 1 0 0 24 a11 11 0 1 1 0 -24" fill="#ece4d2"/>
+  <polygon points="63,46 67,50 63,54 65,50" fill="#ece4d2"/>
+`;
+document.querySelectorAll('#emblem-intro, #emblem-game').forEach(el => el.innerHTML = EMBLEM_SVG);
+
+/* =========================================================
+   STATE
+   ========================================================= */
+let state = null;
+
+function newState(){
+  return {
+    day: 1,
+    stats: { salary:50, welfare:50, education:50, trust:50, budget:50 },
+    pendingEffects: [],
+    recentIds: [],
+    queue: [],
+    qIndex: 0,
+    dayLog: [],
+    forcedCrisisKey: null,
+  };
+}
+
+function applyEffects(effects){
+  for(const k in effects){ state.stats[k] = clamp(state.stats[k] + effects[k]); }
+}
+function deltaChips(effects){
+  return Object.keys(effects).filter(k=>effects[k]!==0).map(k=>{
+    const v = effects[k]; const sign = v>0?'+':'';
+    return `<span class="delta-chip ${v<0?'neg':''}">${STAT_META[k].icon} ${sign}${v}</span>`;
+  }).join('');
+}
+
+/* =========================================================
+   RENDER: STAT DIALS + SCALE
+   ========================================================= */
+function colorFor(v){
+  if(v<=20) return '#9a3a3a';
+  if(v<=40) return '#b5793a';
+  if(v>=80) return '#5b8a72';
+  return '#c9a227';
+}
+function renderDials(){
+  const el = document.getElementById('dials');
+  el.innerHTML = STAT_KEYS.map(k=>{
+    const v = state.stats[k]; const meta = STAT_META[k];
+    const warn = v<=15 || v>=92;
+    return `<div class="dial ${warn?'warn':''}">
+      <div class="ico">${meta.icon}</div>
+      <div class="lbl">${meta.label}</div>
+      <div class="track"><div class="fill" style="width:${v}%;background:${colorFor(v)}"></div></div>
+      <div class="val">${v}</div>
+    </div>`;
+  }).join('');
+  renderScale();
+}
+function renderScale(){
+  // tilt beam toward whichever side (budget+education vs salary+welfare, trust as fulcrum signal) deviates most from balance
+  const left = (state.stats.salary + state.stats.welfare)/2;
+  const right = (state.stats.education + state.stats.budget)/2;
+  const diff = clampNum(right-left, -40, 40);
+  const angle = diff/40*12; // max 12deg tilt
+  document.getElementById('scale-beam').setAttribute('transform', `rotate(${angle.toFixed(1)})`);
+}
+function clampNum(v,min,max){ return Math.max(min,Math.min(max,v)); }
+
+function updateHeader(){
+  document.getElementById('day-label').textContent = `Gün ${state.day} / ${TOTAL_DAYS}`;
+  const il = Math.floor((state.day-1)/IL_LENGTH)+1;
+  document.getElementById('il-label').textContent = ['I','II','III','IV'][il-1] + ' İl';
+}
+
+/* =========================================================
+   SCREEN FLOW
+   ========================================================= */
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+document.getElementById('btn-start').addEventListener('click', ()=>{
+  state = newState();
+  showScreen('screen-game');
+  updateHeader();
+  renderDials();
+  maybeCabinetMeeting(true);
+});
+document.getElementById('btn-restart').addEventListener('click', ()=>{
+  state = newState();
+  showScreen('screen-game');
+  updateHeader();
+  renderDials();
+  maybeCabinetMeeting(true);
+});
+
+function maybeCabinetMeeting(isFirst){
+  const isIlStart = (state.day-1) % IL_LENGTH === 0;
+  if(isIlStart){
+    renderCabinetModal(()=>buildDayQueue());
+  } else {
+    buildDayQueue();
+  }
+}
+
+function renderCabinetModal(onDone){
+  const il = Math.floor((state.day-1)/IL_LENGTH)+1;
+  const lines = CABINET.map(item=>cabinetLine(item, state.stats));
+  document.getElementById('card-area').innerHTML = `
+    <div class="dossier">
+      <div class="tag-row">
+        <div class="icon">🏛️</div>
+        <div class="who"><div class="role">Kabinet İclası</div><div class="name">${['Birinci','İkinci','Üçüncü','Dördüncü'][il-1]} İl Başlanır</div></div>
+      </div>
+      ${lines.map(l=>`<div class="cabinet-line"><div class="ico">${l.icon}</div><div><div class="name">${l.name}</div><div class="txt">${l.txt}</div></div></div>`).join('')}
+      <div class="start-row" style="margin-top:16px;"><button class="btn" id="btn-cabinet-continue">İCLASI BAĞLA</button></div>
+    </div>`;
+  document.getElementById('btn-cabinet-continue').addEventListener('click', onDone);
+}
+
+function buildDayQueue(){
+  state.queue = [];
+  state.qIndex = 0;
+  state.dayLog = [];
+
+  // 1. apply any pending delayed effects due today, log them
+  const due = state.pendingEffects.filter(p=>p.dueDay===state.day);
+  state.pendingEffects = state.pendingEffects.filter(p=>p.dueDay!==state.day);
+  due.forEach(p=>{ applyEffects(p.effects); state.dayLog.push({headline:p.headline, mag:magnitude(p.effects)}); });
+
+  // 2. forced crisis takes priority over random event
+  let bigItemUsed = false;
+  if(state.forcedCrisisKey){
+    const crisis = CRISES[state.forcedCrisisKey];
+    state.queue.push(Object.assign({type:'crisis'}, crisis));
+    state.forcedCrisisKey = null;
+    bigItemUsed = true;
+  } else {
+    const guaranteedDays = [3,6,9,12,15];
+    const roll = guaranteedDays.includes(state.day) ? true : Math.random()<0.18;
+    if(roll){
+      const ev = EVENTS[rand(0, EVENTS.length-1)];
+      state.queue.push(Object.assign({type:'event'}, ev));
+      bigItemUsed = true;
+    }
+  }
+
+  // 3. citizen dilemmas
+  const citizenCount = bigItemUsed ? rand(1,2) : rand(2,3);
+  const pool = DILEMMAS.filter(d=>!state.recentIds.includes(d.id));
+  const basePool = pool.length >= citizenCount ? pool : DILEMMAS;
+  const chosen = pickN(basePool, citizenCount);
+  chosen.forEach(c=>{
+    state.queue.push(Object.assign({type:'citizen'}, c));
+    state.recentIds.push(c.id);
+    if(state.recentIds.length>10) state.recentIds.shift();
+  });
+
+  renderDials();
+  renderQueueItem();
+}
+
+function magnitude(effects){
+  return Object.values(effects||{}).reduce((s,v)=>s+Math.abs(v),0);
+}
+
+function renderQueueItem(){
+  if(state.qIndex >= state.queue.length){
+    return renderNewspaper();
+  }
+  const item = state.queue[state.qIndex];
+  if(item.type==='citizen') return renderCitizenCard(item);
+  if(item.type==='event') return renderEventCard(item);
+  if(item.type==='crisis') return renderCrisisCard(item);
+}
+
+function renderCitizenCard(item){
+  document.getElementById('card-area').innerHTML = `
+    <div class="dossier">
+      <div class="tag-row">
+        <div class="icon">${item.icon}</div>
+        <div class="who"><div class="role">${item.role}</div><div class="name">${item.name}</div></div>
+      </div>
+      <div class="quote">${item.quote}</div>
+      ${item.advisor ? `<div class="advisor"><b>${item.advisor.name}:</b> ${item.advisor.note}</div>` : ''}
+      <div class="options">
+        ${item.options.map((o,i)=>`<button class="opt" data-i="${i}"><span class="letter">${o.letter}</span><span class="opt-title">${o.title}</span></button>`).join('')}
+      </div>
+    </div>`;
+  bindOptionHandlers(item);
+}
+
+function renderEventCard(item){
+  document.getElementById('card-area').innerHTML = `
+    <div class="dossier event">
+      <div class="tag-row">
+        <div class="icon">${item.icon}</div>
+        <div class="who"><div class="role">${item.tag}</div><div class="name">Fövqəladə Xəbər</div></div>
+        <div class="stamp">TƏCİLİ</div>
+      </div>
+      <div class="quote">${item.headline}</div>
+      ${magnitude(item.shock.effects)>0 ? `<div class="shock-line">Dərhal təsir: ${deltaChips(item.shock.effects)}</div>` : ''}
+      <div class="options">
+        ${item.options.map((o,i)=>`<button class="opt" data-i="${i}"><span class="letter">${o.letter}</span><span class="opt-title">${o.title}</span></button>`).join('')}
+      </div>
+    </div>`;
+  // apply shock immediately, log it
+  applyEffects(item.shock.effects);
+  state.dayLog.push({headline:item.headline, mag: magnitude(item.shock.effects)+1});
+  renderDials();
+  bindOptionHandlers(item);
+}
+
+function renderCrisisCard(item){
+  document.getElementById('card-area').innerHTML = `
+    <div class="dossier crisis">
+      <div class="tag-row">
+        <div class="icon">${item.icon}</div>
+        <div class="who"><div class="role">${item.tag}</div><div class="name">Daxili Vəziyyət</div></div>
+        <div class="stamp">BÖHRAN</div>
+      </div>
+      <div class="quote">${item.headline}</div>
+      <div class="options">
+        ${item.options.map((o,i)=>`<button class="opt" data-i="${i}"><span class="letter">${o.letter}</span><span class="opt-title">${o.title}</span></button>`).join('')}
+      </div>
+    </div>`;
+  state.dayLog.push({headline:item.headline, mag: 6});
+  bindOptionHandlers(item);
+}
+
+function bindOptionHandlers(item){
+  document.querySelectorAll('.opt').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const opt = item.options[parseInt(btn.dataset.i,10)];
+      applyEffects(opt.effects || {});
+      if(opt.delayed){
+        state.pendingEffects.push({ dueDay: state.day + opt.delayed.after, effects: opt.delayed.effects, headline: opt.delayed.headline });
+      }
+      state.dayLog.push({headline: opt.headline, mag: magnitude(opt.effects||{})});
+      renderDials();
+      showFeedback(opt);
+    });
+  });
+}
+
+function showFeedback(opt){
+  const chips = deltaChips(opt.effects||{});
+  document.getElementById('card-area').innerHTML = `
+    <div class="feedback">
+      <h3>${opt.headline}</h3>
+      <div class="deltas">${chips || '<span class="delta-chip">Görünən təsir yoxdur</span>'}</div>
+      ${opt.delayed ? `<p style="font-size:11.5px;color:#6b5d44;margin-bottom:14px;">Bu qərarın gecikmiş təsiri ${opt.delayed.after} gün sonra hiss olunacaq.</p>` : ''}
+      <button class="btn" id="btn-next-item">DAVAM ET</button>
+    </div>`;
+  document.getElementById('btn-next-item').addEventListener('click', ()=>{
+    state.qIndex++;
+    renderQueueItem();
+  });
+}
+
+/* =========================================================
+   NEWSPAPER + CRISIS CHECK + DAY ADVANCE
+   ========================================================= */
+function renderNewspaper(){
+  const sorted = state.dayLog.slice().sort((a,b)=>b.mag-a.mag);
+  const main = sorted[0] || {headline:'Sakit bir gün keçdi, mühüm xəbər yoxdur.'};
+  const rest = sorted.slice(1,3);
+  document.getElementById('card-area').innerHTML = `
+    <div class="newspaper">
+      <div class="masthead">
+        <div class="name">XALQIN SƏSİ</div>
+        <div class="meta">Gün ${state.day} · ${['I','II','III','IV'][Math.floor((state.day-1)/IL_LENGTH)]} İl</div>
+      </div>
+      <div class="headline">${main.headline}</div>
+      ${rest.length ? `<div class="subhead">${rest.map(r=>`<div class="item">${r.headline}</div>`).join('')}</div>` : ''}
+      <div class="start-row" style="margin-top:18px;"><button class="btn" id="btn-next-day">SƏHƏRİ GÖZLƏ</button></div>
+    </div>`;
+  document.getElementById('btn-next-day').addEventListener('click', advanceDay);
+}
+
+function checkCrisisTrigger(){
+  const s = state.stats;
+  if(s.salary<=15) return 'salary';
+  if(s.budget<=10) return 'budget';
+  if(s.trust<=10) return 'trust';
+  if(s.education<=15) return 'education';
+  return null;
+}
+
+function advanceDay(){
+  const crisisKey = checkCrisisTrigger();
+  if(crisisKey) state.forcedCrisisKey = crisisKey;
+
+  state.day++;
+  if(state.day > TOTAL_DAYS){
+    return renderElection();
+  }
+  updateHeader();
+  maybeCabinetMeeting(false);
+}
+
+/* =========================================================
+   ELECTION ENDING
+   ========================================================= */
+function renderElection(){
+  showScreen('screen-end');
+  const s = state.stats;
+  let approval = s.trust*0.45 + ((s.salary+s.welfare+s.education)/3)*0.55;
+  if(s.budget<=15) approval -= 12;
+  else if(s.budget>=90) approval -= 5;
+  approval = clampNum(approval, 0, 100);
+
+  const bars = document.getElementById('end-bars');
+  bars.innerHTML = STAT_KEYS.map(k=>{
+    const v = s[k]; const meta = STAT_META[k];
+    return `<div class="end-bar-row"><div class="lbl">${meta.icon} ${meta.label}</div><div class="track"><div class="fill" style="width:${v}%;background:${colorFor(v)}"></div></div><div class="num">${v}</div></div>`;
+  }).join('');
+
+  let verdict, sub;
+  if(approval>=68){ verdict='ƏZİCİ QƏLƏBƏ'; sub=`Təxmini səs dəstəyi: ${Math.round(approval)}%`; }
+  else if(approval>=52){ verdict='QƏLƏBƏ'; sub=`Təxmini səs dəstəyi: ${Math.round(approval)}%`; }
+  else if(approval>=45){ verdict='DAR MARJLA QƏLƏBƏ'; sub=`Təxmini səs dəstəyi: ${Math.round(approval)}%`; }
+  else if(approval>=32){ verdict='MƏĞLUBİYYƏT'; sub=`Təxmini səs dəstəyi: ${Math.round(approval)}%`; }
+  else { verdict='FƏLAKƏTLİ MƏĞLUBİYYƏT'; sub=`Təxmini səs dəstəyi: ${Math.round(approval)}%`; }
+  document.getElementById('verdict-text').textContent = verdict;
+  document.getElementById('verdict-sub').textContent = sub;
+
+  const entries = STAT_KEYS.map(k=>({k, v:s[k]}));
+  const strongest = entries.slice().sort((a,b)=>b.v-a.v)[0];
+  const weakest = entries.slice().sort((a,b)=>a.v-b.v)[0];
+  document.getElementById('epilogue-text').textContent =
+    `Dörd illik vəzifə müddəti bitdi. ${STAT_META[strongest.k].label} sahəsində ən güclü nəticəni göstərdiniz (${strongest.v}/100), `+
+    `${STAT_META[weakest.k].label} isə kabinetinizin ən zəif həlqəsi oldu (${weakest.v}/100). `+
+    (approval>=52
+      ? 'Xalq YCP-nin davam etməsinə səs verdi — gələn dövrdə tarazlığı qoruyub saxlaya biləcəksiniz?'
+      : 'Xalq dəyişiklik istədi. Yeni Cəmiyyət Partiyası müxalifətdə özünü yenidən qurmalı olacaq.');
+}
+</script>
+</body>
+</html>
