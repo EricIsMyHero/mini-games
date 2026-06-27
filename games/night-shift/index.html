@@ -376,7 +376,7 @@ function resetState() {
 /* ====================================================
    TETRIS — larger grid for better playability
    ==================================================== */
-const TC=8, TR=16; // wider + taller grid
+const TC=6, TR=12; // original grid size
 const TPIECES=[
   [[1,1,1,1]],[[1,1],[1,1]],
   [[0,1,0],[1,1,1]],[[1,0,0],[1,1,1]],
@@ -473,12 +473,12 @@ const R = {
   ventX:  270, ventY:  24,  ventW: 42,  ventH: 22,
   // desk surface — bottom strip (we see the desk edge from above)
   deskY:  230, deskH:  40,
-  // monitor — larger, easier to play tetris
-  monX:   10,  monY:   80,  monW:  185, monH:  140,
+  // monitor — original size
+  monX:   30,  monY:   115, monW:  130, monH:  100,
   // tetris screen inside monitor
-  tsX:    17,  tsY:    87,  tsW:   125, tsH:   120,
+  tsX:    36,  tsY:    122, tsW:   86,  tsH:   82,
   // lamp — on desk, right side
-  lampX:  285, lampY:  140,
+  lampX:  285, lampY:  155,
   // clock (digital, on desk)
   clkX:   175, clkY:   238,
   // pizza box (right of desk)
@@ -486,7 +486,7 @@ const R = {
   // hud panel
   hudX:   322, hudY:   0, hudW: 158, hudH: 270,
   // monitor clickable zone
-  monClickX: 10, monClickY: 80, monClickW: 185, monClickH: 140,
+  monClickX: 30, monClickY: 115, monClickW: 130, monClickH: 100,
 };
 
 function drawRoom(ts) {
@@ -824,35 +824,101 @@ function drawMonitor(c,ts){
 }
 
 function drawTetOnMon(c,sx,sy,sw,sh){
-  const cw=sw/TC, ch=(sh-14)/TR;
-  // board
+  // Reserve bottom strip for score
+  const scoreH=10;
+  const playH=sh-scoreH;
+  const cw=sw/TC, ch=playH/TR;
+
+  // Grid background — subtle lines
+  c.fillStyle='#030f05';
+  c.fillRect(sx,sy,sw,playH);
+  c.strokeStyle='rgba(0,180,40,0.07)';c.lineWidth=0.5;
+  for(let r=0;r<=TR;r++){
+    c.beginPath();c.moveTo(sx,sy+r*ch);c.lineTo(sx+sw,sy+r*ch);c.stroke();
+  }
+  for(let cc=0;cc<=TC;cc++){
+    c.beginPath();c.moveTo(sx+cc*cw,sy);c.lineTo(sx+cc*cw,sy+playH);c.stroke();
+  }
+
+  // Board cells
   tet.board.forEach((row,r)=>{
     row.forEach((col,cc)=>{
-      if(col){
-        px(c,sx+cc*cw+0.5,sy+r*ch+0.5,cw-1,ch-1,col);
-        c.fillStyle='rgba(255,255,255,0.12)';
-        c.fillRect(Math.round(sx+cc*cw+0.5),Math.round(sy+r*ch+0.5),Math.round(cw-1),2);
-      }
+      if(!col) return;
+      const bx=Math.round(sx+cc*cw), by=Math.round(sy+r*ch);
+      const bw2=Math.round(cw)-1, bh2=Math.round(ch)-1;
+      // Main fill
+      c.fillStyle=col;
+      c.fillRect(bx,by,bw2,bh2);
+      // Top-left highlight (bevel)
+      c.fillStyle='rgba(255,255,255,0.35)';
+      c.fillRect(bx,by,bw2,1);
+      c.fillRect(bx,by,1,bh2);
+      // Bottom-right shadow
+      c.fillStyle='rgba(0,0,0,0.4)';
+      c.fillRect(bx,by+bh2-1,bw2,1);
+      c.fillRect(bx+bw2-1,by,1,bh2);
+      // Inner glow dot
+      c.fillStyle='rgba(255,255,255,0.15)';
+      c.fillRect(bx+2,by+2,Math.max(1,bw2-4),Math.max(1,bh2-4));
     });
   });
-  // active piece + ghost
+
+  // Ghost piece
   if(tet.piece){
     let gy=tet.y;
     while(!tCollide(tet.piece.shape,tet.x,gy+1)) gy++;
     if(gy!==tet.y){
       tet.piece.shape.forEach((row,r)=>row.forEach((v,cc)=>{
-        if(v){c.fillStyle='rgba(255,255,255,0.06)';c.fillRect(Math.round(sx+(tet.x+cc)*cw+0.5),Math.round(sy+(gy+r)*ch+0.5),Math.round(cw-1),Math.round(ch-1));}
+        if(!v) return;
+        const bx=Math.round(sx+(tet.x+cc)*cw), by=Math.round(sy+(gy+r)*ch);
+        c.strokeStyle=tet.piece.col+'88';c.lineWidth=1;
+        c.strokeRect(bx+0.5,by+0.5,Math.round(cw)-2,Math.round(ch)-2);
       }));
     }
+
+    // Active piece with glow
     tet.piece.shape.forEach((row,r)=>{
       row.forEach((v,cc)=>{
-        if(v){
-          px(c,sx+(tet.x+cc)*cw+0.5,sy+(tet.y+r)*ch+0.5,cw-1,ch-1,tet.piece.col);
-          c.fillStyle='rgba(255,255,255,0.14)';
-          c.fillRect(Math.round(sx+(tet.x+cc)*cw+0.5),Math.round(sy+(tet.y+r)*ch+0.5),Math.round(cw-1),2);
-        }
+        if(!v) return;
+        const bx=Math.round(sx+(tet.x+cc)*cw), by=Math.round(sy+(tet.y+r)*ch);
+        const bw2=Math.round(cw)-1, bh2=Math.round(ch)-1;
+        // Glow aura
+        c.fillStyle=tet.piece.col+'44';
+        c.fillRect(bx-1,by-1,bw2+2,bh2+2);
+        // Main fill
+        c.fillStyle=tet.piece.col;
+        c.fillRect(bx,by,bw2,bh2);
+        // Bright highlight
+        c.fillStyle='rgba(255,255,255,0.5)';
+        c.fillRect(bx,by,bw2,2);
+        c.fillRect(bx,by,2,bh2);
+        c.fillStyle='rgba(0,0,0,0.3)';
+        c.fillRect(bx,by+bh2-1,bw2,1);
       });
     });
+  }
+
+  // Score strip at bottom of screen
+  c.fillStyle='#020c04';
+  c.fillRect(sx,sy+playH,sw,scoreH);
+  c.fillStyle='rgba(0,200,60,0.15)';
+  c.fillRect(sx,sy+playH,sw,1);
+  c.fillStyle='#20cc40';
+  c.font=`bold ${Math.round(scoreH*0.8)}px monospace`;
+  c.textAlign='left';
+  c.fillText('XAL:'+G.tetScore,sx+2,sy+playH+scoreH-1);
+
+  // Next piece hint — top right corner
+  const npx=sx+sw-cw*2-1, npy=sy+1;
+  c.fillStyle='rgba(0,0,0,0.5)';
+  c.fillRect(npx-1,npy-1,cw*2+2,cw*2+2);
+  if(tet.next){
+    const ns=tet.next.shape;
+    ns.forEach((row,r)=>row.forEach((v,cc)=>{
+      if(!v) return;
+      c.fillStyle=tet.next.col;
+      c.fillRect(Math.round(npx+cc*cw),Math.round(npy+r*cw),Math.round(cw)-1,Math.round(cw)-1);
+    }));
   }
 }
 
@@ -1205,48 +1271,73 @@ let knockIv=null;
 let ventTout=null;
 
 function handleViewClick(cx,cy){
+  // Sidebar buttons
+  if(inBtn(cx,cy,BTN_BACK)){G.view=null;G.viewMode='action';return;}
+  if(inBtn(cx,cy,BTN_LOOK)){G.viewMode='look';return;}
+  if(inBtn(cx,cy,BTN_ACTION)){
+    G.viewMode='action';
+    toggleZoneAction();
+    return;
+  }
+  // Main area click while in action mode — also toggle
+  if(G.viewMode==='action' && cx < W-SB){
+    toggleZoneAction();
+  }
+}
+
+function toggleZoneAction(){
   const v=G.view;
   if(v==='window'){
     if(G.phase==='window' && !G.curtain){
-      resolveWindow(true);
+      resolveWindow(true); // close curtain (threat active)
+    } else if(G.curtain){
+      // open curtain back
+      G.curtain=false;
+      G.darkAlpha=Math.max(0,G.darkAlpha-0.25);
+    } else {
+      // no threat — just close curtain manually
+      G.curtain=true;
+      G.darkAlpha=Math.min(1,G.darkAlpha+0.25);
     }
-    G.view=null;
   } else if(v==='door'){
     if(G.phase==='door'){
-      if(G.isRealFoodPending){
-        // Top half = lock, bottom half = open (food)
-        if(cy > H*0.55){
-          clearInterval(knockIv);
-          G.isRealFood ? resolveDoor(true,true) : resolveDoor(false);
-        } else {
-          clearInterval(knockIv);
-          sndDoorLocked();
-          resolveDoor(true,false);
-        }
+      // threat active: lock door
+      if(G.isRealFoodPending && !G.doorLocked){
+        // food: open to take
+        clearInterval(knockIv);
+        G.isRealFood ? resolveDoor(true,true) : resolveDoor(false);
       } else {
         clearInterval(knockIv);
         sndDoorLocked();
         resolveDoor(true,false);
       }
+    } else {
+      // No threat: toggle lock manually
+      if(G.doorLocked){
+        G.doorLocked=false;
+      } else {
+        G.doorLocked=true;
+        sndDoorLocked();
+        setTimeout(()=>{G.doorLocked=false;},4000);
+      }
     }
-    G.view=null;
   } else if(v==='vent'){
     if(!G.ventClosed){
+      // Close vent
       G.ventClosed=true; G.oxyActive=true;
       G.ventWaiting=true; G.ventDone=false;
       sndVentClose();
+      if(G.phase==='vent') G.phase='idle';
       ventTout=setTimeout(()=>{
         G.ventDone=true; G.ventWaiting=false;
       }, 3000+Math.random()*4000);
-      // stay in view while waiting
-    } else if(G.ventDone){
+    } else if(G.ventDone || !G.ventWaiting){
+      // Open vent
       clearTimeout(ventTout);
       G.ventClosed=false; G.oxyActive=false; G.oxygen=100;
       G.ventWaiting=false; G.ventDone=false;
-      if(G.phase==='vent') G.phase='idle';
-      G.view=null;
     }
-    // ventWaiting: click does nothing, player must wait
+    // If ventWaiting — do nothing, must wait
   }
 }
 
@@ -1264,12 +1355,7 @@ canvas.addEventListener('click',e=>{
   const {cx,cy}=getCanvasPos(e);
 
   if(G.view){
-    // Check sidebar buttons first
-    if(inBtn(cx,cy,BTN_BACK)){G.view=null;G.viewMode='action';return;}
-    if(inBtn(cx,cy,BTN_ACTION)){G.viewMode='action';return;}
-    if(inBtn(cx,cy,BTN_LOOK)){G.viewMode='look';return;}
-    // Main area click
-    if(cx < W-SB) handleViewClick(cx,cy);
+    handleViewClick(cx,cy);
     return;
   }
 
@@ -1280,9 +1366,7 @@ canvas.addEventListener('click',e=>{
       return;
     }
   }
-},true);
-// Remove old click listener added before (the one without ,true)
-// This replaces it — note we use capture phase
+});
 
 function inBtn(cx,cy,b){return cx>=b.x&&cx<=b.x+b.w&&cy>=b.y&&cy<=b.y+b.h;}
 
@@ -1322,21 +1406,45 @@ function drawViewSidebar(ts,v){
   const labels={window:'PƏNCƏRƏ',door:'QAPI',vent:'VENTİLYASİYA'};
   c.fillStyle='#3a3020';
   c.font='bold 11px VT323';c.textAlign='center';
-  c.fillText(labels[v]||'',sx+SB/2,20);
-  pxLine(c,sx+6,26,sx+SB-6,26,'#1e1a10',1);
+  c.fillText(labels[v]||'',sx+SB/2,18);
+  pxLine(c,sx+6,24,sx+SB-6,24,'#1e1a10',1);
 
-  // ACTION button
-  const aActive=G.viewMode==='action';
-  drawSideBtn(c,BTN_ACTION,'ƏMƏL',aActive,'#cc3030','#3a0808');
+  // --- ƏMƏL (toggle) button ---
+  // Determine current open/closed state per zone
+  let isClosed=false;
+  if(v==='window') isClosed=G.curtain;
+  else if(v==='door') isClosed=G.doorLocked;
+  else if(v==='vent') isClosed=G.ventClosed;
 
-  // LOOK button
+  // Show threat indicator if monster active for this zone
+  const hasThreat=(G.phase===v);
+  if(hasThreat){
+    const pulse=0.6+0.4*Math.sin(ts*0.008);
+    c.fillStyle=`rgba(200,30,30,${pulse*0.3})`;
+    c.fillRect(sx,BTN_ACTION.y-4,SB,BTN_ACTION.h+8);
+  }
+
+  const actionLabel = isClosed ? 'AÇ' : 'BAĞLA';
+  const actionCol   = isClosed ? '#40b050' : '#cc3030';
+  const actionBg    = isClosed ? '#0a1e0c' : '#1e0808';
+  drawSideBtn(c,BTN_ACTION,actionLabel,true,actionCol,actionBg);
+
+  // Small status text under action btn
+  const statusText=isClosed?'● BAĞLI':'○ AÇIQ';
+  const statusCol =isClosed?'#2a6030':'#3a2010';
+  c.fillStyle=statusCol;c.font='10px VT323';c.textAlign='center';
+  c.fillText(statusText,sx+SB/2,BTN_ACTION.y+BTN_ACTION.h+10);
+
+  pxLine(c,sx+6,BTN_ACTION.y+BTN_ACTION.h+16,sx+SB-6,BTN_ACTION.y+BTN_ACTION.h+16,'#1e1a10',1);
+
+  // BAX button
   const lActive=G.viewMode==='look';
   drawSideBtn(c,BTN_LOOK,'BAX',lActive,'#4a90c0','#0a2030');
 
   pxLine(c,sx+6,H-52,sx+SB-6,H-52,'#1e1a10',1);
 
   // BACK button
-  drawSideBtn(c,BTN_BACK,'GERİ','#c8a84a',false,'#2a1808');
+  drawSideBtn(c,BTN_BACK,'GERİ',false,'#c8a84a','#2a1808');
 }
 
 function drawSideBtn(c,b,label,active,activeCol,bgCol){
