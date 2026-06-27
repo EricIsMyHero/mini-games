@@ -452,41 +452,33 @@ document.addEventListener('keydown',e=>{
 
 /* ====================================================
    ROOM DRAW — PIXEL ART
-   Full canvas: 480×270
-   Layout:
-     Room scene:  x0→320  y0→220  (left+center)
-     HUD panel:   x320→480  (right strip)
-     Tetris on monitor inside room
+   Full canvas: 480×270 — FULL SCREEN ROOM (no side panel)
    ==================================================== */
 
-// Room geometry constants (pixel coords in 480×270)
-// First-person perspective: we are sitting at the desk, looking at the wall
+// Room geometry — full 480×270 canvas
 const R = {
-  // walls — back wall fills most of the canvas
-  wallL:  0,   wallR:  320, wallT:  0,  wallB: 270,
-  floorT: 210, ceilH:  30,
-  // door — center-right of back wall, large
-  doorX:  190, doorY:  90,  doorW: 70,  doorH: 120,
-  // window — left wall, large and close (first-person)
-  winX:   18,  winY:   45,  winW:  80,  winH:  110,
-  // vent — top-right of door (high on wall)
-  ventX:  270, ventY:  24,  ventW: 42,  ventH: 22,
-  // desk surface — bottom strip (we see the desk edge from above)
-  deskY:  230, deskH:  40,
-  // monitor — original size
-  monX:   30,  monY:   115, monW:  130, monH:  100,
-  // tetris screen inside monitor
-  tsX:    36,  tsY:    122, tsW:   86,  tsH:   82,
-  // lamp — on desk, right side
-  lampX:  285, lampY:  155,
-  // clock (digital, on desk)
-  clkX:   175, clkY:   238,
-  // pizza box (right of desk)
-  pizzaX: 220, pizzaY: 235,
-  // hud panel
-  hudX:   322, hudY:   0, hudW: 158, hudH: 270,
-  // monitor clickable zone
-  monClickX: 30, monClickY: 115, monClickW: 130, monClickH: 100,
+  wallL:0, wallR:480, wallT:0, wallB:270,
+  floorT:210, ceilH:28,
+  // door — center of back wall
+  doorX:200, doorY:88,  doorW:78, doorH:122,
+  // window — left side
+  winX:20,  winY:42,  winW:90, winH:118,
+  // vent — top right of door
+  ventX:290, ventY:22, ventW:50, ventH:26,
+  // desk surface
+  deskY:228, deskH:42,
+  // monitor — left of desk, tetris inside
+  monX:28,  monY:108, monW:148, monH:112,
+  // lamp — right side of desk
+  lampX:370, lampY:148,
+  // clock
+  clkX:196, clkY:236,
+  // pizza
+  pizzaX:310, pizzaY:232,
+  // monitor click zone
+  monClickX:28, monClickY:108, monClickW:148, monClickH:112,
+  // HUD overlay position (bottom left)
+  hudX:4, hudY:4,
 };
 
 function drawRoom(ts) {
@@ -494,11 +486,11 @@ function drawRoom(ts) {
   const dark=G.darkAlpha;
 
   /* ---- CEILING ---- */
-  px(c,0,0,R.wallR,R.ceilH,P.ceiling);
-  px(c,0,R.ceilH-1,R.wallR,2,P.wallShad);
-  // Ceiling light fixture
-  px(c,R.wallR/2-20,2,40,6,'#2a2820');
-  px(c,R.wallR/2-12,8,24,4,'#383630');
+  px(c,0,0,W,R.ceilH,P.ceiling);
+  px(c,0,R.ceilH-1,W,2,P.wallShad);
+  // ceiling light fixture (center)
+  px(c,W/2-24,2,48,7,'#2a2820');
+  px(c,W/2-14,9,28,4,'#383630');
 
   /* ---- BACK WALL ---- */
   for(let i=0;i<R.floorT-R.ceilH;i++){
@@ -506,29 +498,20 @@ function drawRoom(ts) {
     const r=0x2a-(0x2a-0x1a)*t|0;
     const g=0x20-(0x20-0x14)*t|0;
     const b=0x18-(0x18-0x0e)*t|0;
-    px(c,0,R.ceilH+i,R.wallR,1,`rgb(${r},${g},${b})`);
+    px(c,0,R.ceilH+i,W,1,`rgb(${r},${g},${b})`);
   }
 
-  /* ---- LEFT WALL SIDE STRIP ---- */
-  // Visible angled left wall (we see it from front)
+  /* ---- SIDE WALL STRIPS ---- */
   for(let i=0;i<R.floorT-R.ceilH;i++){
     const t=i/(R.floorT-R.ceilH);
-    const r=0x1e-(0x1e-0x12)*t|0;
-    const g=0x16-(0x16-0x0e)*t|0;
-    const b=0x10-(0x10-0x08)*t|0;
-    px(c,0,R.ceilH+i,18,1,`rgb(${r},${g},${b})`);
+    const rv=0x1e-(0x1e-0x12)*t|0;
+    const gv=0x16-(0x16-0x0e)*t|0;
+    const bv=0x10-(0x10-0x08)*t|0;
+    px(c,0,R.ceilH+i,20,1,`rgb(${rv},${gv},${bv})`);
+    px(c,W-20,R.ceilH+i,20,1,`rgb(${rv},${gv},${bv})`);
   }
-  pxLine(c,18,R.ceilH,18,R.floorT,'#1a1410',1);
-
-  /* ---- RIGHT WALL SIDE STRIP ---- */
-  for(let i=0;i<R.floorT-R.ceilH;i++){
-    const t=i/(R.floorT-R.ceilH);
-    const r=0x1e-(0x1e-0x12)*t|0;
-    const g=0x16-(0x16-0x0e)*t|0;
-    const b=0x10-(0x10-0x08)*t|0;
-    px(c,R.wallR-18,R.ceilH+i,18,1,`rgb(${r},${g},${b})`);
-  }
-  pxLine(c,R.wallR-18,R.ceilH,R.wallR-18,R.floorT,'#1a1410',1);
+  pxLine(c,20,R.ceilH,20,R.floorT,'#1a1410',1);
+  pxLine(c,W-20,R.ceilH,W-20,R.floorT,'#1a1410',1);
 
   /* ---- FLOOR ---- */
   for(let i=0;i<H-R.floorT;i++){
@@ -536,13 +519,12 @@ function drawRoom(ts) {
     const rr=0x1a+(0x28-0x1a)*t|0;
     const gg=0x12+(0x1c-0x12)*t|0;
     const bb=0x08+(0x10-0x08)*t|0;
-    px(c,0,R.floorT+i,R.wallR,1,`rgb(${rr},${gg},${bb})`);
+    px(c,0,R.floorT+i,W,1,`rgb(${rr},${gg},${bb})`);
   }
-  px(c,0,R.floorT,R.wallR,1,'#3a2c1a');
-  // Floor boards (horizontal from this angle)
+  px(c,0,R.floorT,W,1,'#3a2c1a');
   c.strokeStyle='rgba(0,0,0,0.2)';c.lineWidth=1;
-  for(let fy=R.floorT+12;fy<H;fy+=18){
-    c.beginPath();c.moveTo(0,fy);c.lineTo(R.wallR,fy);c.stroke();
+  for(let fy=R.floorT+14;fy<H;fy+=20){
+    c.beginPath();c.moveTo(0,fy);c.lineTo(W,fy);c.stroke();
   }
 
   /* ---- WINDOW ---- */
@@ -554,10 +536,10 @@ function drawRoom(ts) {
   /* ---- DOOR ---- */
   drawDoor(c,dark);
 
-  /* ---- DESK SURFACE (first-person: we see the desk top) ---- */
+  /* ---- DESK ---- */
   drawDesk(c);
 
-  /* ---- MONITOR (large, close-up) ---- */
+  /* ---- MONITOR (with tetris inside) ---- */
   drawMonitor(c,ts);
 
   /* ---- LAMP ---- */
@@ -569,24 +551,23 @@ function drawRoom(ts) {
   /* ---- PIZZA BOX ---- */
   drawPizza(c);
 
-  /* ---- DARKNESS OVERLAY ---- */
+  /* ---- DARKNESS ---- */
   if(dark>0){
     c.fillStyle=`rgba(0,0,0,${dark*0.8})`;
-    c.fillRect(0,0,R.wallR,H);
+    c.fillRect(0,0,W,H);
   }
 
   /* ---- VIGNETTE ---- */
-  const vig=c.createRadialGradient(R.wallR/2,H/2,80,R.wallR/2,H/2,Math.max(R.wallR,H)*0.75);
+  const vig=c.createRadialGradient(W/2,H/2,90,W/2,H/2,Math.max(W,H)*0.75);
   vig.addColorStop(0,'rgba(0,0,0,0)');
   vig.addColorStop(1,'rgba(0,0,0,0.7)');
-  c.fillStyle=vig;
-  c.fillRect(0,0,R.wallR,H);
+  c.fillStyle=vig; c.fillRect(0,0,W,H);
 
-  /* ---- HUD PANEL ---- */
-  drawHUD(c,ts);
-
-  /* ---- DOOR/VENT CLOSED VISUAL EFFECTS ---- */
+  /* ---- STATUS EFFECTS ---- */
   drawStatusEffects(c,ts);
+
+  /* ---- OVERLAY HUD (top-left: can, xal, aclıq) ---- */
+  drawOverlayHUD(c,ts);
 
   /* ---- FLICKER ---- */
   if(G.flickerAlpha>0){
@@ -748,10 +729,10 @@ function drawDesk(c){
   drawPapers(c);
 }
 
-/* ---- MONITOR + TETRIS (large, first-person close-up) ---- */
+/* ---- MONITOR + TETRIS ---- */
 function drawMonitor(c,ts){
   const {monX:mx,monY:my,monW:mw,monH:mh}=R;
-  // CRT body
+  // CRT body gradient
   for(let i=0;i<mh;i++){
     const t=i/mh;
     const rr=(0x2c-(0x2c-0x1e)*t)|0;
@@ -760,159 +741,150 @@ function drawMonitor(c,ts){
     px(c,mx,my+i,mw,1,`rgb(${rr},${gg},${bb})`);
   }
   pxRect(c,mx,my,mw,mh,'#3a3830',1);
-  // rounded CRT corners (pixel art)
-  px(c,mx,my,2,2,'#080604');px(c,mx+mw-2,my,2,2,'#080604');
-  px(c,mx,my+mh-2,2,2,'#080604');px(c,mx+mw-2,my+mh-2,2,2,'#080604');
-  // Screen area
-  const sw=mw-16, sh=mh-22;
-  const sx=mx+8, sy=my+8;
-  px(c,sx,sy,sw,sh,P.monScr);
-  // CRT screen glow bg
-  px(c,sx+1,sy+1,sw-2,sh-2,P.monScrGlow);
+  // CRT corners
+  px(c,mx,my,3,3,'#080604');px(c,mx+mw-3,my,3,3,'#080604');
+  px(c,mx,my+mh-3,3,3,'#080604');px(c,mx+mw-3,my+mh-3,3,3,'#080604');
 
+  // Screen area
+  const sw=mw-14, sh=mh-20;
+  const sx=mx+7, sy=my+7;
+  px(c,sx,sy,sw,sh,'#020c04');
+
+  // Screen content
   if(G.tetrisActive){
-    drawTetOnMon(c,sx,sy,sw,sh);
-    // Scanlines
-    c.fillStyle='rgba(0,0,0,0.10)';
-    for(let r=0;r<sh;r+=2) c.fillRect(sx,sy+r,sw,1);
-    // Screen glow border
-    c.strokeStyle='rgba(30,180,60,0.2)';c.lineWidth=2;
+    drawTetWindow(c,sx,sy,sw,sh,ts);
+    // green glow
+    c.strokeStyle='rgba(20,160,50,0.18)';c.lineWidth=2;
     c.strokeRect(sx-1,sy-1,sw+2,sh+2);
-    // FOOD ARRIVED notification
-    if(G.isRealFoodPending){
-      c.save();c.beginPath();c.rect(sx,sy,sw,sh);c.clip();
-      px(c,sx,sy,sw,12,'#001800');
-      pxRect(c,sx,sy,sw,12,'#1a5a20',1);
-      pxTextC(c,'FOOD ARRIVED!',sx+sw/2,sy+9,'#40ee60',7,'monospace');
-      c.restore();
-    }
   } else {
-    // Idle screen — screensaver / waiting
-    const t2=ts*0.001;
-    // animated idle text
-    const blink=Math.floor(ts/600)%2===0;
-    pxTextC(c,'TETRIS v2.1',sx+sw/2,sy+sh*0.35,'#1a4a20',8,'monospace');
-    pxTextC(c,'> READY',sx+sw/2,sy+sh*0.55,'#103a18',7,'monospace');
-    if(blink) pxTextC(c,'[ TIKLA ]',sx+sw/2,sy+sh*0.75,'#2a8040',7,'monospace');
-    // subtle CRT phosphor glow pulse
-    const gp=0.03+0.02*Math.sin(t2*2);
-    c.fillStyle=`rgba(20,150,40,${gp})`;c.fillRect(sx,sy,sw,sh);
-    // click hint glow border
-    const ca=0.3+0.2*Math.sin(t2*3);
-    c.strokeStyle=`rgba(40,160,60,${ca})`;c.lineWidth=1;
+    // Idle — blinking cursor
+    const blink=Math.floor(ts/500)%2===0;
+    px(c,sx,sy,sw,sh,'#010a03');
+    c.fillStyle='#0a3a10';c.font='bold 9px VT323';c.textAlign='left';
+    c.fillText('TETRIS v2.1',sx+4,sy+12);
+    c.fillStyle='#061e08';
+    c.fillText('> READY',sx+4,sy+24);
+    if(blink){c.fillStyle='#1a6020';c.fillText('_',sx+4+ctx.measureText('> READY').width+2,sy+24);}
+    c.fillStyle='#0d3010';c.font='8px VT323';
+    c.fillText('[TIKLA]',sx+4,sy+sh-6);
+    // border pulse
+    const ca=0.2+0.15*Math.sin(ts*0.003);
+    c.strokeStyle=`rgba(30,120,40,${ca})`;c.lineWidth=1;
     c.strokeRect(sx,sy,sw,sh);
   }
 
-  // Monitor bottom bezel / speaker grille
-  px(c,mx,my+mh-12,mw,12,'#222020');
-  for(let i=0;i<5;i++) px(c,mx+mw*0.35+i*5,my+mh-7,3,4,'#1a1a18');
-  // Monitor base/stand
-  px(c,mx+mw*0.3,my+mh,mw*0.4,6,P.monBase);
-  px(c,mx+mw*0.22,my+mh+6,mw*0.56,4,P.monBase);
-  // Keyboard (visible on desk surface)
-  px(c,mx-8,R.deskY+4,mw+16,8,'#1c1a16');
-  px(c,mx-8,R.deskY+4,mw+16,1,'#2e2c28');
-  // Key rows
+  // Scanlines over screen
+  c.fillStyle='rgba(0,0,0,0.10)';
+  for(let r=0;r<sh;r+=2) c.fillRect(sx,sy+r,sw,1);
+
+  // Monitor bottom bezel
+  px(c,mx,my+mh-10,mw,10,'#222020');
+  for(let i=0;i<4;i++) px(c,mx+mw*0.32+i*5,my+mh-6,4,4,'#1a1a18');
+  // Stand
+  px(c,mx+mw*0.3,my+mh,mw*0.4,5,P.monBase);
+  px(c,mx+mw*0.2,my+mh+5,mw*0.6,4,P.monBase);
+  // Keyboard on desk
+  px(c,mx-6,R.deskY+5,mw+12,7,'#1c1a16');
+  px(c,mx-6,R.deskY+5,mw+12,1,'#2e2c28');
   for(let row=0;row<2;row++){
-    for(let k=0;k<12;k++){
-      px(c,mx-4+k*10,R.deskY+6+row*3,8,2,'#282622');
-    }
+    for(let k=0;k<14;k++) px(c,mx-2+k*10,R.deskY+7+row*3,8,2,'#282622');
   }
 }
 
-function drawTetOnMon(c,sx,sy,sw,sh){
-  // Clip strictly to screen area so blocks never overflow
+/* Tetris drawn as a small "app window" inside the CRT screen */
+function drawTetWindow(c,sx,sy,sw,sh,ts){
+  // Window chrome — title bar
+  const tbH=9;
+  px(c,sx,sy,sw,tbH,'#0a2a0e');
+  px(c,sx,sy,sw,1,'#1a5a20');
+  c.fillStyle='#30a040';c.font='bold 7px monospace';c.textAlign='left';
+  c.fillText('TETRIS.EXE',sx+3,sy+7);
+  // Close button (decorative)
+  px(c,sx+sw-9,sy+1,7,7,'#1a0808');
+  pxRect(c,sx+sw-9,sy+1,7,7,'#3a1010',1);
+  c.fillStyle='#cc2020';c.font='6px monospace';c.textAlign='center';
+  c.fillText('×',sx+sw-6,sy+7);
+
+  // Tetris play area
+  const playY=sy+tbH;
+  const playH=sh-tbH;
+
+  // Split: left=board, right=info panel
+  const infoW=24;
+  const boardW=sw-infoW-1;
+
+  // Board bg
+  px(c,sx,playY,boardW,playH,'#010c03');
+  // Divider
+  px(c,sx+boardW,playY,1,playH,'#0a2010');
+  // Info panel bg
+  px(c,sx+boardW+1,playY,infoW-1,playH,'#010a03');
+
+  // Draw tetris board (clipped)
   c.save();
-  c.beginPath();
-  c.rect(sx,sy,sw,sh);
-  c.clip();
+  c.beginPath();c.rect(sx,playY,boardW,playH);c.clip();
 
-  const scoreH=9;
-  const playH=sh-scoreH;
-  const cw=Math.floor(sw/TC);
+  const cw=Math.floor(boardW/TC);
   const ch=Math.floor(playH/TR);
-  // Center the play area horizontally within the screen
-  const offX=sx+Math.floor((sw-cw*TC)/2);
-  const offY=sy;
+  const offX=sx+Math.floor((boardW-cw*TC)/2);
+  const offY=playY+Math.floor((playH-ch*TR)/2);
 
-  // Grid bg
-  c.fillStyle='#020c04';
-  c.fillRect(sx,sy,sw,playH);
   // Grid lines
-  c.strokeStyle='rgba(0,180,40,0.06)';c.lineWidth=0.5;
-  for(let r=0;r<=TR;r++){
-    c.beginPath();c.moveTo(offX,offY+r*ch);c.lineTo(offX+cw*TC,offY+r*ch);c.stroke();
-  }
-  for(let col=0;col<=TC;col++){
-    c.beginPath();c.moveTo(offX+col*cw,offY);c.lineTo(offX+col*cw,offY+ch*TR);c.stroke();
-  }
+  c.strokeStyle='rgba(0,160,30,0.07)';c.lineWidth=0.5;
+  for(let r=0;r<=TR;r++){c.beginPath();c.moveTo(offX,offY+r*ch);c.lineTo(offX+cw*TC,offY+r*ch);c.stroke();}
+  for(let col=0;col<=TC;col++){c.beginPath();c.moveTo(offX+col*cw,offY);c.lineTo(offX+col*cw,offY+ch*TR);c.stroke();}
 
   // Board cells
-  tet.board.forEach((row,r)=>{
-    row.forEach((col,cc)=>{
-      if(!col) return;
-      const bx=offX+cc*cw, by=offY+r*ch;
-      const bw2=cw-1, bh2=ch-1;
-      c.fillStyle=col; c.fillRect(bx,by,bw2,bh2);
-      c.fillStyle='rgba(255,255,255,0.35)';
-      c.fillRect(bx,by,bw2,1); c.fillRect(bx,by,1,bh2);
-      c.fillStyle='rgba(0,0,0,0.35)';
-      c.fillRect(bx,by+bh2-1,bw2,1); c.fillRect(bx+bw2-1,by,1,bh2);
-    });
-  });
+  tet.board.forEach((row,r)=>row.forEach((col,cc)=>{
+    if(!col) return;
+    const bx=offX+cc*cw, by=offY+r*ch, bw2=cw-1, bh2=ch-1;
+    c.fillStyle=col;c.fillRect(bx,by,bw2,bh2);
+    c.fillStyle='rgba(255,255,255,0.35)';c.fillRect(bx,by,bw2,1);c.fillRect(bx,by,1,bh2);
+    c.fillStyle='rgba(0,0,0,0.35)';c.fillRect(bx,by+bh2-1,bw2,1);c.fillRect(bx+bw2-1,by,1,bh2);
+  }));
 
-  // Ghost piece
+  // Ghost
   if(tet.piece){
     let gy=tet.y;
     while(!tCollide(tet.piece.shape,tet.x,gy+1)) gy++;
     if(gy!==tet.y){
-      c.strokeStyle=tet.piece.col+'66';c.lineWidth=0.5;
+      c.strokeStyle=tet.piece.col+'55';c.lineWidth=0.5;
       tet.piece.shape.forEach((row,r)=>row.forEach((v,cc)=>{
         if(!v) return;
         c.strokeRect(offX+(tet.x+cc)*cw+0.5,offY+(gy+r)*ch+0.5,cw-1,ch-1);
       }));
     }
     // Active piece
-    tet.piece.shape.forEach((row,r)=>{
-      row.forEach((v,cc)=>{
-        if(!v) return;
-        const bx=offX+(tet.x+cc)*cw, by=offY+(tet.y+r)*ch;
-        const bw2=cw-1, bh2=ch-1;
-        c.fillStyle=tet.piece.col+'55'; c.fillRect(bx-1,by-1,bw2+2,bh2+2);
-        c.fillStyle=tet.piece.col; c.fillRect(bx,by,bw2,bh2);
-        c.fillStyle='rgba(255,255,255,0.5)';
-        c.fillRect(bx,by,bw2,2); c.fillRect(bx,by,2,bh2);
-        c.fillStyle='rgba(0,0,0,0.3)';
-        c.fillRect(bx,by+bh2-1,bw2,1);
-      });
-    });
+    tet.piece.shape.forEach((row,r)=>row.forEach((v,cc)=>{
+      if(!v) return;
+      const bx=offX+(tet.x+cc)*cw, by=offY+(tet.y+r)*ch, bw2=cw-1, bh2=ch-1;
+      c.fillStyle=tet.piece.col+'44';c.fillRect(bx-1,by-1,bw2+2,bh2+2);
+      c.fillStyle=tet.piece.col;c.fillRect(bx,by,bw2,bh2);
+      c.fillStyle='rgba(255,255,255,0.45)';c.fillRect(bx,by,bw2,2);c.fillRect(bx,by,2,bh2);
+      c.fillStyle='rgba(0,0,0,0.3)';c.fillRect(bx,by+bh2-1,bw2,1);
+    }));
   }
+  c.restore();
 
-  // Score strip
-  c.fillStyle='#010a03';
-  c.fillRect(sx,sy+playH,sw,scoreH);
-  c.fillStyle='rgba(0,200,60,0.2)';
-  c.fillRect(sx,sy+playH,sw,1);
-  c.fillStyle='#18cc38';
-  c.font=`bold ${scoreH-1}px monospace`;
-  c.textAlign='left';
-  c.fillText('XAL:'+G.tetScore,sx+2,sy+sh-1);
-
-  // Next piece preview — top-right inside screen
+  // Info panel: next piece + score
+  const ipx=sx+boardW+2;
+  c.fillStyle='#1a4a20';c.font='6px monospace';c.textAlign='center';
+  c.fillText('NEXT',ipx+infoW/2-2,playY+8);
   if(tet.next){
     const ns=tet.next.shape;
-    const npx=offX+cw*TC-ns[0].length*cw;
-    const npy=offY+1;
-    c.fillStyle='rgba(0,0,0,0.5)';
-    c.fillRect(npx-1,npy-1,ns[0].length*cw+1,ns.length*cw+1);
+    const ncs=Math.min(5,Math.floor((infoW-4)/ns[0].length));
+    const npx2=ipx+Math.floor((infoW-ns[0].length*ncs)/2)-1;
     ns.forEach((row,r)=>row.forEach((v,cc)=>{
       if(!v) return;
       c.fillStyle=tet.next.col;
-      c.fillRect(npx+cc*cw,npy+r*cw,cw-1,cw-1);
+      c.fillRect(npx2+cc*ncs,playY+10+r*ncs,ncs-1,ncs-1);
     }));
   }
-
-  c.restore();
+  // Score
+  c.fillStyle='#0d2a10';c.font='6px monospace';c.textAlign='center';
+  c.fillText('XAL',ipx+infoW/2-2,playY+sh*0.55);
+  c.fillStyle='#20a030';c.font='bold 7px monospace';
+  c.fillText(G.tetScore,ipx+infoW/2-2,playY+sh*0.65);
 }
 
 /* ---- LAMP ---- */
@@ -1023,119 +995,75 @@ function drawPapers(c){
   px(c,cx2+16,cy2+4,4,7,P.coffeeBody); // handle
 }
 
-/* ---- HUD PANEL ---- */
-function drawHUD(c,ts){
-  const {hudX:hx,hudY:hy,hudW:hw,hudH:hh}=R;
-  // bg
-  px(c,hx,hy,hw,hh,'#060404');
-  pxLine(c,hx,hy,hx,hy+hh,'#1e1a10',1);
-  // scanlines
-  for(let i=0;i<hh;i+=3){
-    c.fillStyle='rgba(0,0,0,0.15)';c.fillRect(hx,hy+i,hw,1);
-  }
+/* ---- OVERLAY HUD — compact, top-left corner ---- */
+function drawOverlayHUD(c,ts){
+  const x=6, y=6;
+  const w=130, h=54;
+  // Semi-transparent bg panel
+  c.fillStyle='rgba(4,3,2,0.72)';
+  c.fillRect(x,y,w,h);
+  c.strokeStyle='rgba(42,32,16,0.8)';c.lineWidth=1;
+  c.strokeRect(x+0.5,y+0.5,w-1,h-1);
+  // Left accent
+  px(c,x,y,2,h,'#2a2010');
 
-  let y=10;
-  // Title
-  pxTextC(c,'GRAND HOLLOW',hx+hw/2,hy+y,'#2a2010',8,'VT323');
-  y+=10;
-  pxTextC(c,'HOTEL TERMINAL',hx+hw/2,hy+y,'#1e1810',7,'VT323');
-  y+=14;
-  // divider
-  px(c,hx+8,hy+y,hw-16,1,'#1e1a10');y+=6;
+  let cy2=y+10;
 
-  // Clock / hour
-  pxText(c,'SAAT',hx+10,hy+y,'#2a2818',8,'VT323');
-  pxText(c,HOURS[G.hour].label,hx+60,hy+y,'#c8a84a',8,'VT323');
-  y+=12;
+  // SAAT (hour label) — subtle, right-aligned
+  c.fillStyle='#c8a84a';
+  c.font='bold 11px VT323';c.textAlign='right';
+  c.fillText(HOURS[G.hour].label,x+w-6,cy2);
 
-  // Lives
-  pxText(c,'CAN',hx+10,hy+y,'#2a2818',8,'VT323');
+  // CAN — pixel hearts
+  c.textAlign='left';
+  c.fillStyle='#5a3a18';c.font='9px VT323';
+  c.fillText('CAN',x+6,cy2);
   for(let i=0;i<3;i++){
     const hcol=i<G.lives?'#cc2020':'#2a1010';
-    // pixel heart
-    const hx2=hx+60+i*14, hy2=hy+y-7;
-    px(c,hx2+1,hy2,4,2,hcol);px(c,hx2+7,hy2,4,2,hcol);
-    px(c,hx2,hy2+2,12,4,hcol);px(c,hx2+1,hy2+6,10,2,hcol);
-    px(c,hx2+3,hy2+8,6,2,hcol);px(c,hx2+5,hy2+10,2,2,hcol);
+    const hx2=x+32+i*13, hy2=cy2-7;
+    px(c,hx2+1,hy2,3,2,hcol);px(c,hx2+5,hy2,3,2,hcol);
+    px(c,hx2,hy2+2,9,3,hcol);px(c,hx2+1,hy2+5,7,2,hcol);
+    px(c,hx2+2,hy2+7,5,1,hcol);px(c,hx2+3,hy2+8,3,1,hcol);
   }
-  y+=14;
+  cy2+=13;
 
-  // Score
-  pxText(c,'XAL',hx+10,hy+y,'#2a2818',8,'VT323');
-  pxText(c,G.score.toString(),hx+60,hy+y,'#c8a84a',9,'VT323');
-  y+=10;
-  pxText(c,'/ '+HOURS[G.hour].goal,hx+60,hy+y,'#1e2018',7,'VT323');
-  y+=12;
+  // XAL
+  c.fillStyle='#5a3a18';c.font='9px VT323';c.textAlign='left';
+  c.fillText('XAL',x+6,cy2);
+  c.fillStyle='#c8a84a';c.font='bold 11px VT323';
+  c.fillText(G.score,x+32,cy2);
+  c.fillStyle='#3a3020';c.font='9px VT323';
+  c.fillText('/ '+HOURS[G.hour].goal,x+32+ctx.measureText(String(G.score)).width+4,cy2);
+  cy2+=12;
 
-  // Hour progress bar
-  pxText(c,'VAXT',hx+10,hy+y,'#2a2818',8,'VT323');y+=8;
-  const barW=hw-20;
-  px(c,hx+10,hy+y,barW,6,'#0a0806');
-  pxRect(c,hx+10,hy+y,barW,6,'#1e1a10',1);
-  const pct=G.hourTimer/HOUR_DUR;
-  const barCol=pct>0.5?'#1e6a30':pct>0.2?'#7a5010':'#8a1010';
-  px(c,hx+11,hy+y+1,Math.round((barW-2)*pct),4,barCol);
-  y+=12;
-
-  // divider
-  px(c,hx+8,hy+y,hw-16,1,'#1e1a10');y+=6;
-
-  // Hunger
-  pxText(c,'ACLIQ',hx+10,hy+y,'#2a2818',8,'VT323');y+=8;
-  px(c,hx+10,hy+y,barW,6,'#0a0806');
-  pxRect(c,hx+10,hy+y,barW,6,'#1a1a10',1);
+  // ACLIQ bar
+  c.fillStyle='#5a3a18';c.font='9px VT323';c.textAlign='left';
+  c.fillText('ACLIQ',x+6,cy2);
+  const barX=x+38, barW=w-44;
+  px(c,barX,cy2-7,barW,6,'#0a0806');
+  c.strokeStyle='#1e1a10';c.lineWidth=0.5;
+  c.strokeRect(barX,cy2-7,barW,6);
   const hunCol=G.hunger>60?'#2a7018':G.hunger>30?'#7a5010':'#8a1010';
-  px(c,hx+11,hy+y+1,Math.round((barW-2)*G.hunger/100),4,hunCol);
-  y+=12;
+  px(c,barX+1,cy2-6,Math.round((barW-2)*G.hunger/100),4,hunCol);
 
-  // Oxygen (if active)
+  // Oxygen bar (only if active)
   if(G.oxyActive){
-    pxText(c,'OKSİGEN',hx+10,hy+y,'#1a3a8a',8,'VT323');y+=8;
-    px(c,hx+10,hy+y,barW,6,'#0a0806');
-    pxRect(c,hx+10,hy+y,barW,6,'#0a1a10',1);
-    px(c,hx+11,hy+y+1,Math.round((barW-2)*G.oxygen/100),4,'#1e5a8a');
-    y+=14;
+    cy2+=10;
+    c.fillStyle='#1a3a5a';c.font='9px VT323';
+    c.fillText('OKS',x+6,cy2);
+    px(c,barX,cy2-7,barW,6,'#0a0806');
+    c.strokeStyle='#0a1a2a';c.lineWidth=0.5;
+    c.strokeRect(barX,cy2-7,barW,6);
+    const oxyCol=G.oxygen>50?'#1e5a8a':'#8a1010';
+    px(c,barX+1,cy2-6,Math.round((barW-2)*G.oxygen/100),4,oxyCol);
   }
 
-  // divider
-  px(c,hx+8,hy+y,hw-16,1,'#1e1a10');y+=6;
-
-  // Tetris status
-  const tetCol=G.tetrisActive?'#2a8040':'#1e2a18';
-  const tetLabel=G.tetrisActive?'TETRIS — AKTİV':'TETRIS — [TIKLA]';
-  pxText(c,tetLabel,hx+10,hy+y,tetCol,8,'VT323');y+=8;
-  // Draw next piece (only when active)
-  if(G.tetrisActive&&tet.next){
-    const ns=tet.next.shape;
-    const ncs=10;
-    const offX=hx+10, offY=hy+y;
-    ns.forEach((row,r)=>row.forEach((v,cc)=>{
-      if(v) px(c,offX+cc*ncs,offY+r*ncs,ncs-1,ncs-1,tet.next.col);
-    }));
-    y+=ns.length*ncs+8;
-  }
-
-  // divider
-  px(c,hx+8,hy+y,hw-16,1,'#1e1a10');y+=6;
-
-  // Controls hint
-  const keys=[['←→','hərəkət'],['↑','fırlat'],['↓/SPC','sal']];
-  keys.forEach(([k,v])=>{
-    pxText(c,k,hx+10,hy+y,'#1e3a20',7,'VT323');
-    pxText(c,v,hx+50,hy+y,'#142a18',7,'VT323');
-    y+=9;
-  });
-
-  // ALERT
-  if(G.phase!=='idle'){
-    const alertY=hy+hh-50;
-    const pa=0.6+0.4*Math.sin(ts*0.008);
-    px(c,hx+6,alertY,hw-12,30,'#120000');
-    c.strokeStyle=`rgba(180,30,30,${pa})`;c.lineWidth=1;
-    c.strokeRect(hx+6,alertY,hw-12,30);
-    pxTextC(c,'⚠ TƏHLÜKƏ',hx+hw/2,alertY+12,`rgba(200,30,30,${pa})`,9,'VT323');
-    const phases={'window':'PƏNCƏRƏ!','door':'QAPI!','vent':'VENT!'};
-    pxTextC(c,phases[G.phase]||'',hx+hw/2,alertY+24,`rgba(200,30,30,${pa*0.8})`,8,'VT323');
+  // Tetris status indicator (tiny, bottom-right of HUD)
+  if(G.tetrisActive){
+    const pulse=0.7+0.3*Math.sin(ts*0.006);
+    c.fillStyle=`rgba(30,160,50,${pulse})`;
+    c.font='8px VT323';c.textAlign='right';
+    c.fillText('● TETRİS',x+w-4,y+h-3);
   }
 }
 
@@ -1230,10 +1158,10 @@ function sndMonitorClick(){
    ==================================================== */
 
 const ZONES = {
-  window: {x:18, y:45, w:80, h:110},
-  door:   {x:190,y:90, w:70, h:120},
-  vent:   {x:270,y:24, w:42, h:22},
-  monitor:{x:30, y:115,w:130,h:100},
+  window:  {x:20,  y:42,  w:90,  h:118},
+  door:    {x:200, y:88,  w:78,  h:122},
+  vent:    {x:290, y:22,  w:50,  h:26},
+  monitor: {x:28,  y:108, w:148, h:112},
 };
 
 function getCanvasPos(e){
