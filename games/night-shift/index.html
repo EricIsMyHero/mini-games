@@ -51,37 +51,6 @@ a.exit-btn:hover{color:#ccc;border-color:#666;}
   max-width:100vw;max-height:100vh;
 }
 
-/* OVERLAYS */
-.overlay{
-  position:fixed;inset:0;background:rgba(0,0,0,0.85);
-  display:none;flex-direction:column;align-items:center;justify-content:center;
-  gap:18px;z-index:300;
-}
-.overlay.show{display:flex;}
-.ov-title{
-  font-family:'VT323',monospace;font-size:clamp(24px,4vw,44px);
-  letter-spacing:5px;text-transform:uppercase;text-align:center;
-}
-.ov-desc{
-  font-family:'VT323',monospace;font-size:clamp(14px,2vw,20px);
-  color:#5a4a2a;letter-spacing:2px;text-align:center;max-width:340px;line-height:1.5;
-}
-.ov-btn{
-  background:#080500;border:2px solid #4a3010;
-  color:#c8a84a;padding:10px 32px;
-  font-size:clamp(14px,2vw,20px);letter-spacing:3px;cursor:pointer;
-  font-family:'VT323',monospace;text-transform:uppercase;
-  transition:all .15s;min-width:200px;text-align:center;
-}
-.ov-btn:hover{border-color:#c8a84a;box-shadow:0 0 12px rgba(200,168,74,0.3);}
-.ov-btn.red{border-color:#4a0808;color:#cc2020;}
-.ov-btn.red:hover{border-color:#cc2020;box-shadow:0 0 12px rgba(200,32,32,0.3);}
-.ov-btn.grn{border-color:#0a3010;color:#30a040;}
-.ov-btn.grn:hover{border-color:#30a040;box-shadow:0 0 12px rgba(48,160,64,0.3);}
-
-#knock-wrap{width:240px;height:6px;background:#1a0808;border:1px solid #3a0808;}
-#knock-fill{height:100%;background:#cc2020;transition:width .1s linear;}
-
 /* NOTIF */
 #notif{
   position:fixed;bottom:0;left:50%;transform:translateX(-50%);
@@ -159,30 +128,7 @@ a.exit-btn:hover{color:#ccc;border-color:#666;}
   <canvas id="main-canvas"></canvas>
 </div>
 
-<!-- OVERLAYS -->
-<div class="overlay" id="ov-window">
-  <div class="ov-title" style="color:#cc3030">⚠ PƏNCƏRƏ</div>
-  <div class="ov-desc">Pəncərədə kölgə görünür.<br>Pərdəni çəkin!</div>
-  <button class="ov-btn red" id="btn-curtain">[ PƏRDƏNİ ÇƏK ]</button>
-</div>
-
-<div class="overlay" id="ov-door">
-  <div class="ov-title" id="door-title" style="color:#cc3030">QAPI DÖYÜLÜR</div>
-  <div class="ov-desc" id="door-desc">Tez gedin qapını kilidləyin!</div>
-  <div id="knock-wrap"><div id="knock-fill" style="width:100%"></div></div>
-  <button class="ov-btn red" id="btn-lock">[ QAPINI KİLİDLƏ ]</button>
-  <button class="ov-btn grn" id="btn-food" style="display:none">[ QAPINI AÇ — YEMƏYİ GÖT ]</button>
-</div>
-
-<div class="overlay" id="ov-vent">
-  <div class="ov-title" style="color:#cc3030">⚠ HAVALANDIRMA</div>
-  <div class="ov-desc">Ventilyasiyadan sürünmə səsi<br>gəlir. Bağlayın!</div>
-  <button class="ov-btn red" id="btn-vent-close">[ VENTİLYASİYANI BAĞLA ]</button>
-  <div class="ov-desc" id="vent-wait" style="display:none;color:#1e3a20">Gözləyin... Səs kəsiləcək.</div>
-  <button class="ov-btn grn" id="btn-vent-open" style="display:none">[ VENTİLYASİYANI AÇ ]</button>
-</div>
-
-<!-- NOTIF -->
+<!-- NOTIF (monitor screen notification only) -->
 <div id="notif">▶ Delivery has arrived.</div>
 
 <!-- HOUR FLASH -->
@@ -418,6 +364,13 @@ function resetState() {
     // computer interaction
     tetrisActive:false,
     isRealFoodPending:false,
+    // zoom/camera state: null | 'window' | 'door' | 'vent'
+    zoom:null,
+    zoomT:0,       // 0→1 animation progress
+    zoomDir:1,     // 1=zooming in, -1=zooming out
+    // vent waiting state (after closing, wait for crawl to stop)
+    ventWaiting:false,
+    ventDone:false,
   };
 }
 
@@ -1210,38 +1163,270 @@ function sndMonitorClick(){
 }
 
 /* ====================================================
-   CANVAS CLICK — Monitor interaction
+   ZOOM CAMERA SYSTEM
+   Each clickable zone maps to a canvas region (in game pixels).
+   Click zone → zoom in → second click → perform action → zoom out.
    ==================================================== */
+
+// Clickable zones in canvas pixel space (before scaling)
+const ZONES = {
+  window: {x:18, y:45, w:80, h:110},
+  door:   {x:190,y:90, w:70, h:120},
+  vent:   {x:270,y:24, w:42, h:22},
+  monitor:{x:30, y:115,w:130,h:100},
+};
+
+function getCanvasPos(e){
+  const rect=canvas.getBoundingClientRect();
+  return {
+    cx:(e.clientX-rect.left)*(W/rect.width),
+    cy:(e.clientY-rect.top)*(H/rect.height),
+  };
+}
+function hitZone(cx,cy,z){
+  return cx>=z.x&&cx<=z.x+z.w&&cy>=z.y&&cy<=z.y+z.h;
+}
+
 canvas.style.cursor='default';
 canvas.addEventListener('mousemove',e=>{
-  if(!G.running) return;
-  const rect=canvas.getBoundingClientRect();
-  const scaleX=W/rect.width, scaleY=H/rect.height;
-  const cx=(e.clientX-rect.left)*scaleX;
-  const cy=(e.clientY-rect.top)*scaleY;
-  const {monClickX:mx,monClickY:my,monClickW:mw,monClickH:mh}=R;
-  if(cx>=mx&&cx<=mx+mw&&cy>=my&&cy<=my+mh){
-    canvas.style.cursor='pointer';
-  } else {
-    canvas.style.cursor='default';
-  }
+  if(!G.running||G.zoom) return;
+  const {cx,cy}=getCanvasPos(e);
+  let hit=false;
+  for(const z of Object.values(ZONES)) if(hitZone(cx,cy,z)){hit=true;break;}
+  canvas.style.cursor=hit?'pointer':'default';
 });
+
 canvas.addEventListener('click',e=>{
-  if(!G.running||G.paused) return;
-  const rect=canvas.getBoundingClientRect();
-  const scaleX=W/rect.width, scaleY=H/rect.height;
-  const cx=(e.clientX-rect.left)*scaleX;
-  const cy=(e.clientY-rect.top)*scaleY;
-  const {monClickX:mx,monClickY:my,monClickW:mw,monClickH:mh}=R;
-  if(cx>=mx&&cx<=mx+mw&&cy>=my&&cy<=my+mh){
-    G.tetrisActive=!G.tetrisActive;
-    sndMonitorClick();
+  if(!G.running) return;
+  const {cx,cy}=getCanvasPos(e);
+
+  // If currently zoomed in — second click performs action
+  if(G.zoom){
+    handleZoomClick(cx,cy);
+    return;
+  }
+
+  // First click — zoom into a zone
+  for(const [name,z] of Object.entries(ZONES)){
+    if(hitZone(cx,cy,z)){
+      if(name==='monitor'){
+        G.tetrisActive=!G.tetrisActive;
+        sndMonitorClick();
+      } else {
+        startZoom(name);
+      }
+      return;
+    }
   }
 });
-// Escape key exits tetris mode
+
+// ESC to zoom out
 document.addEventListener('keydown',e=>{
-  if(e.key==='Escape'&&G.tetrisActive){G.tetrisActive=false;}
+  if(e.key==='Escape'){
+    if(G.zoom) zoomOut();
+    else if(G.tetrisActive) G.tetrisActive=false;
+  }
 },true);
+
+function startZoom(target){
+  G.zoom=target;
+  G.zoomT=0;
+  G.zoomDir=1;
+  canvas.style.cursor='default';
+}
+function zoomOut(){
+  G.zoomDir=-1;
+}
+
+// Called every frame to animate zoom
+function updateZoom(dt){
+  if(!G.zoom) return;
+  const speed=0.003;
+  if(G.zoomDir===1){
+    G.zoomT=Math.min(1,G.zoomT+dt*speed);
+  } else {
+    G.zoomT=Math.max(0,G.zoomT-dt*speed);
+    if(G.zoomT<=0) G.zoom=null;
+  }
+}
+
+// Handles click while zoomed in — acts on the current zone
+let knockIv=null;
+let ventTout=null;
+
+function handleZoomClick(cx,cy){
+  const z=G.zoom;
+  if(z==='window'){
+    // Close curtain
+    resolveWindow(true);
+    zoomOut();
+  } else if(z==='door'){
+    if(G.phase==='door'){
+      // Is it food or monster?
+      if(G.isRealFoodPending){
+        // Two choices drawn on the zoomed door — top half = open (food), bottom half = lock
+        const midY = H*0.5;
+        if(cy < midY){
+          // Open door — take food
+          clearInterval(knockIv);
+          G.isRealFood?resolveDoor(true,true):resolveDoor(false);
+        } else {
+          // Lock door
+          clearInterval(knockIv);
+          sndDoorLocked();
+          resolveDoor(true,false);
+        }
+      } else {
+        // Just lock
+        clearInterval(knockIv);
+        sndDoorLocked();
+        resolveDoor(true,false);
+      }
+    }
+    zoomOut();
+  } else if(z==='vent'){
+    if(!G.ventClosed){
+      // Close vent
+      G.ventClosed=true;G.oxyActive=true;
+      G.ventWaiting=true;G.ventDone=false;
+      sndVentClose();
+      ventTout=setTimeout(()=>{
+        G.ventDone=true;
+        G.ventWaiting=false;
+      },3000+Math.random()*4000);
+    } else if(G.ventDone){
+      // Open vent back up
+      clearTimeout(ventTout);
+      G.ventClosed=false;G.oxyActive=false;G.oxygen=100;
+      G.ventWaiting=false;G.ventDone=false;
+      if(G.phase==='vent') G.phase='idle';
+      zoomOut();
+    }
+    // If ventWaiting — click does nothing, wait for crawl to stop
+  }
+}
+
+/* Zoom draw — renders a close-up view of the target zone */
+function drawZoom(ts){
+  if(!G.zoom||G.zoomT<=0) return;
+  const t=G.zoomT; // 0→1 easing
+  const ease=t*t*(3-2*t); // smoothstep
+
+  let srcX,srcY,srcW,srcH;
+  switch(G.zoom){
+    case 'window': srcX=0;  srcY=20; srcW=130;srcH=150;break;
+    case 'door':   srcX=155;srcY=70; srcW=150;srcH=170;break;
+    case 'vent':   srcX=240;srcY=0;  srcW=80; srcH=60; break;
+    default: return;
+  }
+
+  // Lerp from full view to zoomed rect
+  const dstX=srcX*ease;
+  const dstY=srcY*ease;
+  const dstW=W-(W-srcW)*ease;  // shrinks source seen area
+  const dstH=H-(H-srcH)*ease;
+
+  // Draw zoomed region into full canvas
+  const offscr=document.createElement('canvas');
+  offscr.width=W;offscr.height=H;
+  const oc=offscr.getContext('2d');
+  // Copy current frame onto offscreen (already drawn)
+  oc.drawImage(canvas,0,0);
+
+  // Overlay: darken edges
+  ctx.fillStyle=`rgba(0,0,0,${ease*0.7})`;
+  ctx.fillRect(0,0,W,H);
+
+  // Draw the zoomed region scaled up
+  ctx.drawImage(offscr,
+    srcX,srcY,srcW,srcH,
+    0,0,W,H
+  );
+
+  // Draw zone-specific UI
+  ctx.save();
+  if(G.zoom==='window' && ease>0.7){
+    drawZoomWindow(ts,ease);
+  } else if(G.zoom==='door' && ease>0.7){
+    drawZoomDoor(ts,ease);
+  } else if(G.zoom==='vent' && ease>0.7){
+    drawZoomVent(ts,ease);
+  }
+  ctx.restore();
+}
+
+function drawZoomWindow(ts,ease){
+  const a=ease-0.7;
+  // "Pərdəni çək" hint at bottom
+  if(!G.curtain && G.phase==='window'){
+    ctx.fillStyle=`rgba(0,0,0,${a*2})`;
+    ctx.fillRect(0,H-30,W,30);
+    ctx.fillStyle=`rgba(200,50,50,${a*3})`;
+    ctx.font='18px VT323';ctx.textAlign='center';
+    ctx.fillText('[ KLİK → PƏRDƏNİ ÇƏK ]',W/2,H-10);
+  } else if(G.curtain){
+    ctx.fillStyle=`rgba(0,0,0,${a*2})`;
+    ctx.fillRect(0,H-30,W,30);
+    ctx.fillStyle=`rgba(80,160,80,${a*3})`;
+    ctx.font='16px VT323';ctx.textAlign='center';
+    ctx.fillText('PƏRDƏ BAĞLIDIR — ESC',W/2,H-10);
+  }
+}
+
+function drawZoomDoor(ts,ease){
+  const a=(ease-0.7)*3;
+  if(G.phase==='door'){
+    // Knock timer bar at top
+    const pct=G.knockTimer/8000;
+    ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillRect(0,0,W,14);
+    ctx.fillStyle=pct>0.4?'#cc2020':'#ff4040';
+    ctx.fillRect(0,0,W*pct,14);
+
+    if(G.isRealFoodPending){
+      // Two action zones
+      ctx.fillStyle=`rgba(0,60,0,${a*0.3})`;ctx.fillRect(0,H/2-1,W,H/2);
+      ctx.fillStyle=`rgba(60,0,0,${a*0.3})`;ctx.fillRect(0,0,W,H/2-1);
+      ctx.fillStyle=`rgba(80,200,80,${a})`;
+      ctx.font='20px VT323';ctx.textAlign='center';
+      ctx.fillText('[ QAPINI AÇ — YEMƏYİ GÖT ]',W/2,H*0.75);
+      ctx.fillStyle=`rgba(200,60,60,${a})`;
+      ctx.fillText('[ QAPINI KİLİDLƏ ]',W/2,H*0.25);
+    } else {
+      ctx.fillStyle=`rgba(0,0,0,${a*0.4})`;ctx.fillRect(0,H-36,W,36);
+      ctx.fillStyle=`rgba(200,60,60,${a})`;
+      ctx.font='20px VT323';ctx.textAlign='center';
+      ctx.fillText('[ KLİK → QAPINI KİLİDLƏ ]',W/2,H-12);
+    }
+  } else {
+    ctx.fillStyle=`rgba(0,0,0,${a*0.5})`;ctx.fillRect(0,H-28,W,28);
+    ctx.fillStyle=`rgba(160,160,80,${a})`;
+    ctx.font='14px VT323';ctx.textAlign='center';
+    ctx.fillText('ESC — GERİ QAY',W/2,H-10);
+  }
+}
+
+function drawZoomVent(ts,ease){
+  const a=(ease-0.7)*3;
+  ctx.fillStyle=`rgba(0,0,0,${a*0.5})`;ctx.fillRect(0,H-36,W,36);
+  if(!G.ventClosed){
+    ctx.fillStyle=`rgba(200,60,60,${a})`;
+    ctx.font='18px VT323';ctx.textAlign='center';
+    ctx.fillText('[ KLİK → BAĞLA ]',W/2,H-12);
+  } else if(G.ventWaiting){
+    const pulse=0.6+0.4*Math.sin(ts*0.008);
+    ctx.fillStyle=`rgba(80,160,80,${a*pulse})`;
+    ctx.font='16px VT323';ctx.textAlign='center';
+    ctx.fillText('Gözlə... Səs kəsilir',W/2,H-12);
+  } else if(G.ventDone){
+    ctx.fillStyle=`rgba(80,200,80,${a})`;
+    ctx.font='18px VT323';ctx.textAlign='center';
+    ctx.fillText('[ KLİK → AÇ ]',W/2,H-12);
+  }
+}
+
+/* ====================================================
+   MONSTER LOGIC
+   ==================================================== */
 function maybeSpawn(){
   if(G.phase!=='idle') return;
   const pace=G.score/(HOURS[G.hour].goal||1);
@@ -1260,60 +1445,40 @@ function startWindow(){
   if(G.curtain){return;}
   G.phase='window';G.winTimer=8000;G.monsterAlpha=0;
   sndWindowShadow();
-  showOv('ov-window');
+  // Auto-open zoom so player sees window
+  startZoom('window');
 }
 function resolveWindow(survived){
-  hideOv('ov-window');
+  G.phase='idle';G.monsterAlpha=0;
   if(survived){
-    G.curtain=true;G.darkAlpha=Math.min(1,G.darkAlpha+0.25);
-    G.phase='idle';G.monsterAlpha=0;
-    setTimeout(()=>{G.curtain=false;G.darkAlpha=Math.max(0,G.darkAlpha-0.25);},5000);
+    G.curtain=true;
+    G.darkAlpha=Math.min(1,G.darkAlpha+0.25);
+    setTimeout(()=>{
+      G.curtain=false;
+      G.darkAlpha=Math.max(0,G.darkAlpha-0.25);
+    },5000);
   } else {
-    G.phase='idle';G.monsterAlpha=0;
     jumpscare('Pəncərəni gördü!');
   }
 }
 
-let knockIv=null;
 function startDoor(){
   G.phase='door';
   const food=G.hunger<50&&Math.random()<0.4;
   G.isRealFood=food&&Math.random()<0.65;
   G.isRealFoodPending=G.isRealFood;
-  const tit=document.getElementById('door-title');
-  const dsc=document.getElementById('door-desc');
-  const lb=document.getElementById('btn-lock');
-  const fb=document.getElementById('btn-food');
-  if(food){
-    if(G.isRealFood){
-      showNotif('▶ Delivery has arrived.');
-      setTimeout(hideNotif,3000);
-      tit.textContent='QAPI + ÇATDIRILma';
-      dsc.textContent='Bildiriş gəldi — yemək ola bilər.\nQərar ver!';
-      lb.style.display='block';fb.style.display='block';
-    } else {
-      tit.textContent='QAPI DÖYÜLÜR';
-      dsc.textContent='Bildiriş yoxdur — ehtiyatlı ol!';
-      lb.style.display='block';fb.style.display='block';
-    }
-  } else {
-    tit.textContent='QAPI DÖYÜLÜR!';
-    dsc.textContent='Tez gedin qapını kilidləyin!';
-    lb.style.display='block';fb.style.display='none';
-  }
-  showOv('ov-door');
   sndKnock();
   G.knockTimer=8000;
   clearInterval(knockIv);
-  const bar=document.getElementById('knock-fill');
   knockIv=setInterval(()=>{
     G.knockTimer-=100;
-    bar.style.width=(G.knockTimer/8000*100)+'%';
     if(G.knockTimer<=0){clearInterval(knockIv);resolveDoor(false);}
   },100);
+  // Auto-open zoom so player sees door
+  startZoom('door');
 }
 function resolveDoor(ok,ate){
-  clearInterval(knockIv);hideOv('ov-door');
+  clearInterval(knockIv);
   G.phase='idle';G.isRealFoodPending=false;
   G.doorLocked=ok;
   if(ok){
@@ -1324,48 +1489,22 @@ function resolveDoor(ok,ate){
   }
 }
 
-let ventTout=null;
 function startVent(){
   G.phase='vent';
   sndCreep();
   setTimeout(sndCreep,2000);
-  const vc=document.getElementById('btn-vent-close');
-  const vw2=document.getElementById('btn-vent-open');
-  const vwait=document.getElementById('vent-wait');
-  vc.style.display='block';vw2.style.display='none';vwait.style.display='none';
-  showOv('ov-vent');
+  startZoom('vent');
 }
 
-document.getElementById('btn-curtain').onclick=()=>resolveWindow(true);
-document.getElementById('btn-lock').onclick=()=>{clearInterval(knockIv);sndDoorLocked();resolveDoor(true,false);};
-document.getElementById('btn-food').onclick=()=>{
-  clearInterval(knockIv);
-  G.isRealFood?resolveDoor(true,true):resolveDoor(false);
-};
-document.getElementById('btn-vent-close').onclick=()=>{
-  G.ventClosed=true;G.oxyActive=true;
-  sndVentClose();
-  document.getElementById('btn-vent-close').style.display='none';
-  document.getElementById('vent-wait').style.display='block';
-  ventTout=setTimeout(()=>{
-    document.getElementById('btn-vent-open').style.display='block';
-  },3000+Math.random()*4000);
-};
-document.getElementById('btn-vent-open').onclick=()=>{
-  clearTimeout(ventTout);
-  G.ventClosed=false;G.oxyActive=false;G.oxygen=100;
-  hideOv('ov-vent');G.phase='idle';
-  document.getElementById('btn-vent-close').style.display='block';
-  document.getElementById('vent-wait').style.display='none';
-  document.getElementById('btn-vent-open').style.display='none';
-};
+/* button handlers removed — interaction now via canvas zoom clicks */
 
 /* ====================================================
    JUMPSCARE
    ==================================================== */
 function jumpscare(msg){
   G.paused=true;G.phase='idle';
-  hideAllOv();G.lives--;
+  G.zoom=null;
+  G.lives--;
   sndJumpscare();
   const msgs=['GÖRDİ','GİRDİ','TAPDI'];
   const js=document.getElementById('jumpscare');
@@ -1463,21 +1602,9 @@ document.getElementById('end-btn').onclick=()=>{
   document.getElementById('endscreen').style.display='none';resetGame();
 };
 
-/* ====================================================
-   OVERLAY HELPERS
-   ==================================================== */
-function showOv(id){G.paused=true;document.getElementById(id).classList.add('show');}
-function hideOv(id){
-  document.getElementById(id).classList.remove('show');
-  if(!document.querySelector('.overlay.show')) G.paused=false;
-}
-function hideAllOv(){document.querySelectorAll('.overlay').forEach(o=>o.classList.remove('show'));G.paused=false;}
 function showNotif(msg){const n=document.getElementById('notif');n.textContent=msg;n.style.display='block';}
 function hideNotif(){document.getElementById('notif').style.display='none';}
 
-/* ====================================================
-   GAME LOOP
-   ==================================================== */
 let lastT=0;
 function loop(ts){
   if(!G.running) return;
@@ -1495,17 +1622,20 @@ function loop(ts){
       G.monsterAlpha=Math.min(1,(8000-G.winTimer)/4000);
       if(G.winTimer<=0) resolveWindow(false);
     }
-    // flicker effect for atmosphere
+    // flicker
     G.flickerT+=dt;
     if(G.flickerT>3000+Math.random()*4000){
-      G.flickerT=0;
-      G.flickerAlpha=0.4;
+      G.flickerT=0;G.flickerAlpha=0.4;
       setTimeout(()=>{G.flickerAlpha=0;},80);
     }
   }
 
+  updateZoom(dt);
+
   ctx.clearRect(0,0,W,H);
   drawRoom(ts);
+  // Zoom overlay drawn on top
+  if(G.zoom) drawZoom(ts);
 
   requestAnimationFrame(loop);
 }
@@ -1515,7 +1645,6 @@ function loop(ts){
    ==================================================== */
 function resetGame(){
   resetState();
-  hideAllOv();
   hideNotif();
   document.getElementById('endscreen').style.display='none';
   document.getElementById('note-overlay').style.display='none';
