@@ -72,7 +72,7 @@
 
   /* ============ STAT DIALS ============ */
   .dials{
-    display:grid; grid-template-columns:repeat(5,1fr); gap:8px;
+    display:grid; grid-template-columns:repeat(6,1fr); gap:8px;
     margin-bottom:20px;
   }
   @media (max-width:420px){
@@ -218,13 +218,14 @@
       <h1>TARAZLIQ</h1>
       <div class="motto">Yeni Cəmiyyət Partiyası — "Güclü millət, güclü dövlət, parlaq gələcək!"</div>
       <p>2026. Heç vaxt başqa bir imperiyanın tərkibində olmamış bu Azərbaycanda, YCP seçkiləri qazandı. Möhürü təhvil aldınız — indi qərarlar sizindir.</p>
-      <p>Hər gün qəbul otağınıza vətəndaşlar gəlir. Hər birinin problemi var, hər həllin qiyməti. Məqsəd ölkəni "idarə etmək" deyil — beş göstərici arasında <b>tarazlıq</b> saxlamaqdır. Heç bir variant tam doğru deyil; hər addımın həm xeyri, həm zərəri var.</p>
+      <p>Hər gün qəbul otağınıza vətəndaşlar gəlir. Hər birinin problemi var, hər həllin qiyməti. Məqsəd ölkəni "idarə etmək" deyil — altı göstərici arasında <b>tarazlıq</b> saxlamaqdır. Heç bir variant tam doğru deyil; hər addımın həm xeyri, həm zərəri var.</p>
       <div class="stat-key">
         <span>🪙 Əmək haqqı</span>
         <span>🏠 Həyat rifahı</span>
         <span>🎓 Təhsil</span>
         <span>🤝 Hökumətə inam</span>
         <span>💰 Dövlət xəzinəsi</span>
+        <span>🪖 Ordu</span>
       </div>
       <p style="font-size:11.5px;color:var(--slate);">Hər göstərici 0–100 arasındadır. Hədlərə yaxınlaşsa, böhran qaçılmaz olur. 4 illik vəzifə müddəti bitəndə xalq səsini verəcək.</p>
       <div class="start-row"><button class="btn" id="btn-start">VƏZİFƏYƏ BAŞLA</button></div>
@@ -285,6 +286,7 @@ const STAT_META = {
   education: { label:'Təhsil',         icon:'🎓' },
   trust:     { label:'Hökumətə inam',  icon:'🤝' },
   budget:    { label:'Dövlət xəzinəsi',icon:'💰' },
+  army:      { label:'Ordu',           icon:'🪖' },
 };
 const STAT_KEYS = Object.keys(STAT_META);
 
@@ -420,11 +422,19 @@ const DILEMMAS = [
 
   { id:'army', icon:'🪖', role:'Hərbi General', name:'General Səfərov',
     quote:'Ordumuzun texnikası köhnəlib. Müasirləşmə vaxtı çatıb.',
-    advisor:{name:'Müdafiə Naziri', note:'Sərhədlərimizin gücü, xalqın gücüdür, cənab Prezident.'},
+    advisor:{name:'Müdafiə Naziri', note:'Sərhədlərimizin gücü, dövlətin sabitliyinin zəmanətidir, cənab Prezident.'},
     options:[
-      { letter:'A', title:'Böyük modernləşmə proqramı', headline:'Orduda böyük modernləşmə proqramı elan edildi', effects:{trust:6,budget:-14}, delayed:{after:5, effects:{education:2}, headline:'Hərbi-texniki məktəblərə yeni mütəxəssis axını başladı'} },
-      { letter:'B', title:'Orta səviyyəli yenilənmə', headline:'Ordu texnikasının qismən yenilənməsi başladı', effects:{budget:-6,trust:2} },
-      { letter:'C', title:'İndi yox', headline:'Hərbi modernləşmə təxirə salındı', effects:{trust:-5} },
+      { letter:'A', title:'Böyük modernləşmə proqramı', headline:'Orduda böyük modernləşmə proqramı elan edildi', effects:{army:15,trust:4,budget:-14}, delayed:{after:5, effects:{education:2}, headline:'Hərbi-texniki məktəblərə yeni mütəxəssis axını başladı'} },
+      { letter:'B', title:'Orta səviyyəli yenilənmə', headline:'Ordu texnikasının qismən yenilənməsi başladı', effects:{army:7,budget:-6,trust:1} },
+      { letter:'C', title:'İndi yox', headline:'Hərbi modernləşmə təxirə salındı, ordu köhnə texnika ilə qalır', effects:{army:-6,trust:-3} },
+    ]},
+
+  { id:'border_patrol', icon:'🪖', role:'Sərhəd Zabiti', name:'Mayor Hüseynov',
+    quote:'Sərhəd məntəqələrimizdə müasir təchizat çatışmır, əsgərlərimiz köhnə avadanlıqla xidmət edir.',
+    options:[
+      { letter:'A', title:'Sərhəd qoşunlarını tam təchiz et', headline:'Sərhəd məntəqələri müasir hərbi texnika ilə təchiz edildi', effects:{army:10,budget:-9} },
+      { letter:'B', title:'Qismən təchizat yenilə', headline:'Sərhəd qoşunlarına qismən yeni avadanlıq verildi', effects:{army:5,budget:-4} },
+      { letter:'C', title:'Hazırkı vəziyyəti saxla', headline:'Sərhəd təchizatı məsələsi həllini gözləyir', effects:{army:-4,trust:-2} },
     ]},
 
   { id:'prices', icon:'🏘️', role:'Ailə Başçısı', name:'Fərid',
@@ -509,6 +519,12 @@ const EVENTS = [
       { letter:'A', title:'Dialoq və güzəştlər təklif et', headline:'Hökumət etirazçılarla dialoqa getdi, gərginlik azaldı', effects:{trust:8,budget:-4} },
       { letter:'B', title:'Sərt qaydada nizamla', headline:'Etiraz aksiyası sərt tədbirlərlə dağıdıldı, beynəlxalq tənqid gəldi', effects:{trust:-6}, delayed:{after:3, effects:{trust:-5}, headline:'Beynəlxalq təşkilatlar etiraza münasibətə görə hökuməti tənqid etdi'} },
     ]},
+  { id:'border_tension', icon:'🪖', tag:'TƏHLÜKƏSİZLİK', headline:'Sərhəd boyunca gərginlik artıb, təxribat xəbərləri yayılır',
+    shock:{ effects:{trust:-6} },
+    options:[
+      { letter:'A', title:'Sərhədə əlavə qüvvə göndər', headline:'Sərhədə əlavə hərbi qüvvə yerləşdirildi, gərginlik səngidi', effects:{army:8,budget:-7,trust:4} },
+      { letter:'B', title:'Diplomatik yolla həll et', headline:'Gərginlik diplomatik danışıqlar yolu ilə aradan qaldırıldı', effects:{trust:6,army:-2} },
+    ]},
 ];
 
 /* ---------------- CONTENT: FORCED CRISES (threshold-triggered) ---------------- */
@@ -532,6 +548,11 @@ const CRISES = {
     options:[
       { letter:'A', title:'Təhsilə fövqəladə fond ayır', headline:'Təhsil sahəsinə fövqəladə dövlət fondu yaradıldı', effects:{education:15,budget:-10} },
       { letter:'B', title:'Xaricdə təhsil proqramlarını genişləndir', headline:'Gənclər üçün xaricdə təhsil proqramları genişləndirildi', effects:{education:8,budget:-6} },
+    ]},
+  army: { icon:'🪖', tag:'BÖHRAN', headline:'Ordunun zəifləməsi sərhəd təhlükəsizliyini böhran həddinə çatdırdı',
+    options:[
+      { letter:'A', title:'Təcili hərbi səfərbərlik elan et', headline:'Hökumət təcili hərbi səfərbərlik elan etdi', effects:{army:18,budget:-10,trust:-2} },
+      { letter:'B', title:'Müttəfiq dövlətlərdən dəstək istə', headline:'Hökumət müttəfiq dövlətlərdən təcili hərbi yardım istədi', effects:{army:10,trust:-4}, delayed:{after:5, effects:{budget:-5}, headline:'Müttəfiq dövlətlərdən alınan hərbi yardımın qarşılığı ödənilir'} },
     ]},
 };
 
@@ -557,6 +578,10 @@ const CABINET = [
     low:'Xalqın hökumətə etimadı azalır — addımlarımızı izah etməliyik.',
     mid:'Xalqla əlaqələrimiz sabit səviyyədədir.',
     high:'Xalqın dəstəyi yüksəkdir — bu, gücümüzün təməlidir.' },
+  { key:'army', icon:'🪖', name:'Müdafiə Naziri',
+    low:'Ordumuzun gücü kifayət deyil, sərhədlərimiz təhlükə altındadır.',
+    mid:'Müdafiə qabiliyyətimiz qənaətbəxş səviyyədədir.',
+    high:'Ordumuz güclüdür — bu, dövlətimizin sabitliyinin təməlidir.' },
 ];
 
 function cabinetLine(item, stats){
@@ -584,7 +609,7 @@ let state = null;
 function newState(){
   return {
     day: 1,
-    stats: { salary:50, welfare:50, education:50, trust:50, budget:50 },
+    stats: { salary:50, welfare:50, education:50, trust:50, budget:50, army:50 },
     pendingEffects: [],
     recentIds: [],
     queue: [],
@@ -628,9 +653,9 @@ function renderDials(){
   renderScale();
 }
 function renderScale(){
-  // tilt beam toward whichever side (budget+education vs salary+welfare, trust as fulcrum signal) deviates most from balance
+  // tilt beam toward whichever side — xalq (salary+welfare) vs dövlət gücü (budget+education+army) — deviates most
   const left = (state.stats.salary + state.stats.welfare)/2;
-  const right = (state.stats.education + state.stats.budget)/2;
+  const right = (state.stats.budget + state.stats.education + state.stats.army)/3;
   const diff = clampNum(right-left, -40, 40);
   const angle = diff/40*12; // max 12deg tilt
   document.getElementById('scale-beam').setAttribute('transform', `rotate(${angle.toFixed(1)})`);
@@ -856,6 +881,7 @@ function checkCrisisTrigger(){
   if(s.budget<=10) return 'budget';
   if(s.trust<=10) return 'trust';
   if(s.education<=15) return 'education';
+  if(s.army<=15) return 'army';
   return null;
 }
 
@@ -877,7 +903,7 @@ function advanceDay(){
 function renderElection(){
   showScreen('screen-end');
   const s = state.stats;
-  let approval = s.trust*0.45 + ((s.salary+s.welfare+s.education)/3)*0.55;
+  let approval = s.trust*0.35 + ((s.salary+s.welfare+s.education)/3)*0.45 + s.army*0.20;
   if(s.budget<=15) approval -= 12;
   else if(s.budget>=90) approval -= 5;
   approval = clampNum(approval, 0, 100);
