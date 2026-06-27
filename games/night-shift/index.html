@@ -771,23 +771,20 @@ function drawMonitor(c,ts){
   px(c,sx+1,sy+1,sw-2,sh-2,P.monScrGlow);
 
   if(G.tetrisActive){
-    // Draw tetris gameplay
     drawTetOnMon(c,sx,sy,sw,sh);
     // Scanlines
-    c.fillStyle='rgba(0,0,0,0.12)';
+    c.fillStyle='rgba(0,0,0,0.10)';
     for(let r=0;r<sh;r+=2) c.fillRect(sx,sy+r,sw,1);
-    // Green glow around screen
-    c.strokeStyle='rgba(30,180,60,0.25)';c.lineWidth=3;
-    c.strokeRect(sx-2,sy-2,sw+4,sh+4);
-    // Score display on screen
-    pxText(c,'XAL:'+G.tetScore,sx+2,sy+sh-4,'#30cc50',7,'monospace');
-    // "ESC: çıx" hint at bottom
-    pxText(c,'ESC: masaya qayıt',sx+2,my+mh-4,'#1a3a20',6,'monospace');
-    // FOOD ARRIVED on screen
+    // Screen glow border
+    c.strokeStyle='rgba(30,180,60,0.2)';c.lineWidth=2;
+    c.strokeRect(sx-1,sy-1,sw+2,sh+2);
+    // FOOD ARRIVED notification
     if(G.isRealFoodPending){
-      px(c,sx,sy,sw,14,'#001800');
-      pxRect(c,sx,sy,sw,14,'#1a5a20',1);
-      pxTextC(c,'FOOD ARRIVED!',sx+sw/2,sy+10,'#40ee60',8,'monospace');
+      c.save();c.beginPath();c.rect(sx,sy,sw,sh);c.clip();
+      px(c,sx,sy,sw,12,'#001800');
+      pxRect(c,sx,sy,sw,12,'#1a5a20',1);
+      pxTextC(c,'FOOD ARRIVED!',sx+sw/2,sy+9,'#40ee60',7,'monospace');
+      c.restore();
     }
   } else {
     // Idle screen — screensaver / waiting
@@ -824,42 +821,43 @@ function drawMonitor(c,ts){
 }
 
 function drawTetOnMon(c,sx,sy,sw,sh){
-  // Reserve bottom strip for score
-  const scoreH=10;
-  const playH=sh-scoreH;
-  const cw=sw/TC, ch=playH/TR;
+  // Clip strictly to screen area so blocks never overflow
+  c.save();
+  c.beginPath();
+  c.rect(sx,sy,sw,sh);
+  c.clip();
 
-  // Grid background — subtle lines
-  c.fillStyle='#030f05';
+  const scoreH=9;
+  const playH=sh-scoreH;
+  const cw=Math.floor(sw/TC);
+  const ch=Math.floor(playH/TR);
+  // Center the play area horizontally within the screen
+  const offX=sx+Math.floor((sw-cw*TC)/2);
+  const offY=sy;
+
+  // Grid bg
+  c.fillStyle='#020c04';
   c.fillRect(sx,sy,sw,playH);
-  c.strokeStyle='rgba(0,180,40,0.07)';c.lineWidth=0.5;
+  // Grid lines
+  c.strokeStyle='rgba(0,180,40,0.06)';c.lineWidth=0.5;
   for(let r=0;r<=TR;r++){
-    c.beginPath();c.moveTo(sx,sy+r*ch);c.lineTo(sx+sw,sy+r*ch);c.stroke();
+    c.beginPath();c.moveTo(offX,offY+r*ch);c.lineTo(offX+cw*TC,offY+r*ch);c.stroke();
   }
-  for(let cc=0;cc<=TC;cc++){
-    c.beginPath();c.moveTo(sx+cc*cw,sy);c.lineTo(sx+cc*cw,sy+playH);c.stroke();
+  for(let col=0;col<=TC;col++){
+    c.beginPath();c.moveTo(offX+col*cw,offY);c.lineTo(offX+col*cw,offY+ch*TR);c.stroke();
   }
 
   // Board cells
   tet.board.forEach((row,r)=>{
     row.forEach((col,cc)=>{
       if(!col) return;
-      const bx=Math.round(sx+cc*cw), by=Math.round(sy+r*ch);
-      const bw2=Math.round(cw)-1, bh2=Math.round(ch)-1;
-      // Main fill
-      c.fillStyle=col;
-      c.fillRect(bx,by,bw2,bh2);
-      // Top-left highlight (bevel)
+      const bx=offX+cc*cw, by=offY+r*ch;
+      const bw2=cw-1, bh2=ch-1;
+      c.fillStyle=col; c.fillRect(bx,by,bw2,bh2);
       c.fillStyle='rgba(255,255,255,0.35)';
-      c.fillRect(bx,by,bw2,1);
-      c.fillRect(bx,by,1,bh2);
-      // Bottom-right shadow
-      c.fillStyle='rgba(0,0,0,0.4)';
-      c.fillRect(bx,by+bh2-1,bw2,1);
-      c.fillRect(bx+bw2-1,by,1,bh2);
-      // Inner glow dot
-      c.fillStyle='rgba(255,255,255,0.15)';
-      c.fillRect(bx+2,by+2,Math.max(1,bw2-4),Math.max(1,bh2-4));
+      c.fillRect(bx,by,bw2,1); c.fillRect(bx,by,1,bh2);
+      c.fillStyle='rgba(0,0,0,0.35)';
+      c.fillRect(bx,by+bh2-1,bw2,1); c.fillRect(bx+bw2-1,by,1,bh2);
     });
   });
 
@@ -868,58 +866,53 @@ function drawTetOnMon(c,sx,sy,sw,sh){
     let gy=tet.y;
     while(!tCollide(tet.piece.shape,tet.x,gy+1)) gy++;
     if(gy!==tet.y){
+      c.strokeStyle=tet.piece.col+'66';c.lineWidth=0.5;
       tet.piece.shape.forEach((row,r)=>row.forEach((v,cc)=>{
         if(!v) return;
-        const bx=Math.round(sx+(tet.x+cc)*cw), by=Math.round(sy+(gy+r)*ch);
-        c.strokeStyle=tet.piece.col+'88';c.lineWidth=1;
-        c.strokeRect(bx+0.5,by+0.5,Math.round(cw)-2,Math.round(ch)-2);
+        c.strokeRect(offX+(tet.x+cc)*cw+0.5,offY+(gy+r)*ch+0.5,cw-1,ch-1);
       }));
     }
-
-    // Active piece with glow
+    // Active piece
     tet.piece.shape.forEach((row,r)=>{
       row.forEach((v,cc)=>{
         if(!v) return;
-        const bx=Math.round(sx+(tet.x+cc)*cw), by=Math.round(sy+(tet.y+r)*ch);
-        const bw2=Math.round(cw)-1, bh2=Math.round(ch)-1;
-        // Glow aura
-        c.fillStyle=tet.piece.col+'44';
-        c.fillRect(bx-1,by-1,bw2+2,bh2+2);
-        // Main fill
-        c.fillStyle=tet.piece.col;
-        c.fillRect(bx,by,bw2,bh2);
-        // Bright highlight
+        const bx=offX+(tet.x+cc)*cw, by=offY+(tet.y+r)*ch;
+        const bw2=cw-1, bh2=ch-1;
+        c.fillStyle=tet.piece.col+'55'; c.fillRect(bx-1,by-1,bw2+2,bh2+2);
+        c.fillStyle=tet.piece.col; c.fillRect(bx,by,bw2,bh2);
         c.fillStyle='rgba(255,255,255,0.5)';
-        c.fillRect(bx,by,bw2,2);
-        c.fillRect(bx,by,2,bh2);
+        c.fillRect(bx,by,bw2,2); c.fillRect(bx,by,2,bh2);
         c.fillStyle='rgba(0,0,0,0.3)';
         c.fillRect(bx,by+bh2-1,bw2,1);
       });
     });
   }
 
-  // Score strip at bottom of screen
-  c.fillStyle='#020c04';
+  // Score strip
+  c.fillStyle='#010a03';
   c.fillRect(sx,sy+playH,sw,scoreH);
-  c.fillStyle='rgba(0,200,60,0.15)';
+  c.fillStyle='rgba(0,200,60,0.2)';
   c.fillRect(sx,sy+playH,sw,1);
-  c.fillStyle='#20cc40';
-  c.font=`bold ${Math.round(scoreH*0.8)}px monospace`;
+  c.fillStyle='#18cc38';
+  c.font=`bold ${scoreH-1}px monospace`;
   c.textAlign='left';
-  c.fillText('XAL:'+G.tetScore,sx+2,sy+playH+scoreH-1);
+  c.fillText('XAL:'+G.tetScore,sx+2,sy+sh-1);
 
-  // Next piece hint — top right corner
-  const npx=sx+sw-cw*2-1, npy=sy+1;
-  c.fillStyle='rgba(0,0,0,0.5)';
-  c.fillRect(npx-1,npy-1,cw*2+2,cw*2+2);
+  // Next piece preview — top-right inside screen
   if(tet.next){
     const ns=tet.next.shape;
+    const npx=offX+cw*TC-ns[0].length*cw;
+    const npy=offY+1;
+    c.fillStyle='rgba(0,0,0,0.5)';
+    c.fillRect(npx-1,npy-1,ns[0].length*cw+1,ns.length*cw+1);
     ns.forEach((row,r)=>row.forEach((v,cc)=>{
       if(!v) return;
       c.fillStyle=tet.next.col;
-      c.fillRect(Math.round(npx+cc*cw),Math.round(npy+r*cw),Math.round(cw)-1,Math.round(cw)-1);
+      c.fillRect(npx+cc*cw,npy+r*cw,cw-1,cw-1);
     }));
   }
+
+  c.restore();
 }
 
 /* ---- LAMP ---- */
@@ -969,36 +962,39 @@ function drawClock(c){
 
 /* ---- STATUS EFFECTS: door locked / vent closed visual indicators ---- */
 function drawStatusEffects(c,ts){
-  // Door locked — heavy bolt visual on door
+  const {doorX:dx,doorY:dy,doorW:dw,doorH:dh}=R;
+
+  // Always show door status badge above door
+  const badgeW=dw+4, badgeH=10;
+  const badgeX=dx-2, badgeY=dy-13;
   if(G.doorLocked){
-    const {doorX:dx,doorY:dy,doorW:dw,doorH:dh}=R;
-    // Red chain/bolt bar across door
-    const barY=dy+dh*0.45;
-    px(c,dx-6,barY-3,dw+12,8,'#3a0808');
-    px(c,dx-6,barY-2,dw+12,6,'#8a1010');
-    px(c,dx-6,barY-1,dw+12,1,'#cc2020');
-    // Bolt icons at both ends
-    pxCircle(c,dx-4,barY+2,5,'#cc3020');
-    pxCircle(c,dx+dw+4,barY+2,5,'#cc3020');
-    // LOCKED text above door
-    const pa2=0.7+0.3*Math.sin(ts*0.005);
-    c.fillStyle=`rgba(200,40,40,${pa2})`;
-    c.font='8px monospace';c.textAlign='center';
-    c.fillText('KİLİDLİ',dx+dw/2,dy-4);
+    px(c,badgeX,badgeY,badgeW,badgeH,'#0a1a0a');
+    pxRect(c,badgeX,badgeY,badgeW,badgeH,'#1a5a20',1);
+    pxTextC(c,'● BAĞLI',badgeX+badgeW/2,badgeY+8,'#30cc50',7,'monospace');
+    // Red bolt bar across door middle
+    const barY=dy+dh*0.44;
+    px(c,dx-4,barY-2,dw+8,6,'#2a0808');
+    px(c,dx-4,barY-1,dw+8,4,'#7a1010');
+    px(c,dx-4,barY,dw+8,1,'#cc2020');
+    // bolt heads
+    pxCircle(c,dx-2,barY+1,4,'#cc3020');
+    pxCircle(c,dx+dw+2,barY+1,4,'#cc3020');
+  } else {
+    px(c,badgeX,badgeY,badgeW,badgeH,'#0a0a08');
+    pxRect(c,badgeX,badgeY,badgeW,badgeH,'#1e1a10',1);
+    pxTextC(c,'○ AÇIQ',badgeX+badgeW/2,badgeY+8,'#3a3020',7,'monospace');
   }
-  // Vent closed — metal plate visual + oxygen warning
+
+  // Vent closed indicators
   if(G.ventClosed){
     const {ventX:vx,ventY:vy,ventW:vw,ventH:vh}=R;
-    // Metal screws at corners
     [[vx+2,vy+2],[vx+vw-4,vy+2],[vx+2,vy+vh-4],[vx+vw-4,vy+vh-4]].forEach(([sx2,sy2])=>{
       pxCircle(c,sx2,sy2,2,'#4a4030');
       pxCircle(c,sx2,sy2,1,'#6a6050');
     });
-    // Red border glow
     const pa3=0.5+0.4*Math.sin(ts*0.004);
     c.strokeStyle=`rgba(180,80,0,${pa3})`;c.lineWidth=2;
     c.strokeRect(vx-3,vy-3,vw+6,vh+6);
-    // Oxy warning if getting low
     if(G.oxygen<50){
       const ow=0.6+0.4*Math.sin(ts*0.01);
       px(c,vx-2,vy+vh+2,vw+4,10,'#0a0000');
@@ -1349,24 +1345,6 @@ const SB = 90; // sidebar width
 const BTN_ACTION = {x:W-SB+4, y:60,  w:SB-8, h:36};
 const BTN_LOOK   = {x:W-SB+4, y:104, w:SB-8, h:36};
 const BTN_BACK   = {x:W-SB+4, y:H-44,w:SB-8, h:36};
-
-canvas.addEventListener('click',e=>{
-  if(!G.running) return;
-  const {cx,cy}=getCanvasPos(e);
-
-  if(G.view){
-    handleViewClick(cx,cy);
-    return;
-  }
-
-  for(const [name,z] of Object.entries(ZONES)){
-    if(hitZone(cx,cy,z)){
-      if(name==='monitor'){G.tetrisActive=!G.tetrisActive;sndMonitorClick();}
-      else{G.view=name;G.viewMode='action';}
-      return;
-    }
-  }
-});
 
 function inBtn(cx,cy,b){return cx>=b.x&&cx<=b.x+b.w&&cy>=b.y&&cy<=b.y+b.h;}
 
@@ -2153,8 +2131,184 @@ function loop(ts){
 }
 
 /* ====================================================
-   INIT
+   TUTORIAL SYSTEM
+   Shown once before game starts. Canvas-drawn pages.
    ==================================================== */
+const TUTORIAL_PAGES = [
+  {
+    title: 'XOŞ GƏLMİŞSİNİZ',
+    icon: '🏨',
+    lines: [
+      'Siz The Grand Hollow Hotel-in',
+      'gecə növbəçisisiniz.',
+      '',
+      'Saat 12:00 AM-dən 8:00 AM-ə qədər',
+      'otaqda qalmalısınız.',
+      '',
+      'Müdir maaş ödəyir.',
+      'Amma bu otel... qəribədir.',
+    ]
+  },
+  {
+    title: 'TETRİS — İŞİNİZ',
+    icon: '🎮',
+    lines: [
+      'Kompüterə TIKLAYIN — Tetris başlar.',
+      '',
+      '← → : hərəkət',
+      '↑    : fırlat',
+      '↓ / SPC : sür / sal',
+      '',
+      'Hər saat MINIMUM XAL TOPLAYIN.',
+      'Xal çatmasa — bir can itirirsiniz.',
+    ]
+  },
+  {
+    title: 'PƏNCƏRƏ',
+    icon: '🪟',
+    lines: [
+      'Pəncərədə KÖLGƏ görünsə —',
+      'pəncərəyə TIKLAYIN,',
+      'BAĞLA düyməsinə basın.',
+      '',
+      'Pərdə gecəni otağı qaranlıq edir.',
+      '',
+      'Vaxtında bağlamasanız —',
+      'bir can itirirsiniz.',
+    ]
+  },
+  {
+    title: 'QAPI',
+    icon: '🚪',
+    lines: [
+      'Qapı DÖYÜLƏRSƏ —',
+      'qapıya TIKLAYIN,',
+      'BAĞLA düyməsinə basın.',
+      '',
+      'Yemək gəlsə kompüterdə',
+      '"FOOD ARRIVED!" yazısı çıxar.',
+      'O zaman AÇ düyməsini basın.',
+      'Bildiriş yoxdursa — BAĞLAYIN!',
+    ]
+  },
+  {
+    title: 'VENTİLYASİYA',
+    icon: '🌬️',
+    lines: [
+      'Ventilyasiyadan SƏS GƏLİRSƏ —',
+      'ventilyasiyaya TIKLAYIN,',
+      'BAĞLA düyməsinə basın.',
+      '',
+      'Bağlı qaldıqca OKSİGEN azalır.',
+      'Səs kəsilən kimi AÇ düyməsini basın.',
+      '',
+      'Tez davranın!',
+    ]
+  },
+  {
+    title: 'HAZIRSINIZMI?',
+    icon: '🌙',
+    lines: [
+      '3 CAN var. Hamısı bitərsə oyun biter.',
+      '',
+      'Saat 8:00 AM-ə qədər sağ qalın.',
+      '',
+      'Uğurlar...',
+      '',
+      '       — Müdir',
+    ]
+  },
+];
+
+let tutPage=0;
+let inTutorial=false;
+
+function drawTutorial(ts){
+  const c=ctx;
+  const page=TUTORIAL_PAGES[tutPage];
+  const isLast=tutPage===TUTORIAL_PAGES.length-1;
+
+  // Bg
+  c.fillStyle='#050302';
+  c.fillRect(0,0,W,H);
+
+  // Border
+  c.strokeStyle='#2a2010';c.lineWidth=1;
+  c.strokeRect(10,10,W-20,H-20);
+  c.strokeStyle='#1a1408';
+  c.strokeRect(13,13,W-26,H-26);
+  // Corner ornaments
+  [[14,14],[W-14,14],[14,H-14],[W-14,H-14]].forEach(([cx2,cy2])=>{
+    c.fillStyle='#c8a84a';
+    c.fillRect(cx2-2,cy2-2,4,4);
+  });
+
+  // Page indicator dots
+  TUTORIAL_PAGES.forEach((_,i)=>{
+    c.fillStyle=i===tutPage?'#c8a84a':'#2a2010';
+    c.beginPath();c.arc(W/2-((TUTORIAL_PAGES.length-1)*7)+i*14,H-22,3,0,Math.PI*2);c.fill();
+  });
+
+  // Icon
+  c.font='28px monospace';c.textAlign='center';
+  c.fillText(page.icon,W/2,52);
+
+  // Title
+  c.fillStyle='#c8a84a';
+  c.font='bold 22px VT323';c.textAlign='center';
+  c.fillText(page.title,W/2,80);
+  // Title underline
+  c.strokeStyle='#3a2a10';c.lineWidth=1;
+  c.beginPath();c.moveTo(W/2-60,85);c.lineTo(W/2+60,85);c.stroke();
+
+  // Lines
+  page.lines.forEach((line,i)=>{
+    const isEmpty=line==='';
+    c.fillStyle=line.startsWith('←')||line.startsWith('↑')||line.startsWith('↓')
+      ? '#4a9050'
+      : line.startsWith('"')||line.startsWith(' ')
+      ? '#4a4030'
+      : '#8a8070';
+    c.font=`${isEmpty?'':line.length>30?'bold 11px':'bold 13px'} VT323`;
+    c.textAlign='center';
+    if(!isEmpty) c.fillText(line,W/2,104+i*18);
+  });
+
+  // Buttons
+  // NEXT / START
+  const bw=isLast?100:80, bh=22;
+  const bx=W/2+4, by=H-48;
+  c.fillStyle='#0a0700';
+  c.fillRect(bx-bw/2,by,bw,bh);
+  c.strokeStyle='#c8a84a';c.lineWidth=1;
+  c.strokeRect(bx-bw/2+0.5,by+0.5,bw-1,bh-1);
+  c.fillStyle='#c8a84a';
+  c.font='bold 15px VT323';c.textAlign='center';
+  c.fillText(isLast?'[ BAŞLA ]':'[ İRƏLİ ]',bx,by+bh*0.72);
+
+  // BACK (not on first page)
+  if(tutPage>0){
+    const bbx=W/2-bw/2-8;
+    const bbw=60;
+    c.fillStyle='#080604';
+    c.fillRect(bbx-bbw/2,by,bbw,bh);
+    c.strokeStyle='#2a2010';c.lineWidth=1;
+    c.strokeRect(bbx-bbw/2+0.5,by+0.5,bbw-1,bh-1);
+    c.fillStyle='#3a3020';
+    c.font='bold 14px VT323';c.textAlign='center';
+    c.fillText('[ GERİ ]',bbx,by+bh*0.72);
+  }
+}
+
+// Tutorial button zones (canvas px)
+function getTutBtns(){
+  const by=H-48, bh=22;
+  const isLast=tutPage===TUTORIAL_PAGES.length-1;
+  const bw=isLast?100:80;
+  const next={x:W/2-bw/2+4,y:by,w:bw,h:bh};
+  const back=tutPage>0?{x:W/2-bw/2+4-60-8-30,y:by,w:60,h:bh}:null;
+  return{next,back};
+}
 function resetGame(){
   resetState();
   hideNotif();
@@ -2170,8 +2324,50 @@ function resetGame(){
 document.getElementById('start-btn').onclick=()=>{
   document.getElementById('intro').style.display='none';
   document.getElementById('game').classList.add('active');
-  resetGame();
+  tutPage=0; inTutorial=true;
+  lastT=performance.now();
+  requestAnimationFrame(tutLoop);
 };
+
+function tutLoop(ts){
+  if(!inTutorial) return;
+  ctx.clearRect(0,0,W,H);
+  drawTutorial(ts);
+  requestAnimationFrame(tutLoop);
+}
+
+// Tutorial + main game click handler (capture phase, single listener)
+canvas.addEventListener('click',e=>{
+  const {cx,cy}=getCanvasPos(e);
+
+  // Tutorial clicks
+  if(inTutorial){
+    const {next,back}=getTutBtns();
+    if(inBtn(cx,cy,next)){
+      if(tutPage<TUTORIAL_PAGES.length-1) tutPage++;
+      else{ inTutorial=false; resetGame(); }
+    } else if(back && inBtn(cx,cy,back)){
+      tutPage=Math.max(0,tutPage-1);
+    }
+    return;
+  }
+
+  if(!G.running) return;
+
+  if(G.view){
+    handleViewClick(cx,cy);
+    return;
+  }
+
+  for(const [name,z] of Object.entries(ZONES)){
+    if(hitZone(cx,cy,z)){
+      if(name==='monitor'){G.tetrisActive=!G.tetrisActive;sndMonitorClick();}
+      else{G.view=name;G.viewMode='action';}
+      return;
+    }
+  }
+},true);
+
 </script>
 </body>
 </html>
