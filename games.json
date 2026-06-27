@@ -35,6 +35,13 @@
     "status": "live"
   },
   {
+    "id": "balance-of-power",
+    "title": "Tarazlıq",
+    "emoji": "⚖️",
+    "path": "games/balance-of-power/",
+    "status": "live"
+  },
+  {
     "id": "flappy-bird",
     "title": "Flappy Bird",
     "emoji": "🐦",
