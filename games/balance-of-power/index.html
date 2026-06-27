@@ -318,6 +318,314 @@ const DILEMMAS = [
       { letter:'C', title:'Büdcə hazırda yoxdur', headline:'Universitet təmiri növbəti ilə saxlanıldı', effects:{education:-4,trust:-4} },
     ]},
 
+{ id:'hospital_equipment', icon:'🏥', role:'Həkim', name:'Dr. Elnur',
+quote:'Xəstəxanamızda rentgen və MRT aparatları növbəlidir, xəstələr aylarla gözləyir. İnsan həyatı təhlükədədir.',
+advisor:{name:'Səhiyyə Naziri', note:'Müasir avadanlıq ölüm faizini azaldar, lakin xaricdən satınalma böyük vəsait tələb edir.'},
+options:[
+{ letter:'A', title:'Yeni cihazlar al', headline:'Dövlət xəstəxanalarına ən son tibbi avadanlıqlar paylanıldı', effects:{welfare:10,budget:-12,trust:5} },
+{ letter:'B', title:'Mövcudları təmir et', headline:'Xəstəxana aparatları texniki baxışdan keçdi', effects:{welfare:4,budget:-4} },
+{ letter:'C', title:'Alışı təxirə sal', headline:'Səhiyyə büdcəsi artırılmadı, xəstəxanalarda növbələr uzanır', effects:{welfare:-5,trust:-4} },
+ ]},
+
+{ id:'farmer_subsidy', icon:'🚜', role:'Fermer', name:'Vaqif dayı',
+quote:'Quraqlıq məhsulu məhv etdi, gübrə bahadır. Dəstək olmasanız, payızda torpağı əkməyəcəm.',
+advisor:{name:'Kənd Təsərrüfatı Naziri', note:'Fermerləri itirsək, ərzaq idxalından asılı qalarıq. Qiymətlər kəskin qalxar.'},
+options:[
+{ letter:'A', title:'Subsidyaları ikiqat artır', headline:'Fermerlərə böyük maliyyə yardımı ayrıldı, kəndlərdə bayram əhvalıdır', effects:{welfare:8,budget:-10,trust:4}, delayed:{after:3, effects:{welfare:4}, headline:'Yerli məhsul bolluğu bazarda qiymətləri ucuzlaşdırdı'} },
+{ letter:'B', title:'Yalnız gübrəni pulsuz et', headline:'Fermerlərə pulsuz gübrə paylanılmasına başlanıldı', effects:{welfare:4,budget:-5,trust:2} },
+{ letter:'C', title:'Yardımı rədd et', headline:'Fermərlər dəstəksiz qaldı, kənd təsərrüfatı böhranda', effects:{welfare:-6,trust:-5} },
+ ]},
+
+{ id:'cyber_security', icon:'💻', role:'İT Mütəxəssisi', name:'Leyla',
+quote:'Dövlət xidmətlərinin serverləri köhnəlib. Böyük bir kiberhücum bütün vətəndaşların məlumatlarını oğurlaya bilər.',
+advisor:{name:'Rəqəmsal İnkişaf Naziri', note:'Kiber təhlükəsizlik milli təhlükəsizlikdir. Bu sahəyə pul qənaət etmək olmaz.'},
+options:[
+{ letter:'A', title:'Milli kiberqalxan yarat', headline:'Ölkənin rəqəmsal infrastrukturu tamamilə yeniləndi və qorundu', effects:{trust:6,budget:-14}, delayed:{after:5, effects:{trust:3}, headline:'Xarici haker hücumu uğurla dəf edildi, sistemlər zərər görmədi'} },
+{ letter:'B', title:'Antivirusları yenilə', headline:'Dövlət kompyuterlərində proqram təminatı yeniləndi', effects:{budget:-3,trust:2} },
+{ letter:'C', title:'Layihəni dondur', headline:'Rəqəmsal təhlükəsizlik büdcəsi kəsildi, sistemlər risk altında qaldı', effects:{trust:-4} },
+ ]},
+
+{ id:'green_energy', icon:'🌱', role:'Ekolof', name:'Fərid',
+quote:'Zavodların tüstüsü şəhəri boğur. Yaşıl enerjiyə keçməsək, gələcək nəsil xəstə doğulacaq.',
+advisor:{name:'Ekologiya Naziri', note:'Ekoloji təmizlik gözəldir, amma zavodlara ağır filtrlər qoysaq, istehsal zəifləyər.'},
+options:[
+{ letter:'A', title:'Zavodlara sərt cərimə qoy', headline:'Havanı çirkləndirən zavodlar cərimələndi, ekoloji nəzarət gücləndi', effects:{welfare:9,budget:6,trust:4} },
+{ letter:'B', title:'Yalnız subsidies ver', headline:'Zavodlara filtrlər üçün dövlət yardımı ayrıldı', effects:{welfare:4,budget:-7} },
+{ letter:'C', title:'Sənayeyə toxunma', headline:'İqtisadi artım naminə ekoloji qaydalar yumşaldıldı, şəhəri duman bürüdü', effects:{welfare:-8,trust:-3} },
+ ]},
+
+[
+  { id:'army_modern', icon:'🪖', role:'General', name:'Polkovnik Məmmədov',
+    quote:'Ordumuzun texnikası yenilənməlidir. Qonşu ölkələr silahlanır, biz geri qala bilmərik.',
+    advisor:{name:'Müdafiə Naziri', note:'Güclü ordu təhlükəsizlik deməkdir, lakin hərbi xərclər büdcəni tamamilə boşaldacaq.'},
+    options:[
+      { letter:'A', title:'Yeni silahlar al', headline:'Ordunun arsenalı müasir dronlar və raketlərlə gücləndirildi', effects:{army:12,budget:-15,trust:4} },
+      { letter:'B', title:'Mövcud silahları təmir et', headline:'Hərbi texnikanın planlı təmiri başa çatdı', effects:{army:5,budget:-5} },
+      { letter:'C', title:'Hərbi büdcəni ixtisar et', headline:'Müdafiə xərcləri azaldıldı, hərbi ekspertlər narahatdır', effects:{army:-10,budget:8,trust:-4} }
+    ]},
+
+  { id:'pension_raise', icon:'👴', role:'Təqaüdçü', name:'Həsən dayı',
+    quote:'Bu pensiya ilə ancaq dərmanlarımı ala bilirəm. Çörəyə, işığa pul qalmır.',
+    advisor:{name:'Sosial Müdafiə Naziri', note:'Yaşlı nəsli qorumalıyıq, lakin pensiya artımı sosial fonda ağır yük olacaq.'},
+    options:[
+      { letter:'A', title:'Pensiyaları 25% artır', headline:'Pensiyaçılara şad xəbər: Sosial ödənişlər kəskin artırıldı', effects:{welfare:14,budget:-12,trust:6} },
+      { letter:'B', title:'Pensiyaları 10% artır', headline:'Təqaüdlərə cüzi əlavə olundu', effects:{welfare:6,budget:-6,trust:2} },
+      { letter:'C', title:'Artımı təxirə sal', headline:'Pensiya artımı inflyasiya bəhanəsi ilə təxirə salındı', effects:{welfare:-6,trust:-5} }
+    ]},
+
+  { id:'science_grant', icon:'🔬', role:'Alim', name:'Dr. Səlimə',
+    quote:'Gənc alimlər ölkəni tərk edir. Laboratoriyalar yoxdur, elmi araşdırmalara vəsait ayrılmır.',
+    advisor:{name:'Elm Agentliyinin Rəhbəri', note:'Beyin axınını dayandırmalıyıq. Elmə qoyulan pul gələcəyə yatırımdır.'},
+    options:[
+      { letter:'A', title:'Böyük elmi qrantlar ayır', headline:'Gənc alimlər üçün milyonluq tədqiqat fondu yaradıldı', effects:{education:12,budget:-10,trust:4}, delayed:{after:4, effects:{salary:4}, headline:'Yerli alimlərin ixtirası sənayedə tətbiq edildi, gəlirlər artdı'} },
+      { letter:'B', title:'Yalnız kiçik təqaüd ver', headline:'Alimlərə birdəfəlik yardım paketləri paylandı', effects:{education:4,budget:-3} },
+      { letter:'C', title:'Qrant müraciətini rədd et', headline:'Elm maliyyələşməsi dayandırıldı, alimlər xaricə köçür', effects:{education:-8,trust:-3} }
+    ]},
+
+  { id:'police_reform', icon:'👮', role:'Polis Rəisi', name:'Polkovnik Əliyev',
+    quote:'Küçələrdə cinayətkarlıq artır. Ştat sayını artırmalı və polislərin maaşını qaldırmalıyıq.',
+    advisor:{name:'Daxili İşlər Naziri', note:'Polis sabitliyin təminatçısıdır. Maaş az olsa, rüşvətxorluq baş qaldıracaq.'},
+    options:[
+      { letter:'A', title:'Polis maaşlarını artır', headline:'Asayiş keşikçilərinin əməkhaqqı artırıldı, nəzarət gücləndi', effects:{salary:8,trust:4,budget:-9} },
+      { letter:'B', title:'Yeni kameralar quraşdır', headline:'Şəhərdə rəqəmsal müşahidə şəbəkəsi genişləndirildi', effects:{budget:-5,trust:2} },
+      { letter:'C', title:'İslahatı təxirə sal', headline:'Daxili işlər büdcəsi sabit qaldı, küçələrdə asayiş zəifləyir', effects:{trust:-5,welfare:-3} }
+    ]},
+
+  { id:'kindergarten', icon:'👶', role:'Valideyn', name:'Nigar xanım',
+    quote:'Dövlət bağçalarında yer yoxdur. Özəl bağçalar isə çox bahadır, işə düzələ bilmirəm.',
+    advisor:{name:'Təhsil Naziri', note:'Uşaq bağçalarının sayını artırsaq, minlərlə ana əmək bazarına qayıda bilər.'},
+    options:[
+      { letter:'A', title:'50 yeni bağça tik', headline:'Ölkə boyu yeni pulsuz dövlət bağçaları istifadəyə verildi', effects:{education:10,welfare:6,budget:-12} },
+      { letter:'B', title:'Özəl bağçalara subsidiya ver', headline:'Aztəminatlı ailələrin bağça pullarının bir qismini dövlət ödəyəcək', effects:{welfare:4,budget:-5,trust:3} },
+      { letter:'C', title:'Tikintini növbəti ilə sal', headline:'Bağça çatışmazlığı davam edir, analar iş tapanmır', effects:{education:-5,welfare:-4} }
+    ]},
+
+  { id:'road_infrastructure', icon:'🛣️', role:'Sürücü', name:'Kamran',
+    quote:'Rayon yolları bərbaddır. Maşınlar sınır, qəzalar baş verir. Yolları təmir edin.',
+    advisor:{name:'Nəqliyyat Naziri', note:'Magistralların təmiri logistikanı canlandırar, lakin asfalt çox baha başa gəlir.'},
+    options:[
+      { letter:'A', title:'Bütün yolları yenidən qur', headline:'Regionların yol infrastrukturu tamamilə yeniləndi', effects:{welfare:8,budget:-14}, delayed:{after:3, effects:{budget:5}, headline:'Yenilənmiş yollar ticarəti sürətləndirdi, büdcəyə xeyir gətirdi'} },
+      { letter:'B', title:'Yalnız çalalara yamaq vur', headline:'Yollarda cari təmir işləri aparıldı', effects:{welfare:3,budget:-4} },
+      { letter:'C', title:'Yol büdcəsini dondur', headline:'Yollar dağılmaqda davam edir, sürücülər etiraz aksiyası keçirir', effects:{welfare:-6,trust:-5} }
+    ]},
+
+  { id:'medicines', icon:'💊', role:'Əczaçı', name:'Kənan bəy',
+    quote:'Xaricdən gələn dərmanların gömrük rüsumu çox yüksəkdir. Qiymətlər bahalaşır, xalq narazıdır.',
+    advisor:{name:'Səhiyyə Naziri', note:'Rüsumu sıfırlasaq dərman ucuzlaşar, amma yerli əczaçılıq zavodları müflis ola bilər.'},
+    options:[
+      { letter:'A', title:'Dərman rüsumlarını ləğv et', headline:'Həyatı vacib dərmanların qiyməti yarıbayarı ucuzlaşdı', effects:{welfare:12,trust:6,budget:-7} },
+      { letter:'B', title:'Yalnız yerli istehsalı artır', headline:'Yerli dərman fabriklərinə vergi güzəşti olundu', effects:{budget:-4,welfare:3} },
+      { letter:'C', title:'Rüsumları olduğu kimi saxla', headline:'Dərman bazarı od tutub yanır, xəstələr çarəsizdir', effects:{welfare:-8,trust:-4} }
+    ]},
+
+  { id:'military_salary', icon:'🎖️', role:'Zabit', name:'Mayor Qasımov',
+    quote:'Sərhəddə, çətin şəraitdə xidmət edirik. Ev kirayələri, ailə xərcləri maaşı üstələyir.',
+    advisor:{name:'Müdafiə Naziri', note:'Hərbçilərin sosial rifahı ordunun döyüş ruhunu birbaşa təsir edir.'},
+    options:[
+      { letter:'A', title:'Hərbçi maaşlarını 30% artır', headline:'Zabit və gizirlərin maaşları əhəmiyyətli dərəcədə qaldırıldı', effects:{salary:12,army:10,budget:-11} },
+      { letter:'B', title:'Pulsuz mənzil təminatını sürətləndir', headline:'Növbədə olan hərbçilərə yeni mənzil açarları paylandı', effects:{army:6,budget:-7,trust:3} },
+      { letter:'C', title:'Büdcə imkan vermir', headline:'Hərbçilərin sosial təminat müraciəti rədd edildi', effects:{army:-7,trust:-4} }
+    ]},
+
+  { id:'it_industry', icon:'👩‍💻', role:'Frilanser', name:'Fidan',
+    quote:'Ölkədə internet sürəti zəif və bahadır. Qlobal bazarla rəqabət apara bilmirik.',
+    advisor:{name:'Rəqəmsal İnkişaf Naziri', note:'Bütün ölkəyə fiber-optik çəkmək böyük investisiya tələb edir, amma rəqəmsal gələcək budur.'},
+    options:[
+      { letter:'A', title:'Sürətli internet şəbəkəsi qur', headline:'Ölkə üzrə internet sürəti 5 dəfə artırıldı, qiymətlər endi', effects:{education:8,trust:5,budget:-10}, delayed:{after:4, effects:{salary:6}, headline:'Rəqəmsal ixracat artdı, İT mütəxəssisləri ölkəyə valyuta gətirir'} },
+      { letter:'B', title:'İnternet vergisini azaldaq', headline:'Provayderlər üçün vergi dərəcəsi aşağı salındı', effects:{budget:-3,trust:2} },
+      { letter:'C', title:'Mövcud xətlərlə davam et', headline:'İnternet problemi həll olunmadı, İT sektoru durğunluq yaşayır', effects:{education:-4,trust:-3} }
+    ]},
+
+  { id:'subway_expansion', icon:'🚇', role:'Tələbə', name:'Murad',
+    quote:'Metroda basabasdan nəfəs almaq olmur. Şəhərdə tıxaclar bitmir, yeni stansiyalar lazımdır.',
+    advisor:{name:'Bakı Metropoliteninin Rəisi', note:'Metro tikintisi ən baha başa gələn infrastruktur sahəsidir, lakin şəhəri tıxacdan xilas edər.'},
+    options:[
+      { letter:'A', title:'3 yeni metro stansiyası tik', headline:'Metronun yeni xətlərinin inşasına başlanıldı, böyük büdcə ayrıldı', effects:{welfare:10,budget:-15,trust:4} },
+      { letter:'B', title:'Köhnə qatarları yenilə', headline:'Xətlərə yeni və rahat vaqonlar buraxıldı', effects:{welfare:4,budget:-5} },
+      { letter:'C', title:'Tikintini dayandır', headline:'Metro tikintisi donduruldu, yerüstü nəqliyyat tamamilə iflic oldu', effects:{welfare:-6,trust:-4} }
+    ]},
+
+  { id:'unemployment', icon:'🧑‍ər', role:'İşsiz Gənc', name:'Emin',
+    quote:'Universiteti bitirmişəm, amma iş tapa bilmirəm. Hər yerdə iş təcrübəsi tələb olunur.',
+    advisor:{name:'Əmək Naziri', note:'Gənclər arasında işsizlik sosial partlayışa səbəb ola bilər. Dövlət proqramı lazımdır.'},
+    options:[
+      { letter:'A', title:'Gənclər üçün iş yerləri proqramı aç', headline:'Dövlət müəssisələrində gənclər üçün minlərlə yeni ştat açıldı', effects:{salary:10,welfare:6,budget:-12,trust:5} },
+      { letter:'B', title:'Məşğulluq kursları təşkil et', headline:'Dövlət tərəfindən pulsuz peşə təlimlərinə start verildi', effects:{education:5,budget:-4} },
+      { letter:'C', title:'Bazar özü tənzimləsin', headline:'Gənclər arasında işsizlik rekord həddə çatdı, narazılıq artır', effects:{welfare:-7,trust:-6} }
+    ]},
+
+  { id:'water_shortage', icon:'🚰', role:'Sakin', name:'Nadir dayı',
+    quote:'Yay gələn kimi su kəsilir. Günlərlə su üzünə həsrət qalırıq, quyu suyu ilə dolanırıq.',
+    advisor:{name:'Su Ehtiyatları Agentliyinin Sədri', note:'Su xətləri tamamilə çürüyüb. Təcili su anbarları və boru kəmərləri tikilməlidir.'},
+    options:[
+      { letter:'A', title:'Yeni su kəməri və anbar tik', headline:'Regionların su təchizatı sistemi tamamilə yenidən quruldu', effects:{welfare:12,budget:-13,trust:5} },
+      { letter:'B', title:'Suya limit tətbiq et', headline:'Su itkisinin qarşısını almaq üçün sərt qənaət rejimi elan olundu', effects:{welfare:-2,budget:-2,trust:-2} },
+      { letter:'C', title:'Hələlik vəsait yoxdur', headline:'Su qıtlığı böhran həddinə çatdı, əhali küçələrə çıxır', effects:{welfare:-10,trust:-6} }
+    ]},
+
+  { id:'school_food', icon:'🍏', role:'Məktəbli Anası', name:'Könül xanım',
+    quote:'Məktəb bufetlərində ancaq zərərli qidalar, qazlı sular satılır. Uşaqların mədəsi korlanır.',
+    advisor:{name:'Səhiyyə Naziri', note:'Məktəblərdə pulsuz və sağlam isti yemək paylanması gələcək nəslin sağlamlığı üçün şərtdir.'},
+    options:[
+      { letter:'A', title:'Pulsuz isti yemək proqramı başlat', headline:'Bütün ibtidai sinif şagirdlərinə dövlət hesabına sağlam isti yemək verilir', effects:{education:8,welfare:8,budget:-11,trust:4} },
+      { letter:'B', title:'Zərərli qidaları qadağan et', headline:'Məktəb bufetlərində fast-food və qazlı içkilərin satışı qadağan olundu', effects:{education:3,trust:2} },
+      { letter:'C', title:'Məktəb rəhbərliyi özü baxsın', headline:'Bufetlərdə keyfiyyətsiz qidalanma davam edir, zəhərlənmə halları qeydə alındı', effects:{education:-4,welfare:-5} }
+    ]},
+
+  { id:'judicial_system', icon:'⚖️', role:'Vəkil', name:'Elnarə xanım',
+    quote:'Məhkəmə prosesləri aylarla uzanır, hakimlər yüklənib. Ədalətin bərqərar olması gecikir.',
+    advisor:{name:'Ədliyyə Naziri', note:'Məhkəmə sistemini rəqəmsallaşdırmaq və yeni hakimlər təyin etmək şəffaflığı artırar.'},
+    options:[
+      { letter:'A', title:'Elektron məhkəmə sisteminə keç', headline:'Məhkəmə sistemi tam rəqəmsallaşdı, şəffaflıq və sürət artdı', effects:{trust:10,budget:-8}, delayed:{after:3, effects:{welfare:4}, headline:'Vətəndaşların hüquqi müdafiəsi gücləndi, dövlətə inam yüksəldi'} },
+      { letter:'B', title:'Hakimlərin ştatını artır', headline:'Məhkəmələrə yeni gənc hakimlər təyin edildi', effects:{budget:-4,trust:4} },
+      { letter:'C', title:'Dəyişikliyə ehtiyac yoxdur', headline:'Məhkəmələrdə süründürməçilik davam edir, investorlar qorxur', effects:{trust:-7,budget:-3} }
+    ]},
+
+  { id:'defense_industry', icon:'🏭', role:'Mühəndis', name:'Vüqar',
+    quote:'Hərbi zavodlarımız xaricdən gələn hissələrdən asılıdır. Öz yerli hərbi sənayemizi qurmalıyıq.',
+    advisor:{name:'Müdafiə Sənayesi Naziri', note:'Yerli silah istehsalı bizi xarici embarqolardan qoruyar, lakin texnoloji xərcləri çox yüksəkdir.'},
+    options:[
+      { letter:'A', title:'Milli müdafiə sənayesinə investisiya et', headline:'Ölkədə yerli hərbi texnika və sursat istehsalı fabriki açıldı', effects:{army:14,budget:-13}, delayed:{after:5, effects:{budget:6}, headline:'Yerli silahlar xaricə ixrac edilməyə başlandı, büdcəyə gəlir gəldi'} },
+      { letter:'B', title:'Xarici lisenziya ilə yığım et', headline:'Xarici şirkətlərlə birgə silah yığımı sexləri açıldı', effects:{army:6,budget:-6} },
+      { letter:'C', title:'Silahları hazır satın al', headline:'Yerli hərbi zavodlar kiçik təmir sexinə çevrildi, asılılıq artdı', effects:{army:-5,budget:-4} }
+    ]},
+
+  { id:'orphanage_support', icon:'🏠', role:'Sosial İşçi', name:'Zarina',
+    quote:'Uşaq evlərindən məzun olan gənclərin qalmağa yeri yoxdur. Küçədə qalırlar, cinayətə sövq olunurlar.',
+    advisor:{name:'Sosial Müdafiə Naziri', note:'Bu uşaqlar dövlətin övladlarıdır. Onları mənzil və işlə təmin etmək borcumuzdur.'},
+    options:[
+      { letter:'A', title:'Məzunlar üçün sosial binalar tik', headline:'Uşaq evindən çıxan gənclər dövlət tərəfindən mənzillə təmin olundu', effects:{welfare:10,trust:6,budget:-8} },
+      { letter:'B', title:'Peşə məktəblərinə yerləşdir', headline:'Yetim gənclərin yataqxana və peşə təhsili xərclərini dövlət öhdəsinə götürdü', effects:{education:5,welfare:4,budget:-4} },
+      { letter:'C', title:'Yardım fondu hazırda boşdur', headline:'Kimsəsiz gənclər taleyin ümidinə buraxıldı, sosial böhran dərinləşir', effects:{welfare:-6,trust:-5} }
+    ]},
+
+  { id:'theatre_culture', icon:'🎭', role:'Aktyor', name:'Xalq Artisti Fuad bəy',
+    quote:'Teatrlar boş qalıb, aktyorlar dilənçi kökündədir. Mədəniyyət can verir, xalq mənəvi aşınmaya məruz qalır.',
+    advisor:{name:'Mədəniyyət Naziri', note:'Mədəniyyətsiz millətin gələcəyi yoxdur. Teatrlara dövlət subsidiyası mütləqdir.'},
+    options:[
+      { letter:'A', title:'Mədəniyyət fondunu maliyyələşdir', headline:'Teatr və muzeylər dövlət himayəsinə götürüldü, maaşlar artdı', effects:{salary:6,education:6,budget:-7,trust:3} },
+      { letter:'B', title:'Biletləri tələbələrə pulsuz et', headline:'Tələbələrin mədəniyyət ocaqlarına pulsuz girişi təmin olundu', effects:{education:4,budget:-3} },
+      { letter:'C', title:'Teatrlar özlərini maliyyələşdirsin', headline:'Tarixi teatr binaları tamaşaçı azlığından bağlanır', effects:{education:-5,trust:-3} }
+    ]},
+
+  { id:'border_security', icon:'🧱', role:'Sərhədçi', name:'Kapitan Rüstəmov',
+    quote:'Sərhəddə qaçaqmalçılıq və narkotik keçidi artıb. Yeni termal kameralar və sədd lazımdır.',
+    advisor:{name:'Dövlət Sərhəd Xidmətinin Rəisi', note:'Sərhədin təhlükəsizliyi ölkənin daxili sağlamlığıdır. Narkotik gəncliyimizi məhv edir.'},
+    options:[
+      { letter:'A', title:'Sərhədi tam elektronlaşdır', headline:'Sərhəd boyu keçilməz rəqəmsal divar və detektorlar quraşdırıldı', effects:{army:10,trust:5,budget:-9}, delayed:{after:3, effects:{welfare:5}, headline:'Ölkəyə narkotik axını dayandırıldı, cinayətkarlıq azaldı'} },
+      { letter:'B', title:'Sərhədçi ştatını artır', headline:'Sərhəd məntəqələrinə əlavə canlı qüvvə göndərildi', effects:{army:5,budget:-4} },
+      { letter:'C', title:'Nəzarəti gücləndirmə', headline:'Sərhəddən qanunsuz keçid halları artdı, beynəlxalq hesabatlarda reytinqimiz düşdü', effects:{army:-6,trust:-4} }
+    ]},
+
+  { id:'public_transport', icon:'🚌', role:'Sərnişin', name:'Tofiq dayı',
+    quote:'Avtobuslar vaxtında gəlmir, köhnə xətlərdə hər gün nasazlıq yaranır. İşə gecikirik.',
+    advisor:{name:'Nəqliyyat Naziri', note:'Nəqliyyat parkını elektrikli avtobuslarla yeniləsək, həm ekologiya, həm də sərnişinlər qazanar.'},
+    options:[
+      { letter:'A', title:'500 yeni elektrikli avtobus al', headline:'Şəhər nəqliyyatına yeni, ekoloji təmiz elektrik avtobusları buraxıldı', effects:{welfare:9,budget:-11,trust:4} },
+      { letter:'B', title:'Avtobus zolaqlarını artır', headline:'Yollarda yalnız ictimai nəqliyyat üçün xüsusi zolaqlar salındı', effects:{welfare:4,budget:-2} },
+      { letter:'C', title:'Şirkətlər özləri tənzimləsin', headline:'Nəqliyyat xaosu davam edir, əhali köhnə avtobuslarda əziyyət çəkir', effects:{welfare:-5,trust:-3} }
+    ]},
+
+  { id:'science_olympiad', icon:'🏅', role:'Məktəbli', name:'Ayan',
+    quote:'Beynəlxalq olimpiadada qalib gəldim, amma dövlətdən heç bir dəstək görmədim. Motivasiyamız ölür.',
+    advisor:{name:'Təhsil Naziri', note:'İstedadlı uşaqları stimullaşdırmalıyıq, yoxsa onları xarici ölkələr qapacaq.'},
+    options:[
+      { letter:'A', title:'Qaliblərə böyük mükafat və təqaüd ver', headline:'Beynəlxalq uğur qazanan şagirdlərə ömürlük dövlət təqaüdü təyin edildi', effects:{education:10,trust:5,budget:-5} },
+      { letter:'B', title:'Yalnız diplomla təbrik et', headline:'Nazirlikdə qalib gənclərlə görüş keçirildi və fəxri fərmanlar verildi', effects:{education:2,trust:1} },
+      { letter:'C', title:'Tədbiri ləğv et', headline:'Gənc istedadlar diqqətdən kənarda qaldı, digər şagirdlər elmə marağı itirdi', effects:{education:-6,trust:-4} }
+    ]},
+
+  { id:'disabled_welfare', icon:'🧑‍🦽', role:'Qazi / Əlil Vətəndaş', name:'Orxan',
+    quote:'Şəhərdə panduslar yoxdur, metroya düşə bilmirik. Biz də bu cəmiyyətin bərabərhüquqlu üzvüyük.',
+    advisor:{name:'Sosial Müdafiə Naziri', note:'İnklüziv şəhər yaratmaq mədəniyyət göstəricisidir. Bütün infrastrukturu uyğunlaşdırmalıyıq.'},
+    options:[
+      { letter:'A', title:'Şəhəri tam inklüziv et', headline:'Bütün küçə, metro və binalarda əlillər üçün müasir pandus və liftlər quruldu', effects:{welfare:12,trust:6,budget:-9} },
+      { letter:'B', title:'Müavinətləri azca artır', headline:'Əlillik müavinətlərinə kiçik əlavələr edildi', effects:{welfare:4,budget:-4} },
+      { letter:'C', title:'Layihəni təxirə sal', headline:'Fiziki məhdudiyyətli şəxslər evə məhkum qaldı, hüquq müdafiəçiləri etiraz edir', effects:{welfare:-7,trust:-5} }
+    ]},
+
+  { id:'tourism_boost', icon:'✈️', role:'Otelyer', name:'Sahib bəy',
+    quote:'Viza rejimi çox sərtdir, xarici turistlər ölkəyə gələ bilmir. Turizm sektoru iflas edir.',
+    advisor:{name:'Xarici İşlər Naziri', note:'Vizaları sadələşdirsək ölkəyə pul axar, amma təhlükəsizlik nəzarəti zəifləyə bilər.'},
+    options:[
+      { letter:'A', title:'ASAN Viza sistemini rəqəmsallaşdır və asanlaşdır', headline:'90 ölkə üçün viza rejimi sadələşdirildi, turist axını başladı', effects:{trust:4,budget:-4}, delayed:{after:3, effects:{budget:10,salary:4}, headline:'Turizm canlandı, otel və restoran gəlirləri artdı, büdcə doldu'} },
+      { letter:'B', title:'Yalnız qonşu ölkələrə viza güzəşti et', headline:'Qonşu dövlətlərlə gediş-gəliş prosedurları yumşaldıldı', effects:{budget:-2,trust:2} },
+      { letter:'C', title:'Sərhədləri bağlı saxla', headline:'Sərt viza siyasəti turizmi tamamilə bitirdi, otellər bağlanır', effects:{budget:-5,welfare:-3} }
+    ]},
+
+  { id:'veterinary_service', icon:'🐄', role:'Baytar', name:'Dr. Arif',
+    quote:'Kəndlərdə heyvanlar arasında yoluxucu xəstəliklər yayılır. Pulsuz peyvəndləmə aparılmalıdır.',
+    advisor:{name:'Kənd Təsərrüfatı Naziri', note:'Müttəsil xəstəliklər ət və süd məhsullarının keyfiyyətini salır, insanlara da keçə bilər.'},
+    options:[
+      { letter:'A', title:'Milli heyvan peyvəndləmə kampaniyası başlat', headline:'Dövlət hesabına bütün təsərrüfatlarda kütləvi peyvəndləmə başa çatdı', effects:{welfare:8,budget:-6,trust:3} },
+      { letter:'B', title:'Dərmanları yarıqiymətinə sat', headline:'Fermərlər üçün baytarlıq dərmanlarına 50% endirim tətbiq olundu', effects:{welfare:4,budget:-3} },
+      { letter:'C', title:'Fermerlər özləri alsın', headline:'Heyvan tələfatı artdı, bazarlarda ətin qiyməti kəskin bahalaşdı', effects:{welfare:-8,budget:-4} }
+    ]},
+
+  { id:'school_heating', icon:'🥶', role:'Məktəb Direktoru', name:'Kəmalə müəllimə',
+    quote:'Qış gəlib, məktəbimizin istilik sistemi işləmir. Uşaqlar sinifdə palto ilə oturur, hamısı xəstələnib.',
+    advisor:{name:'Təhsil Naziri', note:'Qış fəslində təhsilin dayanmaması üçün bütün region məktəblərinin qazanxanaları yenilənməlidir.'},
+    options:[
+      { letter:'A', title:'Bütün məktəblərə yeni istilik sistemi qur', headline:'Regionlardakı bütün soyuq məktəblər müasir istilik sisteminə qoşuldu', effects:{education:10,welfare:6,budget:-9,trust:5} },
+      { letter:'B', title:'Elektrik qızdırıcıları payla', headline:'Məktəblərə müvəqqəti elektrik sobaları paylandı, işıq pulu artdı', effects:{education:3,budget:-4} },
+      { letter:'C', title:'Məktəbi qış tətilinə burax', headline:'İstilik problemindən dərslər donduruldu, proqram yarımçıq qaldı', effects:{education:-8,trust:-4} }
+    ]},
+
+  { id:'prison_overcrowding', icon:'⛓️', role:'Həbsxana Rəisi', name:'Polkovnik Qulamov',
+    quote:'Həbsxanalarda yer yoxdur, məhbuslar növbə ilə yatır. Bu şərait insan hüquqlarına ziddir.',
+    advisor:{name:'Ədliyyə Naziri', note:'Yeni həbsxana tikmək bədxah görünə bilər, alternativ olaraq yüngül cinayətləri əfv etmək olar.'},
+    options:[
+      { letter:'A', title:'Geniş Əfv fərmanı imzala', headline:'Yüngül cinayət törətmiş minlərlə məhbus azadlığa buraxıldı', effects:{trust:8,welfare:4,budget:5,army:-3} },
+      { letter:'B', title:'Yeni müasir cəzaçəkmə müəssisəsi tik', headline:'Avropa standartlarına uyğun yeni həbsxana kompleksi açıldı', effects:{budget:-10,trust:2} },
+      { letter:'C', title:'Vəziyyəti saxlamaq', headline:'Həbsxanalarda antisanitariya və üsyan riski pik həddə çatdı', effects:{trust:-6,welfare:-4} }
+    ]},
+
+  { id:'sport_centers', icon:'🏅', role:'Məşqçi', name:'Namiq bəy',
+    quote:'Gənclər siqaret, narkotik aludəçisi olur. Rayonlarda idman zalları yoxdur, uşaqlar küçələrdə qalır.',
+    advisor:{name:'Gənclər və İdman Naziri', note:'İdman sağlam gələcək və güclü əsgər deməkdir. Olimpiya kompleksləri tikilməlidir.'},
+    options:[
+      { letter:'A', title:'Rayonlarda pulsuz idman kompleksləri aç', headline:'Bütün bölgələrdə gənclər üçün ödənişsiz idman zalları istifadəyə verildi', effects:{welfare:8,army:6,budget:-11,trust:4} },
+      { letter:'B', title:'Mövcud zallara inventar al', headline:'Məktəb idman zallarına yeni avadanlıqlar paylanıldı', effects:{welfare:3,budget:-3} },
+      { letter:'C', title:'İdman klubları özləri maliyyələşsin', headline:'Gənclər arasında zərərli vərdişlər artdı, idman geriləyir', effects:{welfare:-6,army:-4} }
+    ]},
+
+  { id:'fire_department', icon:'🚒', role:'Yanğınsöndürən', name:'Sahib',
+    quote:'Yanğınsöndürən maşınlarımız köhnədir, nərdivanlar hündür binalara çatmır. Fəlakət qaçılmazdır.',
+    advisor:{name:'Fövqəladə Hallar Naziri', note:'Müasir texnika yanğına müdaxilə vaxtını yarıbayarı azaldır. İnsan təhlükəsizliyinə pul əsirgəməyin.'},
+    options:[
+      { letter:'A', title:'Yeni yanğınsöndürən parkı al', headline:'FHN üçün xaricdən ən müasir nərdivanlı maşınlar və helikopterlər alındı', effects:{welfare:10,trust:5,budget:-12} },
+      { letter:'B', title:'İşçilərin təhlükəsizlik geyimini yenilə', headline:'Yanğınsöndürənlər üçün oda davamlı yeni uniformalar alındı', effects:{welfare:3,budget:-3} },
+      { letter:'C', title:'Tədarükü təxirə sal', headline:'Şəhərdəki böyük yanğında texnika çatışmadı, itkilər var', effects:{welfare:-9,trust:-6} }
+    ]},
+
+  { id:'tax_evasion', icon:'🕵️', role:'Vergi Müfəttişi', name:'Rauf bəy',
+    quote:'Böyük holdinqlər vergidən yayınır, sənədləri gizlədir. Sərt yoxlamalar aparmağa icazə verin.',
+    advisor:{name:'Maliyyə Naziri', note:'Böyük biznesi çox sıxsaq ölkədən investisiyanı çıxararlar, amma büdcəyə pul lazımdır.'},
+    options:[
+      { letter:'A', title:'Sərt vergi yoxlamaları başlat', headline:'Kölgə iqtisadiyyatına zərbə: İri şirkətlərin gizli gəlirləri üzə çıxdı', effects:{budget:15,trust:6,welfare:-3} },
+      { letter:'B', title:'Vergi amnistiyası elan et', headline:'Köhnə borcları sıfırlayaraq şirkətlərə yeni şəffaf səhifə açıldı', effects:{budget:-5,trust:4} },
+      { letter:'C', title:'Yoxlamaları dayandır', headline:'Oliqarxlar zənginləşir, büdcə kəsiri artır, xalq narazıdır', effects:{budget:-8,trust:-6} }
+    ]},
+
+  { id:'poverty_line', icon:'🥣', role:'Aztəminatlı Ailə Rəhbəri', name:'Zenfira xanım',
+    quote:'Yoldaşım rəhmətə gedib, 3 uşaqla acından ölürük. Ünvanlı sosial yardım ala bilmirik, sistem çox qəlizdir.',
+    advisor:{name:'Sosial Müdafiə Naziri', note:'Yardım kriteriyalarını sadələşdirsək, yoxsulluğu tamamilə bitirə bilərik.'},
+    options:[
+      { letter:'A', title:'Sosial yardımı hamıya əlçatan et', headline:'Ünvanlı sosial yardım sistemi sadələşdi, minlərlə yoxsul ailə müavinət aldı', effects:{welfare:15,trust:7,budget:-13} },
+      { letter:'B', title:'Yalnız ərzaq kuponları payla', headline:'Aztəminatlı ailələrə pulsuz supermarket kuponları paylanıldı', effects:{welfare:6,budget:-5} },
+      { letter:'C', title:'Yoxlamaları daha da sərtləşdir', headline:'Büdcəyə qənaət məqsədilə yardımlar kəsildi, yoxsulluq həddi artdı', effects:{welfare:-10,trust:-7,budget:5} }
+    ]},
+
+  { id:'border_conflict', icon:'💥', role:'Kəşfiyyat Rəisi', name:'General-mayor İsayev',
+    quote:'Sərhəddə düşmən təxribata hazırlaşır. Təcili qabaqlayıcı hərbi əməliyyat keçirməliyik.',
+    advisor:{name:'Xarici İşlər Naziri', note:'Hərbi əməliyyat beynəlxalq sanksiyalara yol aça bilər. Diplomatik həll tapmaq daha təhlükəsizdir.'},
+    options:[
+      { letter:'A', title:'Qabaqlayıcı hərbi zərbə endir', headline:'Ordumuz düşmən mövqelərini məhv etdi, strateji yüksəkliklər tutuldu', effects:{army:15,trust:8,budget:-10,welfare:-5} },
+      { letter:'B', title:'Diplomatik nota ver, ordunu hazır tut', headline:'Sərhədə əlavə qüvvələr yığıldı, beynəlxalq təşkilatlara müraciət olundu', effects:{army:5,budget:-3,trust:2} },
+      { letter:'C', title:'Geri çəkil və gərginliyi azalt', headline:'Ordumuz geri çəkildi, düşmən sərhəd kəndlərimizi atəşə tutur', effects:{army:-12,trust:-8,welfare:-6} }
+    ]}
+,
+
   { id:'taxes', icon:'💼', role:'Sahibkar', name:'Tural bəy',
     quote:'Vergilər biznesi boğur. Kiçik müəssisələr bir-bir bağlanır.',
     advisor:{name:'Maliyyə Naziri', note:'Vergi endirimi xalqı sevindirər, amma xəzinə bunun bahasını ödəyəcək.'},
