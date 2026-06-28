@@ -358,6 +358,14 @@ function resetState() {
     loreIdx:0, lastLoreHour:-1,
     phase:'idle', winTimer:0, knockTimer:0,
     isRealFood:false, nightOver:false, tetScore:0,
+    // food delivery system
+    foodOrdered:false,
+    foodOrderTimer:0,
+    foodDelivered:false,
+    foodOrderedAt:0,
+    // door state: open/closed + locked
+    doorOpen:false,      // qapı fiziki açıqdır
+    doorLocked:false,    // kilid vurulub
     // animation
     monsterAlpha:0, ventPulse:0,
     flickerT:0, flickerAlpha:0,
@@ -467,16 +475,16 @@ const R = {
   ventX:290, ventY:22, ventW:50, ventH:26,
   // desk surface
   deskY:228, deskH:42,
-  // monitor — left of desk, tetris inside
-  monX:28,  monY:108, monW:148, monH:112,
-  // lamp — right side of desk
-  lampX:370, lampY:148,
+  // monitor — RIGHT side of desk
+  monX:300, monY:108, monW:148, monH:112,
+  // lamp — between window and door (on wall, on desk)
+  lampX:148, lampY:148,
   // clock
   clkX:196, clkY:236,
   // pizza
-  pizzaX:310, pizzaY:232,
+  pizzaX:220, pizzaY:232,
   // monitor click zone
-  monClickX:28, monClickY:108, monClickW:148, monClickH:112,
+  monClickX:300, monClickY:108, monClickW:148, monClickH:112,
   // HUD overlay position (bottom left)
   hudX:4, hudY:4,
 };
@@ -765,9 +773,23 @@ function drawMonitor(c,ts){
     c.fillStyle='#061e08';
     c.fillText('> READY',sx+4,sy+24);
     if(blink){c.fillStyle='#1a6020';c.fillText('_',sx+4+ctx.measureText('> READY').width+2,sy+24);}
-    c.fillStyle='#0d3010';c.font='8px VT323';
-    c.fillText('[TIKLA]',sx+4,sy+sh-6);
-    // border pulse
+    // Food order status on monitor
+    if(G.foodOrdered){
+      const pulse=0.6+0.4*Math.sin(ts*0.006);
+      c.fillStyle=`rgba(200,160,40,${pulse})`;
+      c.font='7px VT323';
+      c.fillText('YEMƏYİ SİFARİŞ EDİLDİ',sx+4,sy+sh-18);
+      c.fillStyle=`rgba(140,100,20,${pulse*0.8})`;
+      c.fillText('GÖZLƏYİN...',sx+4,sy+sh-9);
+    } else if(G.foodDelivered){
+      const pulse=0.7+0.3*Math.sin(ts*0.01);
+      c.fillStyle=`rgba(40,220,80,${pulse})`;
+      c.font='bold 8px VT323';
+      c.fillText('FOOD ARRIVED!',sx+4,sy+sh-9);
+    } else {
+      c.fillStyle='#0d3010';c.font='8px VT323';
+      c.fillText('[TIKLA]',sx+4,sy+sh-6);
+    }
     const ca=0.2+0.15*Math.sin(ts*0.003);
     c.strokeStyle=`rgba(30,120,40,${ca})`;c.lineWidth=1;
     c.strokeRect(sx,sy,sw,sh);
@@ -936,25 +958,27 @@ function drawClock(c){
 function drawStatusEffects(c,ts){
   const {doorX:dx,doorY:dy,doorW:dw,doorH:dh}=R;
 
-  // Always show door status badge above door
+  // Door status badge — show open + lock state
   const badgeW=dw+4, badgeH=10;
   const badgeX=dx-2, badgeY=dy-13;
   if(G.doorLocked){
     px(c,badgeX,badgeY,badgeW,badgeH,'#0a1a0a');
     pxRect(c,badgeX,badgeY,badgeW,badgeH,'#1a5a20',1);
-    pxTextC(c,'● BAĞLI',badgeX+badgeW/2,badgeY+8,'#30cc50',7,'monospace');
-    // Red bolt bar across door middle
+    pxTextC(c,'🔒 KİLİDLİ',badgeX+badgeW/2,badgeY+8,'#30cc50',7,'monospace');
     const barY=dy+dh*0.44;
     px(c,dx-4,barY-2,dw+8,6,'#2a0808');
     px(c,dx-4,barY-1,dw+8,4,'#7a1010');
     px(c,dx-4,barY,dw+8,1,'#cc2020');
-    // bolt heads
     pxCircle(c,dx-2,barY+1,4,'#cc3020');
     pxCircle(c,dx+dw+2,barY+1,4,'#cc3020');
+  } else if(G.doorOpen){
+    px(c,badgeX,badgeY,badgeW,badgeH,'#1a0808');
+    pxRect(c,badgeX,badgeY,badgeW,badgeH,'#5a1010',1);
+    pxTextC(c,'● AÇILIB',badgeX+badgeW/2,badgeY+8,'#cc3030',7,'monospace');
   } else {
     px(c,badgeX,badgeY,badgeW,badgeH,'#0a0a08');
     pxRect(c,badgeX,badgeY,badgeW,badgeH,'#1e1a10',1);
-    pxTextC(c,'○ AÇIQ',badgeX+badgeW/2,badgeY+8,'#3a3020',7,'monospace');
+    pxTextC(c,'○ BAĞLI',badgeX+badgeW/2,badgeY+8,'#3a3020',7,'monospace');
   }
 
   // Vent closed indicators
@@ -977,22 +1001,22 @@ function drawStatusEffects(c,ts){
   }
 }
 
-/* ---- PAPERS + COFFEE on desk (first-person: seen from above on desk surface) ---- */
+/* ---- PAPERS + COFFEE on desk ---- */
 function drawPapers(c){
   const dy=R.deskY;
-  // sheet 1
-  px(c,160,dy+6,30,14,P.paperLight);
-  px(c,160,dy+6,30,1,P.paperDark);
-  for(let i=0;i<4;i++) px(c,163,dy+9+i*3,24,1,'#c8c0a0');
-  // sheet 2 (slightly under)
-  px(c,192,dy+4,26,14,P.paperDark);
-  px(c,193,dy+5,24,12,P.paperLight);
-  // coffee cup
-  const cx2=140,cy2=dy+5;
+  // sheet 1 — left area of desk
+  px(c,30,dy+6,30,14,P.paperLight);
+  px(c,30,dy+6,30,1,P.paperDark);
+  for(let i=0;i<4;i++) px(c,33,dy+9+i*3,24,1,'#c8c0a0');
+  // sheet 2
+  px(c,62,dy+4,26,14,P.paperDark);
+  px(c,63,dy+5,24,12,P.paperLight);
+  // coffee cup — center-left
+  const cx2=100,cy2=dy+5;
   px(c,cx2,cy2,16,14,P.coffeeBody);
   px(c,cx2,cy2,16,2,'#3a3028');
   px(c,cx2+1,cy2+2,14,11,P.coffeeLiq);
-  px(c,cx2+16,cy2+4,4,7,P.coffeeBody); // handle
+  px(c,cx2+16,cy2+4,4,7,P.coffeeBody);
 }
 
 /* ---- OVERLAY HUD — compact, top-left corner ---- */
@@ -1161,7 +1185,7 @@ const ZONES = {
   window:  {x:20,  y:42,  w:90,  h:118},
   door:    {x:200, y:88,  w:78,  h:122},
   vent:    {x:290, y:22,  w:50,  h:26},
-  monitor: {x:28,  y:108, w:148, h:112},
+  monitor: {x:300, y:108, w:148, h:112},
 };
 
 function getCanvasPos(e){
@@ -1195,15 +1219,54 @@ let knockIv=null;
 let ventTout=null;
 
 function handleViewClick(cx,cy){
-  // Sidebar buttons
+  const v=G.view;
+
+  if(v==='door'){
+    // Door-specific buttons
+    if(inBtn(cx,cy,DBTN_BACK_DOOR)){G.view=null;G.viewMode='action';return;}
+    if(inBtn(cx,cy,DBTN_LOOK_DOOR)){G.viewMode=G.viewMode==='look'?'action':'look';return;}
+    if(inBtn(cx,cy,DBTN_DOOR_OPEN)){
+      G.viewMode='action';
+      // Toggle door open/closed
+      if(G.doorLocked) return; // kilidli olduqda açmaq olmaz
+      G.doorOpen=!G.doorOpen;
+      sndDoorLocked();
+      // If food was pending and we opened the door — eat
+      if(G.doorOpen && G.isRealFoodPending){
+        clearInterval(knockIv);
+        resolveDoor(true,true);
+        G.doorOpen=false;
+      } else if(G.doorOpen && G.phase==='door' && !G.isRealFoodPending){
+        // Opened door for monster — jumpscare
+        clearInterval(knockIv);
+        resolveDoor(false);
+      }
+      return;
+    }
+    if(inBtn(cx,cy,DBTN_LOCK)){
+      G.viewMode='action';
+      if(G.doorOpen) return; // açıq qapını kilidləmək olmaz
+      G.doorLocked=!G.doorLocked;
+      sndDoorLocked();
+      if(G.doorLocked && G.phase==='door' && !G.isRealFoodPending){
+        // Monster blocked by lock
+        clearInterval(knockIv);
+        resolveDoor(true,false);
+      }
+      return;
+    }
+    // Main area click — no action in door view
+    return;
+  }
+
+  // Generic buttons for window/vent
   if(inBtn(cx,cy,BTN_BACK)){G.view=null;G.viewMode='action';return;}
-  if(inBtn(cx,cy,BTN_LOOK)){G.viewMode='look';return;}
+  if(inBtn(cx,cy,BTN_LOOK)){G.viewMode=G.viewMode==='look'?'action':'look';return;}
   if(inBtn(cx,cy,BTN_ACTION)){
     G.viewMode='action';
     toggleZoneAction();
     return;
   }
-  // Main area click while in action mode — also toggle
   if(G.viewMode==='action' && cx < W-SB){
     toggleZoneAction();
   }
@@ -1213,66 +1276,42 @@ function toggleZoneAction(){
   const v=G.view;
   if(v==='window'){
     if(G.phase==='window' && !G.curtain){
-      resolveWindow(true); // close curtain (threat active)
+      resolveWindow(true);
     } else if(G.curtain){
-      // open curtain back
       G.curtain=false;
       G.darkAlpha=Math.max(0,G.darkAlpha-0.25);
     } else {
-      // no threat — just close curtain manually
       G.curtain=true;
       G.darkAlpha=Math.min(1,G.darkAlpha+0.25);
     }
-  } else if(v==='door'){
-    if(G.phase==='door'){
-      // threat active: lock door
-      if(G.isRealFoodPending && !G.doorLocked){
-        // food: open to take
-        clearInterval(knockIv);
-        G.isRealFood ? resolveDoor(true,true) : resolveDoor(false);
-      } else {
-        clearInterval(knockIv);
-        sndDoorLocked();
-        resolveDoor(true,false);
-      }
-    } else {
-      // No threat: toggle lock manually
-      if(G.doorLocked){
-        G.doorLocked=false;
-      } else {
-        G.doorLocked=true;
-        sndDoorLocked();
-        setTimeout(()=>{G.doorLocked=false;},4000);
-      }
-    }
   } else if(v==='vent'){
     if(!G.ventClosed){
-      // Close vent
       G.ventClosed=true; G.oxyActive=true;
       G.ventWaiting=true; G.ventDone=false;
       sndVentClose();
       if(G.phase==='vent') G.phase='idle';
-      ventTout=setTimeout(()=>{
-        G.ventDone=true; G.ventWaiting=false;
-      }, 3000+Math.random()*4000);
-    } else if(G.ventDone || !G.ventWaiting){
-      // Open vent
+      ventTout=setTimeout(()=>{G.ventDone=true;G.ventWaiting=false;},3000+Math.random()*4000);
+    } else if(G.ventDone||!G.ventWaiting){
       clearTimeout(ventTout);
-      G.ventClosed=false; G.oxyActive=false; G.oxygen=100;
-      G.ventWaiting=false; G.ventDone=false;
+      G.ventClosed=false;G.oxyActive=false;G.oxygen=100;
+      G.ventWaiting=false;G.ventDone=false;
     }
-    // If ventWaiting — do nothing, must wait
   }
 }
 
 /* ---- DRAW FULL-SCREEN VIEWS ---- */
-// Layout: main content left (0..W-90), right sidebar 90px wide with buttons
-const SB = 90; // sidebar width
+const SB = 92;
 
-// Sidebar button click zones (canvas px)
-const BTN_ACTION = {x:W-SB+4, y:60,  w:SB-8, h:36};
-const BTN_LOOK   = {x:W-SB+4, y:104, w:SB-8, h:36};
-const BTN_BACK   = {x:W-SB+4, y:H-44,w:SB-8, h:36};
+// Generic buttons (window, vent)
+const BTN_ACTION = {x:W-SB+4, y:60,  w:SB-8, h:32};
+const BTN_LOOK   = {x:W-SB+4, y:100, w:SB-8, h:32};
+const BTN_BACK   = {x:W-SB+4, y:H-40,w:SB-8, h:32};
+
+// Door-specific 4 buttons
+const DBTN_DOOR_OPEN  = {x:W-SB+4, y:32,  w:SB-8, h:28}; // Qapı Aç/Bağla
+const DBTN_LOCK       = {x:W-SB+4, y:66,  w:SB-8, h:28}; // Kilid Aç/Bağla
+const DBTN_LOOK_DOOR  = {x:W-SB+4, y:100, w:SB-8, h:28}; // Bax
+const DBTN_BACK_DOOR  = {x:W-SB+4, y:H-40,w:SB-8, h:32}; // Geri
 
 function inBtn(cx,cy,b){return cx>=b.x&&cx<=b.x+b.w&&cy>=b.y&&cy<=b.y+b.h;}
 
@@ -1310,46 +1349,126 @@ function drawViewSidebar(ts,v){
 
   // Zone label
   const labels={window:'PƏNCƏRƏ',door:'QAPI',vent:'VENTİLYASİYA'};
-  c.fillStyle='#3a3020';
-  c.font='bold 11px VT323';c.textAlign='center';
-  c.fillText(labels[v]||'',sx+SB/2,18);
-  pxLine(c,sx+6,24,sx+SB-6,24,'#1e1a10',1);
+  c.fillStyle='#3a3020';c.font='bold 10px VT323';c.textAlign='center';
+  c.fillText(labels[v]||'',sx+SB/2,16);
+  pxLine(c,sx+4,22,sx+SB-4,22,'#1e1a10',1);
 
-  // --- ƏMƏL (toggle) button ---
-  // Determine current open/closed state per zone
-  let isClosed=false;
-  if(v==='window') isClosed=G.curtain;
-  else if(v==='door') isClosed=G.doorLocked;
-  else if(v==='vent') isClosed=G.ventClosed;
+  if(v==='door'){
+    drawDoorSidebar(c,ts,sx);
+  } else {
+    drawGenericSidebar(c,ts,v,sx);
+  }
+}
 
-  // Show threat indicator if monster active for this zone
-  const hasThreat=(G.phase===v);
-  if(hasThreat){
-    const pulse=0.6+0.4*Math.sin(ts*0.008);
-    c.fillStyle=`rgba(200,30,30,${pulse*0.3})`;
-    c.fillRect(sx,BTN_ACTION.y-4,SB,BTN_ACTION.h+8);
+function drawDoorSidebar(c,ts,sx){
+  // Threat pulse bg
+  if(G.phase==='door'){
+    const pulse=0.5+0.4*Math.sin(ts*0.008);
+    c.fillStyle=`rgba(${G.isRealFoodPending?'0,180,40':'200,30,30'},${pulse*0.2})`;
+    c.fillRect(sx,0,SB,H-44);
   }
 
-  const actionLabel = isClosed ? 'AÇ' : 'BAĞLA';
-  const actionCol   = isClosed ? '#40b050' : '#cc3030';
-  const actionBg    = isClosed ? '#0a1e0c' : '#1e0808';
-  drawSideBtn(c,BTN_ACTION,actionLabel,true,actionCol,actionBg);
+  // 1. QAPI AÇ / BAĞLA
+  const doorLabel = G.doorOpen ? 'QAPINI\nBAĞLA' : 'QAPINI\nAÇ';
+  const doorCol   = G.doorOpen ? '#cc3030' : '#40cc60';
+  const doorBg    = G.doorOpen ? '#1e0808' : '#0a1e0c';
+  const doorDim   = G.doorLocked; // locked → can't toggle door
+  drawDoorBtn(c, DBTN_DOOR_OPEN,
+    G.doorOpen?'BAĞLA':'AÇ',
+    'QAPI',
+    doorDim?'#2a2010':'#1e1a10',
+    doorDim?'#2a2020':doorBg,
+    doorDim?'#3a3020':doorCol,
+    ts);
 
-  // Small status text under action btn
-  const statusText=isClosed?'● BAĞLI':'○ AÇIQ';
-  const statusCol =isClosed?'#2a6030':'#3a2010';
-  c.fillStyle=statusCol;c.font='10px VT323';c.textAlign='center';
-  c.fillText(statusText,sx+SB/2,BTN_ACTION.y+BTN_ACTION.h+10);
+  // 2. KİLİD AÇ / BAĞLA
+  const lockLabel = G.doorLocked ? 'KİLİD\nAÇ' : 'KİLİD\nBAĞLA';
+  const lockCol   = G.doorLocked ? '#40b050' : '#c8a84a';
+  const lockBg    = G.doorLocked ? '#0a1e0c' : '#1a1400';
+  const lockDim   = G.doorOpen; // open door → can't lock
+  drawDoorBtn(c, DBTN_LOCK,
+    G.doorLocked?'AÇILSIN':'BAĞLA',
+    'KİLİD',
+    lockDim?'#2a2010':'#1e1a10',
+    lockDim?'#141200':lockBg,
+    lockDim?'#3a3020':lockCol,
+    ts);
 
-  pxLine(c,sx+6,BTN_ACTION.y+BTN_ACTION.h+16,sx+SB-6,BTN_ACTION.y+BTN_ACTION.h+16,'#1e1a10',1);
+  // 3. BAX
+  const lookActive=G.viewMode==='look';
+  drawDoorBtn(c, DBTN_LOOK_DOOR,
+    'BAX','DEŞİKDƏN',
+    lookActive?'#1a3a5a':'#1e1a10',
+    lookActive?'#0a1e30':'#0c0a08',
+    lookActive?'#4a90c0':'#3a3020',
+    ts);
 
-  // BAX button
+  // Status strip
+  const sy=DBTN_LOOK_DOOR.y+DBTN_LOOK_DOOR.h+8;
+  pxLine(c,sx+4,sy,sx+SB-4,sy,'#1e1a10',1);
+  const stY=sy+10;
+  // Door open/closed
+  c.font='9px VT323';c.textAlign='center';
+  c.fillStyle=G.doorOpen?'#cc3030':'#2a6030';
+  c.fillText(G.doorOpen?'● QAPI AÇIQ':'○ QAPI BAĞLI',sx+SB/2,stY);
+  // Lock
+  c.fillStyle=G.doorLocked?'#c8a84a':'#2a2810';
+  c.fillText(G.doorLocked?'🔒 KİLİDLİ':'○ KİLİD YOX',sx+SB/2,stY+12);
+  // Food
+  if(G.isRealFoodPending){
+    const pulse=0.7+0.3*Math.sin(ts*0.01);
+    c.fillStyle=`rgba(40,200,80,${pulse})`;
+    c.fillText('YEMƏYİ GÖT!',sx+SB/2,stY+24);
+  } else if(G.foodOrdered){
+    c.fillStyle='#4a3a10';
+    c.fillText('SİFARİŞ EDİLDİ',sx+SB/2,stY+24);
+  }
+
+  // GERİ
+  pxLine(c,sx+4,H-46,sx+SB-4,H-46,'#1e1a10',1);
+  drawDoorBtn(c,DBTN_BACK_DOOR,'GERİ','',
+    '#1e1a10','#0c0a08','#c8a84a',ts);
+}
+
+function drawDoorBtn(c,b,mainLabel,subLabel,borderCol,bgCol,textCol,ts){
+  px(c,b.x,b.y,b.w,b.h,bgCol);
+  c.strokeStyle=borderCol;c.lineWidth=1;
+  c.strokeRect(b.x+0.5,b.y+0.5,b.w-1,b.h-1);
+  px(c,b.x,b.y,2,b.h,textCol);
+  c.fillStyle=textCol;
+  c.font=`bold 12px VT323`;c.textAlign='center';
+  c.fillText(mainLabel,b.x+b.w/2,b.y+b.h*(subLabel?0.55:0.68));
+  if(subLabel){
+    c.fillStyle=textCol+'88';c.font='8px VT323';
+    c.fillText(subLabel,b.x+b.w/2,b.y+b.h*0.82);
+  }
+}
+
+function drawGenericSidebar(c,ts,v,sx){
+  // Single action toggle
+  let isClosed=false;
+  if(v==='window') isClosed=G.curtain;
+  else if(v==='vent') isClosed=G.ventClosed;
+
+  const hasThreat=(G.phase===v);
+  if(hasThreat){
+    const pulse=0.5+0.4*Math.sin(ts*0.008);
+    c.fillStyle=`rgba(200,30,30,${pulse*0.25})`;
+    c.fillRect(sx,BTN_ACTION.y-4,SB,BTN_ACTION.h+8);
+  }
+  const aLabel=isClosed?'AÇ':'BAĞLA';
+  const aCol=isClosed?'#40b050':'#cc3030';
+  const aBg=isClosed?'#0a1e0c':'#1e0808';
+  drawSideBtn(c,BTN_ACTION,aLabel,true,aCol,aBg);
+  const stText=isClosed?'● BAĞLI':'○ AÇIQ';
+  c.fillStyle=isClosed?'#2a6030':'#3a2010';
+  c.font='9px VT323';c.textAlign='center';
+  c.fillText(stText,sx+SB/2,BTN_ACTION.y+BTN_ACTION.h+10);
+  pxLine(c,sx+4,BTN_ACTION.y+BTN_ACTION.h+16,sx+SB-4,BTN_ACTION.y+BTN_ACTION.h+16,'#1e1a10',1);
+
   const lActive=G.viewMode==='look';
   drawSideBtn(c,BTN_LOOK,'BAX',lActive,'#4a90c0','#0a2030');
-
-  pxLine(c,sx+6,H-52,sx+SB-6,H-52,'#1e1a10',1);
-
-  // BACK button
+  pxLine(c,sx+4,H-46,sx+SB-4,H-46,'#1e1a10',1);
   drawSideBtn(c,BTN_BACK,'GERİ',false,'#c8a84a','#2a1808');
 }
 
@@ -1708,32 +1827,31 @@ function drawViewDoor(ts){
 
   if(G.phase==='door'){
     // Knock timer bar
-    const pct=G.knockTimer/8000;
+    const pct=G.knockTimer/(G.isRealFood?12000:8000);
     px(c,0,0,W,14,'#150000');
     px(c,0,0,W*pct,14,pct>0.4?'#cc2020':'#ff5050');
     px(c,0,12,W,2,'#2a0000');
 
     if(G.isRealFoodPending){
-      // Glowing zones: top=lock, bottom=open
-      px(c,0,H*0.55,W,H*0.45,'rgba(0,40,0,0.25)');
-      px(c,0,0,W,H*0.55,'rgba(40,0,0,0.15)');
-
+      // FOOD DELIVERY — green tint, open prompt
+      c.fillStyle='rgba(0,30,0,0.3)';c.fillRect(0,0,W,H);
+      px(c,0,H-42,W,42,'#001200');
       const pulse=0.8+0.2*Math.sin(ts*0.01);
-      c.fillStyle=`rgba(220,50,50,${pulse})`;
-      c.font='bold 22px VT323'; c.textAlign='center';
-      c.fillText('[ KLİK — KİLİDLƏ ]',W/2,H*0.32);
-      px(c,0,H*0.52,W,2,'#1a2010');
-      c.fillStyle=`rgba(60,200,80,${pulse})`;
-      c.fillText('[ KLİK — QAPINI AÇ (yemək) ]',W/2,H*0.72);
+      c.fillStyle=`rgba(60,220,80,${pulse})`;
+      c.font='bold 22px VT323';c.textAlign='center';
+      c.fillText('[ KLİK — QAPINI AÇ / YEMƏYİ GÖT ]',W/2,H-14);
+      // Also show lock option top
+      px(c,0,16,W,20,'rgba(30,0,0,0.5)');
+      c.fillStyle='rgba(150,50,50,0.8)';
+      c.font='14px VT323';c.textAlign='center';
+      c.fillText('yuxarıya klik → KİLİDLƏ (yemədən)',W/2,H-28);
     } else {
-      // Knock sound visual — door shaking
-      const shake=(Math.sin(ts*0.04)*1.5)|0;
-      px(c,dx+shake,dy,dw,dh,'rgba(0,0,0,0)'); // just offset reference
-      // Prompt
-      const pulse=0.8+0.2*Math.sin(ts*0.01);
+      // MONSTER — red tint
+      c.fillStyle='rgba(20,0,0,0.2)';c.fillRect(0,0,W,H);
       px(c,0,H-38,W,38,'#150000');
+      const pulse=0.8+0.2*Math.sin(ts*0.01);
       c.fillStyle=`rgba(220,40,40,${pulse})`;
-      c.font='bold 24px VT323'; c.textAlign='center';
+      c.font='bold 24px VT323';c.textAlign='center';
       c.fillText('[ KLİK — QAPINI KİLİDLƏ ]',W/2,H-10);
     }
   } else {
@@ -1883,11 +2001,33 @@ function resolveWindow(survived){
   }
 }
 
-function startDoor(){
+function startFoodDelivery(){
+  // Real food knock — separate from monster door event
+  if(G.phase==='door') return; // door already active
   G.phase='door';
-  const food=G.hunger<50&&Math.random()<0.4;
-  G.isRealFood=food&&Math.random()<0.65;
-  G.isRealFoodPending=G.isRealFood;
+  G.isRealFood=true;
+  G.isRealFoodPending=true;
+  sndKnock();
+  G.knockTimer=12000; // 12s to open door
+  clearInterval(knockIv);
+  knockIv=setInterval(()=>{
+    G.knockTimer-=100;
+    if(G.knockTimer<=0){
+      clearInterval(knockIv);
+      // missed food — stays cold, reset delivery state
+      G.foodDelivered=false;
+      G.phase='idle';
+      G.isRealFoodPending=false;
+    }
+  },100);
+  G.view='door';
+}
+
+function startDoor(){
+  // Monster door event (no food)
+  G.phase='door';
+  G.isRealFood=false;
+  G.isRealFoodPending=false;
   sndKnock();
   G.knockTimer=8000;
   clearInterval(knockIv);
@@ -1897,14 +2037,22 @@ function startDoor(){
   },100);
   G.view='door';
 }
+
 function resolveDoor(ok,ate){
   clearInterval(knockIv);
-  G.phase='idle';G.isRealFoodPending=false;
-  G.doorLocked=ok;
+  G.phase='idle';
+  G.isRealFoodPending=false;
   if(ok){
-    if(ate&&G.isRealFood) G.hunger=Math.min(100,G.hunger+45);
+    G.doorOpen=false;
+    G.doorLocked=true;
+    if(ate && G.isRealFood){
+      G.hunger=100;
+      G.foodDelivered=false;
+      G.foodOrdered=false;
+    }
     setTimeout(()=>{G.doorLocked=false;},4000);
   } else {
+    G.doorOpen=false;
     jumpscare('Qapını açdı!');
   }
 }
@@ -1976,6 +2124,8 @@ function showHourFlash(){
   document.getElementById('hf-sub').textContent=`Yeni hədəf: ${h.goal} xal`;
   document.getElementById('hour-flash').style.display='flex';
   G.hunger=Math.max(0,G.hunger-15);
+  // New hour: allow re-ordering food
+  if(G.hunger<75) G.foodOrdered=false;
   setTimeout(()=>{
     document.getElementById('hour-flash').style.display='none';
     G.hourTimer=HOUR_DUR;G.paused=false;
@@ -2034,6 +2184,30 @@ function loop(ts){
     G.hourTimer=Math.max(0,G.hourTimer-dt);
     if(G.hourTimer<=0) checkHour();
     G.hunger=Math.max(0,G.hunger-dt*0.002);
+
+    // Auto-order food when hunger drops below 75%
+    if(!G.foodOrdered && !G.foodDelivered && G.hunger<75){
+      G.foodOrdered=true;
+      G.foodOrderedAt=G.hunger;
+      // Delivery time: hunger 10-50% → arrives in 20-60s (random within range)
+      const h=G.hunger;
+      if(h>=10 && h<=50){
+        G.foodOrderTimer=20000+Math.random()*40000; // 20-60s
+      } else {
+        G.foodOrderTimer=15000+Math.random()*20000; // 15-35s otherwise
+      }
+    }
+
+    // Countdown food delivery
+    if(G.foodOrdered && !G.foodDelivered && G.foodOrderTimer>0){
+      G.foodOrderTimer-=dt;
+      if(G.foodOrderTimer<=0){
+        G.foodDelivered=true;
+        G.foodOrdered=false;
+        // Trigger door knock (food delivery)
+        startFoodDelivery();
+      }
+    }
     tetStep(dt);
     maybeSpawn();
     if(G.phase==='window'){
